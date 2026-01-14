@@ -1,0 +1,15 @@
+# Redirect HTTP to HTTPS and enable HSTS (requires mod_rewrite and mod_headers)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # If behind a proxy that sets X-Forwarded-Proto, you may want to handle it in Apache config
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+<IfModule mod_headers.c>
+    # HSTS: Strict transport security - only enable this once HTTPS is working correctly
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>
+
+# Recommended: prevent directory listing
+Options -Indexes
