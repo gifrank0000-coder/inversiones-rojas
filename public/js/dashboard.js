@@ -1,13 +1,6 @@
 // Scripts extraídos de Dashboard.php
-// Toggle sidebar
+// Fullscreen y chart initialization
 document.addEventListener('DOMContentLoaded', function() {
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            document.querySelector('.admin-sidebar').classList.toggle('collapsed');
-        });
-    }
-
     // Fullscreen toggle
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (fullscreenBtn) {

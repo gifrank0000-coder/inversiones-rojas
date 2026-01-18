@@ -6,7 +6,7 @@ if (!function_exists('get_role_permissions')) {
     function get_role_permissions()
     {
         return [
-            'Administrador' => ['inventario','ventas','compras','pedidos','reservas','promociones','devoluciones'],
+            'Administrador' => ['inventario','ventas','compras','pedidos','reservas','promociones','devoluciones','configuracion','perfil'],
             'Gerente' => ['compras','ventas','promociones','inventario','devoluciones'],
             'Vendedor' => ['ventas','reservas','promociones','devoluciones'],
             'Operador' => ['pedidos','reservas','devoluciones'],

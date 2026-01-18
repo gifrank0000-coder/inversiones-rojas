@@ -395,7 +395,7 @@ body {
 /* Header Principal */
 .admin-header {
     background: white;
-    padding: 8px 14px; /* más compacto */
+    padding: 14px 14px; /* más compacto */
     border-bottom: 1px solid #e9ecef;
     display: flex;
     align-items: center;
@@ -436,6 +436,43 @@ body {
     display: flex;
     align-items: center;
     gap: 14px; /* menos compacto: mayor separación */
+}
+
+/* Wrapper for manage dropdown in header */
+.manage-wrapper {
+    position: relative;
+}
+
+.manage-dropdown {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 0;
+    background: white;
+    color: #2c3e50;
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    padding: 6px 0;
+    min-width: 180px;
+    z-index: 1200;
+}
+
+.manage-dropdown.show {
+    display: block;
+}
+
+.manage-dropdown a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    color: #2c3e50;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.manage-dropdown a:hover {
+    background: #f6f7fb;
 }
 
 /* Alinear el user-panel dentro de la barra de header junto a los botones */
@@ -499,9 +536,9 @@ body {
 .header-btn {
     background: none;
     border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -509,6 +546,7 @@ body {
     cursor: pointer;
     transition: background 0.15s, transform 0.12s;
     position: relative;
+    font-size: 18px; /* aumenta el tamaño del icono dentro */
 }
 
 .header-btn:hover {
@@ -1038,4 +1076,57 @@ body {
     .admin-sidebar:not(.collapsed) ~ .admin-main {
         margin-left: 0;
     }
+}
+
+/* --- Modal de Configuración --- */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.modal.open {
+    display: flex;
+}
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(1px);
+}
+.modal-content {
+    position: relative;
+    background: #ffffff;
+    width: 420px;
+    max-width: calc(100% - 40px);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(2,6,23,0.15);
+    z-index: 2010;
+    overflow: hidden;
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid #f1f3f5;
+}
+.modal-header h2 { font-size: 1.05rem; margin: 0; color: #2c3e50; }
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    color: #6c757d;
+}
+.modal-body { padding: 18px; }
+.settings-actions { display: flex; flex-direction: column; gap: 12px; }
+.settings-actions .btn { display: inline-flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; text-decoration: none; color: white; background: #1F9166; font-weight: 600; }
+.settings-actions .btn i { font-size: 16px; }
+
+@media (max-width: 480px) {
+    .modal-content { width: 94%; }
 }

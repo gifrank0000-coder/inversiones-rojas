@@ -91,7 +91,7 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
                     <span class="checkmark"></span>
                     Recordar sesión
                 </label>
-                <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
+                <a href="recuperacion.php" class="forgot-password">¿Olvidaste tu contraseña?</a>
             </div>
 
             <!-- Simple anti-bot checkbox (client + server validated) -->

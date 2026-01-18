@@ -1,80 +1,6 @@
-// Copia de dashboard.js a admin/dashboard.js
-// Toggle sidebar, fullscreen y chart initialization
+// Scripts extraídos de Dashboard.php
+// Fullscreen y chart initialization
 document.addEventListener('DOMContentLoaded', function() {
-    // Sidebar toggle with persistence and single-responsibility
-    try {
-        var sidebar = document.querySelector('.admin-sidebar');
-        var btn = document.getElementById('sidebarToggle');
-        var STORAGE_KEY = 'ir_sidebar_collapsed';
-
-        function setCollapsed(collapsed) {
-            if (!sidebar) return;
-            sidebar.classList.toggle('collapsed', !!collapsed);
-        }
-
-        // Restore previous state
-        try { var collapsedState = localStorage.getItem(STORAGE_KEY); if (collapsedState === '1') setCollapsed(true); } catch(e) { /* ignore storage errors */ }
-
-        if (btn && sidebar) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var nowCollapsed = !sidebar.classList.contains('collapsed'); // will be toggled
-                sidebar.classList.toggle('collapsed');
-                try { localStorage.setItem(STORAGE_KEY, sidebar.classList.contains('collapsed') ? '1' : '0'); } catch(err) {}
-                // dispatch a custom event so other code can react
-                sidebar.dispatchEvent(new CustomEvent('sidebar:toggled', { detail: { collapsed: sidebar.classList.contains('collapsed') } }));
-            });
-        }
-
-        // Close open submenus when sidebar is collapsed
-        var observer = new MutationObserver(function(mutations) {
-            if (!sidebar) return;
-            if (sidebar.classList.contains('collapsed')) {
-                document.querySelectorAll('.admin-sidebar .menu-item.open').forEach(function(li){ li.classList.remove('open'); });
-            }
-        });
-        if (sidebar) observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] });
-
-        // Submenu behavior: toggle on parent link click, allow real links to navigate
-        document.querySelectorAll('.admin-sidebar .menu-item').forEach(function(li){
-            var submenu = li.querySelector('.submenu');
-            var link = li.querySelector('a');
-            if (!submenu || !link) return;
-
-            // mark for CSS
-            link.setAttribute('data-toggle', 'submenu');
-            link.setAttribute('aria-expanded', li.classList.contains('open') ? 'true' : 'false');
-
-            link.addEventListener('click', function(e){
-                var href = link.getAttribute('href') || '';
-                var isHash = href === '#' || href.trim() === '' || href.indexOf('javascript:') === 0;
-                if (!isHash) {
-                    // real navigation, let it happen
-                    return;
-                }
-                e.preventDefault();
-                var wasOpen = li.classList.contains('open');
-                if (wasOpen) {
-                    li.classList.remove('open');
-                    link.setAttribute('aria-expanded', 'false');
-                } else {
-                    li.classList.add('open');
-                    link.setAttribute('aria-expanded', 'true');
-                }
-            });
-        });
-
-        // Close open submenus on outside click
-        document.addEventListener('click', function(ev){
-            if (ev.target.closest('.admin-sidebar')) return; // click inside sidebar
-            document.querySelectorAll('.admin-sidebar .menu-item.open').forEach(function(li){ li.classList.remove('open'); });
-        });
-
-        // Close open submenus with ESC
-        document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { document.querySelectorAll('.admin-sidebar .menu-item.open').forEach(function(li){ li.classList.remove('open'); }); } });
-
-    } catch(err) { console.error('sidebar/init error', err); }
-
     // Fullscreen button
     try {
         const fullscreenBtn = document.getElementById('fullscreenBtn');
@@ -93,4 +19,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } catch(e) { console.error('chart init', e); }
 
+    // Settings modal (abrir/cerrar y botón Gestión de Usuarios)
+    try {
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsBackdrop = document.getElementById('settingsModalBackdrop');
+        const settingsClose = document.getElementById('settingsModalClose');
+        if (settingsBtn && settingsModal) {
+            function openSettings() {
+                settingsModal.classList.add('open');
+                settingsModal.setAttribute('aria-hidden', 'false');
+            }
+            function closeSettings() {
+                settingsModal.classList.remove('open');
+                settingsModal.setAttribute('aria-hidden', 'true');
+            }
+            settingsBtn.addEventListener('click', function(e){ e.stopPropagation(); openSettings(); });
+            if (settingsClose) settingsClose.addEventListener('click', closeSettings);
+            if (settingsBackdrop) settingsBackdrop.addEventListener('click', closeSettings);
+            document.addEventListener('keydown', function(ev){ if (ev.key === 'Escape') closeSettings(); });
+            // Close if click outside modal-content
+            document.addEventListener('click', function(ev){
+                if (settingsModal.classList.contains('open') && !ev.target.closest('.modal-content') && !ev.target.closest('#settingsBtn')) {
+                    closeSettings();
+                }
+            });
+        }
+    } catch(err) { console.error('settings/init', err); }
 });

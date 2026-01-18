@@ -21,7 +21,12 @@ function asset_url_versioned($relativePath)
         $ver = time();
         error_log("Asset missing: $fileOnDisk");
     }
-    return rtrim(defined('BASE_URL') ? BASE_URL : '', '/') . '/' . $clean . '?v=' . $ver;
+    // Respetar la configuración ASSET_VERSIONING: si está desactivada, devolver URL limpia
+    $base = rtrim(defined('BASE_URL') ? BASE_URL : '', '/');
+    if (defined('ASSET_VERSIONING') && ASSET_VERSIONING === false) {
+        return $base . '/' . $clean;
+    }
+    return $base . '/' . $clean . '?v=' . $ver;
 }
 
 // Conectar a la base de datos
@@ -185,134 +190,16 @@ if ($conn) {
     <title>Dashboard - Admin Inversiones Rojas</title>
     <link rel="icon" href="logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <link rel="stylesheet" href="<?php echo asset_url_versioned('public/css/base.css'); ?>">
-        <link rel="stylesheet" href="<?php echo asset_url_versioned('public/css/pages/auth.css'); ?>">
-        <link rel="stylesheet" href="<?php echo asset_url_versioned('public/css/admin.css'); ?>">
-        <link rel="stylesheet" href="<?php echo asset_url_versioned('public/css/pages/home.css'); ?>">
-        <link rel="stylesheet" href="<?php echo asset_url_versioned('public/css/admin/dashboard.css'); ?>">
-            <link rel="stylesheet" href="<?php echo asset_url_versioned('public/css/components/user-panel.css'); ?>">
-
-</head>
-<body class="admin-body">
+    <link rel="stylesheet" href="/inversiones-rojas/public/css/admin/dashboard.css">
+    <link rel="stylesheet" href="/inversiones-rojas/public/css/base.css">
+    <link rel="stylesheet" href="/inversiones-rojas/public/css/admin.css">
+    <link rel="stylesheet" href="/inversiones-rojas/public/css/pages/home.css">
+    <link rel="stylesheet" href="/inversiones-rojas/public/css/components/user-panel.css">
+    <link rel="stylesheet" href="/inversiones-rojas/public/css/pages/auth.css">
+        </head>
+<body>
     <!-- Sidebar Navigation -->
-    <nav class="admin-sidebar">
-        <div class="sidebar-header">
-                <div class="admin-logo">
-                    <a href="<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/" class="sidebar-logo-link">
-                        <i class="fas fa-motorcycle"></i>
-                        <h2>Inversiones Rojas</h2>
-                    </a>
-                </div>
-            <button class="sidebar-toggle" id="sidebarToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-
-        <div class="sidebar-menu">
-            <div class="menu-section">
-                <h3>Principal</h3>
-                <ul>
-                    <li class="menu-item active">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php">
-                            <i class="fas fa-tachometer-alt"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <!-- items reales del menú (sin ejemplos) -->
-                    <?php if (role_has_permission($_SESSION['user_rol'] ?? null, 'ventas')): ?>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=ventas">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span>Ventas</span>
-                            <span class="menu-badge"><?php echo $stats['pedidos_pendientes']; ?></span>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-
-                    <?php if (role_has_permission($_SESSION['user_rol'] ?? null, 'pedidos')): ?>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=pedidos">
-                            <i class="fas fa-clipboard-list"></i>
-                            <span>Pedidos</span>
-                            <span class="menu-badge"><?php echo $stats['pedidos_pendientes']; ?></span>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-
-            <div class="menu-section">
-                <h3>Gestión</h3>
-                <ul>
-                    <?php if (role_has_permission($_SESSION['user_rol'] ?? null, 'inventario')): ?>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=productos">
-                            <i class="fas fa-motorcycle"></i>
-                            <span>Productos</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=categorias">
-                            <i class="fas fa-tags"></i>
-                            <span>Categorías</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=inventario">
-                            <i class="fas fa-boxes"></i>
-                            <span>Inventario</span>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-
-            <div class="menu-section">
-                <h3>Usuarios</h3>
-                <ul>
-                    <?php if (role_has_permission($_SESSION['user_rol'] ?? null, 'ventas')): ?>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=clientes">
-                            <i class="fas fa-users"></i>
-                            <span>Clientes</span>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-
-                    <?php if (in_array($_SESSION['user_rol'] ?? '', ['Administrador','Gerente'])): ?>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=empleados">
-                            <i class="fas fa-user-tie"></i>
-                            <span>Empleados</span>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-
-            <div class="menu-section">
-                <h3>Configuración</h3>
-                <ul>
-                    <?php if (in_array($_SESSION['user_rol'] ?? '', ['Administrador','Gerente'])): ?>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=configuracion">
-                            <i class="fas fa-cog"></i>
-                            <span>Configuración</span>
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=reportes">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>Reportes</span>
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-        </div>
-
-        </div>
-    </nav>
+    <?php require __DIR__ . '/partials/sidebar_menu.php'; ?>
 
     <!-- Main Content -->
     <main class="admin-main">
@@ -329,14 +216,16 @@ if ($conn) {
             
             <div class="header-right">
                 <div class="header-actions">
-                    <button class="header-btn" id="notificationsBtn">
+                    <button class="header-btn" id="notificationsBtn" title="Notificaciones">
                         <i class="fas fa-bell"></i>
-                        <span class="notification-count"><?php echo count($productosStockBajo); ?></span>
+   
                     </button>
-                    <button class="header-btn" id="fullscreenBtn">
+
+
+                    <button class="header-btn" id="fullscreenBtn" title="Pantalla completa">
                         <i class="fas fa-expand"></i>
                     </button>
-                  
+
                 </div>
                   <?php require __DIR__ . '/partials/user_panel.php'; ?>
             </div>
@@ -344,6 +233,44 @@ if ($conn) {
 
         <!-- Dashboard Content -->
         <div class="admin-content">
+            <?php
+            // Si se solicitó un módulo por query string, incluir la vista correspondiente
+            if (isset($module) && !empty($module)) {
+                // Lista blanca de módulos permitidos y su archivo correspondiente
+                $allowedModules = [
+                    'ventas' => 'ventas.php',
+                    'compras' => 'compras.php',
+                    'inventario' => 'inventario.php',
+                    'pedidos' => 'pedidos.php',
+                    'reservas' => 'reserva.php',
+                    'promociones' => 'promociones.php',
+                    'devoluciones' => 'devoluciones.php',
+                    'clientes' => 'clientes.php',
+                 'configuracion' => 'configuracion.php',
+                 'perfil' => 'perfil.php'
+                    
+                ];
+
+                $moduleKey = strtolower($module);
+                if (isset($allowedModules[$moduleKey])) {
+                    $moduleFile = __DIR__ . '/' . $allowedModules[$moduleKey];
+                    if (file_exists($moduleFile)) {
+                        // Mostrar el módulo dentro de un iframe para mantener el layout del dashboard
+                        $iframeSrc = rtrim(defined('BASE_URL') ? BASE_URL : '', '/') . '/app/views/layouts/' . $allowedModules[$moduleKey];
+                        echo '<div class="module-iframe-wrapper" style="width:100%; height:calc(100vh - 220px);">';
+                        echo '<iframe src="' . htmlspecialchars($iframeSrc) . '" style="width:100%; height:100%; border:0; border-radius:8px;" title="Modulo ' . htmlspecialchars($moduleKey) . '"></iframe>';
+                        echo '</div>';
+                    } else {
+                        echo "<div class=\"module-missing\">Módulo solicitado ('" . htmlspecialchars($moduleKey) . "') no está disponible.</div>";
+                    }
+                } else {
+                    echo "<div class=\"module-unauthorized\">Módulo no permitido.</div>";
+                }
+            
+                // No renderizar el dashboard por defecto cuando se muestra un módulo
+            } else {
+                // Cerrar el bloque PHP para renderizar el HTML del dashboard
+                ?>
             <!-- Stats Cards -->
             <div class="stats-grid">
                 <div class="stat-card">
@@ -359,7 +286,7 @@ if ($conn) {
                         </span>
                     </div>
                 </div>
-
+            
                 <div class="stat-card">
                     <div class="stat-icon orders">
                         <i class="fas fa-clipboard-list"></i>
@@ -552,18 +479,113 @@ if ($conn) {
             </div>
         </div>
     </main>
+                            
+    <?php
+    }
+    ?>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal" aria-hidden="true" role="dialog" aria-labelledby="settingsModalTitle">
+        <div class="modal-backdrop" id="settingsModalBackdrop"></div>
+        <div class="modal-content" role="document">
+            <div class="modal-header">
+                <h2 id="settingsModalTitle">Configuración</h2>
+                <button class="modal-close" id="settingsModalClose" aria-label="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-actions">
+                    <a class="btn btn-primary" id="manageUsersBtn" href="<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/app/views/layouts/Dashboard.php?module=empleados">
+                        <i class="fas fa-user-cog"></i> Gestión de Usuarios
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Toggle del sidebar (se ejecuta en páginas que cargan este partial)
+document.addEventListener('DOMContentLoaded', function(){
+    var btn = document.getElementById('sidebarToggle');
+    if (btn) {
+        btn.addEventListener('click', function(){
+            var sidebar = document.querySelector('.admin-sidebar');
+            if (sidebar) sidebar.classList.toggle('collapsed');
+        });
+    }
+});
         // Exponer datos necesarios al JS
         window.DASHBOARD_DATA = {
             meses: <?php echo json_encode($meses); ?>,
             datosGrafico: <?php echo json_encode($datosGrafico); ?>
+            
         };
+    </script>
+    <script>
+    // Escuchar mensajes desde módulos cargados en iframe para actualizar header/breadcrumb
+    (function(){
+        const setHeader = (title, crumbs) => {
+            const h = document.querySelector('.header-left h1');
+            const bc = document.querySelector('.breadcrumb');
+            if (h) h.textContent = title || 'Dashboard';
+            if (bc) {
+                if (Array.isArray(crumbs) && crumbs.length) {
+                    // Construir breadcrumb: primer elemento link a base, luego separadores
+                    const base = '<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>';
+                    bc.innerHTML = '';
+                    crumbs.forEach((c, i) => {
+                        if (i === 0) {
+                            bc.innerHTML += '<a href="' + base + '">' + c + '</a>';
+                        } else {
+                            bc.innerHTML += '<span>/</span><span>' + c + '</span>';
+                        }
+                    });
+                }
+            }
+            if (title) document.title = title + ' - Admin Inversiones Rojas';
+        };
+
+        window.addEventListener('message', function(ev){
+            // Aceptar sólo mensajes del mismo origen por seguridad
+            try {
+                if (ev.origin !== window.location.origin) return;
+            } catch(e){ return; }
+
+            let data = ev.data;
+            if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch(e) { return; }
+            }
+            if (!data || !data.irModuleHeader) return;
+            setHeader(data.title || 'Dashboard', data.breadcrumb || ['Inicio', data.title || '']);
+        }, false);
+
+        // Fallback: si el iframe carga, inferir título por nombre de archivo
+        const iframe = document.querySelector('.module-iframe-wrapper iframe');
+        if (iframe) {
+            iframe.addEventListener('load', function(){
+                try {
+                    const path = new URL(iframe.src).pathname.split('/').pop();
+                    const map = {
+                        'configuracion.php': 'Configuración',
+                        'compras.php': 'Compras',
+                        'ventas.php': 'Ventas',
+                        'inventario.php': 'Inventario',
+                        'pedidos.php': 'Pedidos',
+                        'promociones.php': 'Promociones',
+                        'devoluciones.php': 'Devoluciones',
+                        'clientes.php': 'Clientes'
+                    };
+                    const title = map[path] || path.replace('.php','');
+                    setHeader(title, ['Inicio', title]);
+                } catch(e){}
+            });
+        }
+    })();
     </script>
     <script src="<?php echo BASE_URL; ?>/public/js/main.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/components/user-panel.js"></script>
+    <script src="<?php echo BASE_URL; ?>/public/js/components/sidebar.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/script.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/admin/dashboard.js"></script>
     

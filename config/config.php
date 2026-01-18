@@ -24,4 +24,12 @@ if (!defined('APP_DEBUG')) {
 // (Redirección HTTPS eliminada por seguridad en entornos locales)
 
 // Puedes añadir más constantes aquí (DB, env, etc.)
+// Control de versionado de assets (cache-busting) — desactivar en desarrollo
+if (!defined('ASSET_VERSIONING')) {
+    if (defined('APP_DEBUG') && APP_DEBUG) {
+        define('ASSET_VERSIONING', false);
+    } else {
+        define('ASSET_VERSIONING', true);
+    }
+}
 ?>

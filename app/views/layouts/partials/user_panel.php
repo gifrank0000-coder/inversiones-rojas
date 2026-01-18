@@ -2,6 +2,7 @@
 // Partial: user panel shared entre vistas
 // Requiere: session_start() ya ejecutado y BASE_URL disponible
 ?>
+
 <div class="user-panel" id="userPanel">
     <div class="user-toggle" id="userToggle" role="button" tabindex="0">
         <div class="user-avatar">
@@ -30,24 +31,16 @@
                 </li>
                 <li class="dropdown-divider"></li>
             <?php endif; ?>
-            <li>
-                <button class="dropdown-item" onclick="openProfile()">
-                    <i class="fas fa-user"></i>
-                    Mi Perfil
-                </button>
-            </li>
-            <li>
-                <button class="dropdown-item" onclick="openOrders()">
-                    <i class="fas fa-shopping-bag"></i>
-                    Mis Pedidos
-                </button>
-            </li>
-            <li>
-                <button class="dropdown-item" onclick="openSettings()">
-                    <i class="fas fa-cog"></i>
-                    Configuración
-                </button>
-            </li>
+     
+<a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=perfil" class="dropdown-item">
+    <i class="fas fa-user"></i>
+    Mi Perfil
+</a>
+    <a href="<?php echo BASE_URL; ?>/app/views/layouts/Dashboard.php?module=configuracion" class="dropdown-item">
+        <i class="fas fa-cog"></i>
+        Configuración
+    </a>
+</li>
             <li class="dropdown-divider"></li>
             <li>
                 <a href="<?php echo BASE_URL; ?>/logout.php" class="dropdown-item logout">
