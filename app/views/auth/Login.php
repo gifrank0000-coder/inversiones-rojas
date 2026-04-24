@@ -1,6 +1,17 @@
-<?php require_once __DIR__ . '/../../../config/config.php';
-// Valor seguro para la clave de reCAPTCHA (puede no estar definida)
+<?php 
+require_once __DIR__ . '/../../../config/config.php';
 $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE_KEY') : '';
+
+// Generar token CSRF si no existe
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrf_token = $_SESSION['csrf_token'];
+
+$base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -8,20 +19,41 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión - Inversiones Rojas</title>
-    <link rel="icon" href="<?php echo BASE_URL; ?>/public/img/logo.png">
+    <link rel="icon" href="<?php echo $base_url; ?>/public/img/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/base.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/pages/auth.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/admin.css">
-    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/pages/home.css">
+    <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/base.css">
+    <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/pages/auth.css">
+    <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/admin.css">
+    <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/pages/home.css">
+    
+    <style>
+    .form-message {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        font-size: 14px;
+        animation: slideIn 0.3s ease;
+    }
+    .form-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    .form-message.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    </style>
+    
     <?php if ($__RECAPTCHA_SITE_KEY): ?>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <?php endif; ?>
+    
     <script>
-        // Base URL para peticiones desde JavaScript
-        window.APP_BASE = '<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>';
+         window.APP_BASE = '<?php echo $base_url; ?>';
     </script>
-    <!-- Estilos inline para el botón 'Inicio' (incluido directamente en la vista) -->
+    
     <style>
     .auth-back-btn {
         position: fixed;
@@ -42,19 +74,102 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
     .auth-back-btn i { color: #fff; font-size: 24px; line-height: 1; }
     .auth-back-btn span { color: #fff; display: inline-block; transform: translateY(-1px); font-size:15px; }
     .auth-back-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(31,145,102,0.22); }
+    
+    .recaptcha-container {
+        margin: 15px 0;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .recaptcha-notice {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        font-size: 14px;
+        color: #856404;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .recaptcha-notice i {
+        color: #f39c12;
+    }
+    
+    /* Estilos para validación de email */
+    .email-validation-message {
+        font-size: 13px;
+        margin-top: 5px;
+        padding-left: 35px;
+        animation: slideIn 0.3s ease;
+    }
+    
+    .email-error-message {
+        color: #dc3545;
+    }
+    
+    .email-success-message {
+        color: #28a745;
+    }
+    
+    .email-loading {
+        color: #6c757d;
+    }
+    
+    .email-error-message a {
+        color: #dc3545;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+    
+    .email-error-message a:hover {
+        color: #bd2130;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .input-group input.is-valid {
+        border-color: #28a745;
+    }
+    
+    .input-group input.is-invalid {
+        border-color: #dc3545;
+    }
+    
     @media (max-width: 420px) {
         .auth-back-btn { top:10px; left:8px; padding:8px 10px; font-size:14px; border-radius:10px; gap:8px; }
         .auth-back-btn i { font-size:20px; }
+        
+        .g-recaptcha {
+            transform: scale(0.85);
+            transform-origin: 0 0;
+        }
     }
     </style>
 </head>
-    <!-- Botón de volver al inicio (visible y fijo en la esquina superior izquierda) -->
-    <a href="<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/" class="auth-back-btn" aria-label="Inicio">
+<body class="auth-page">
+    <a href="<?php echo $base_url; ?>/" class="auth-back-btn" aria-label="Inicio">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
         <span>Volver al Inicio</span>
     </a>
-
-<body class="auth-page">
 
     <div class="auth-container">
         <div class="auth-header">
@@ -67,120 +182,276 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         </div>
 
         <form class="auth-form" id="loginForm">
-            <!-- Honeypot field to trap simple bots (should remain empty) -->
+            <input type="hidden" name="csrf_token" id="csrfToken" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="text" name="website" id="website" style="position:absolute;left:-9999px;top:auto;opacity:0;" tabindex="-1" autocomplete="off">
+            
             <div class="form-group">
                 <label for="email">Correo Electrónico</label>
                 <div class="input-group">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" name="email" required placeholder="tu@email.com">
+                    <input type="text" id="email" name="email" placeholder="tu@email.com" autocomplete="email">
                 </div>
+                <div id="emailValidationMessage" class="email-validation-message"></div>
             </div>
 
             <div class="form-group">
                 <label for="password">Contraseña</label>
                 <div class="input-group">
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" required placeholder="Tu contraseña">
+                    <input type="password" id="password" name="password" placeholder="Tu contraseña" autocomplete="current-password">
                 </div>
             </div>
 
-            <div class="form-options">
-                <label class="checkbox-container">
-                    <input type="checkbox" id="rememberMe" name="rememberMe">
-                    <span class="checkmark"></span>
-                    Recordar sesión
-                </label>
-                <a href="recuperacion.php" class="forgot-password">¿Olvidaste tu contraseña?</a>
-            </div>
-
-            <!-- Simple anti-bot checkbox (client + server validated) -->
-            <div style="margin:12px 0; display:flex; align-items:center; gap:12px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                    <input type="checkbox" id="notRobot" name="not_robot" value="1">
-                    <span>No soy un robot</span>
-                </label>
-            </div>
-
             <?php if ($__RECAPTCHA_SITE_KEY): ?>
-            <div style="margin:10px 0;">
                 <div class="g-recaptcha" data-sitekey="<?php echo $__RECAPTCHA_SITE_KEY; ?>"></div>
-            </div>
             <?php endif; ?>
 
-            <button type="submit" class="auth-btn primary">
+            <button type="submit" class="auth-btn primary" id="loginSubmitBtn">
                 <i class="fas fa-sign-in-alt"></i>
                 Iniciar Sesión
             </button>
-
+            
+            <div id="formMessage" class="form-message" style="display:none;"></div>
+            
+            <a href="<?php echo $base_url; ?>/app/views/auth/recuperacion.php" class="forgot-password">¿Olvidaste tu contraseña?</a>
+            
             <div class="auth-footer">
-                <p>¿No tienes cuenta? <a href="register.php">Regístrate aquí</a></p>
+                <p>¿No tienes cuenta? <a href="<?php echo $base_url; ?>/app/views/auth/register.php">Regístrate aquí</a></p>
             </div>
         </form>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            const submitBtn = document.getElementById('loginSubmitBtn');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const emailValidationMessage = document.getElementById('emailValidationMessage');
+            const formMessage = document.getElementById('formMessage');
             
-            // Simple client-side anti-bot check
-            var notRobot = document.getElementById('notRobot');
-            var honey = document.getElementById('website');
-            if (honey && honey.value.trim() !== '') {
-                alert('Envío detectado como sospechoso');
-                return;
+            let emailValidated = false;
+            let emailCheckTimeout = null;
+            let lastCheckedEmail = '';
+            
+            function getBaseUrl() {
+                const base = window.APP_BASE || '';
+                return base.replace(/\/$/, '');
             }
-            if (notRobot && !notRobot.checked) {
-                alert('Por favor confirma que no eres un robot');
-                return;
+            
+            function buildUrl(path) {
+                const base = getBaseUrl();
+                if (!base) return path;
+                return base + (path.startsWith('/') ? path : '/' + path);
             }
+            
+            function validateEmailFormat(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+            
+            function showFormMessage(message, type) {
+                formMessage.textContent = message;
+                formMessage.className = 'form-message ' + type;
+                formMessage.style.display = 'block';
+            }
+            
+            function hideFormMessage() {
+                formMessage.style.display = 'none';
+            }
+            
+            function showEmailMessage(message, type) {
+                emailValidationMessage.innerHTML = message;
+                emailValidationMessage.className = `email-validation-message email-${type}-message`;
+                
+                const inputGroup = emailInput.closest('.input-group').querySelector('input');
+                if (type === 'success') {
+                    inputGroup.classList.add('is-valid');
+                    inputGroup.classList.remove('is-invalid');
+                } else if (type === 'error') {
+                    inputGroup.classList.add('is-invalid');
+                    inputGroup.classList.remove('is-valid');
+                } else {
+                    inputGroup.classList.remove('is-valid', 'is-invalid');
+                }
+            }
+            
+            function clearEmailMessage() {
+                emailValidationMessage.innerHTML = '';
+                emailValidationMessage.className = 'email-validation-message';
+                const inputGroup = emailInput.closest('.input-group').querySelector('input');
+                inputGroup.classList.remove('is-valid', 'is-invalid');
+            }
+            
+            function checkEmail() {
+                const email = emailInput.value.trim();
+                
+                if (emailCheckTimeout) {
+                    clearTimeout(emailCheckTimeout);
+                }
+                
+                clearEmailMessage();
+                emailValidated = false;
+                
+                if (!email) {
+                    lastCheckedEmail = '';
+                    return;
+                }
+                
+                if (!validateEmailFormat(email)) {
+                    showEmailMessage(
+                        '<i class="fas fa-exclamation-circle"></i> Por favor ingresa un correo electrónico válido',
+                        'error'
+                    );
+                    emailValidated = false;
+                    return;
+                }
+                
+                emailCheckTimeout = setTimeout(() => {
+                    const url = buildUrl('/api/check_email.php') + '?email=' + encodeURIComponent(email);
 
-            // Mostrar mensaje de carga
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
-            submitBtn.disabled = true;
+                    fetch(url)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.exists) {
+                                showEmailMessage('<i class="fas fa-check-circle"></i> Correo válido','success');
+                                emailValidated = true;
+                                lastCheckedEmail = email;
+                            } else {
+                                showEmailMessage(
+                                    '<i class="fas fa-exclamation-circle"></i> Correo inválido o no registrado',
+                                    'error'
+                                );
+                                emailValidated = false;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showEmailMessage(
+                                '<i class="fas fa-exclamation-circle"></i> Error de conexión. Intenta de nuevo.',
+                                'error'
+                            );
+                            emailValidated = false;
+                        });
+                }, 500);
+            }
             
-            const formData = new FormData(this);
-            // Adjuntar token reCAPTCHA si está configurado
-            <?php if ($__RECAPTCHA_SITE_KEY): ?>
-            try {
-                if (typeof grecaptcha !== 'undefined') {
-                    var recaptchaResponse = grecaptcha.getResponse();
-                    if (!recaptchaResponse) {
-                        alert('Por favor completa el reCAPTCHA');
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                hideFormMessage();
+                
+                const honey = document.getElementById('website');
+                if (honey && honey.value.trim() !== '') {
+                    showFormMessage('Envío detectado como sospechoso', 'error');
+                    return;
+                }
+                
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+                
+                if (!email || !password) {
+                    showFormMessage('Por favor completa todos los campos', 'error');
+                    if (!email) emailInput.focus();
+                    else passwordInput.focus();
+                    return;
+                }
+                
+                if (!validateEmailFormat(email)) {
+                    showFormMessage('Por favor ingresa un correo electrónico válido', 'error');
+                    emailInput.focus();
+                    return;
+                }
+                
+                if (!emailValidated) {
+                    try {
+                        const url = buildUrl('/api/check_email.php') + '?email=' + encodeURIComponent(email);
+                        const resp = await fetch(url);
+                        const data = await resp.json();
+                        if (data.success && data.exists) {
+                            emailValidated = true;
+                        } else {
+                            showEmailMessage(
+                                '<i class="fas fa-exclamation-circle"></i> Correo inválido o no registrado',
+                                'error'
+                            );
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Error:', err);
+                        showFormMessage('Error de conexión. Intenta de nuevo.', 'error');
                         return;
                     }
-                    formData.append('g-recaptcha-response', recaptchaResponse);
                 }
-            } catch (err) {
-                console.warn('reCAPTCHA check failed:', err);
-            }
-            <?php endif; ?>
-            
-            fetch('<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/tests/process_login.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    window.location.href = data.redirect;
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error en la conexión');
-            })
-            .finally(() => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+                
+                submitLogin();
             });
+            
+            function submitLogin() {
+                <?php if ($__RECAPTCHA_SITE_KEY): ?>
+                if (typeof grecaptcha !== 'undefined') {
+                    const recaptchaResponse = grecaptcha.getResponse();
+                    if (!recaptchaResponse || recaptchaResponse.length === 0) {
+                        showFormMessage('Debes marcar el "reCAPTCHA" para continuar', 'error');
+                        return;
+                    }
+                } else {
+                    showFormMessage('Error de seguridad. Por favor recarga la página.', 'error');
+                    return;
+                }
+                <?php endif; ?>
+                
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
+                submitBtn.disabled = true;
+                
+                const formData = new FormData(loginForm);
+                
+                fetch(buildUrl('/tests/process_login.php'), {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const redirectUrl = data.redirect;
+                        const base = getBaseUrl();
+                        
+                        if (redirectUrl.startsWith('/') || redirectUrl.startsWith(base)) {
+                            window.location.href = redirectUrl;
+                        } else if (redirectUrl.startsWith('http')) {
+                            const redirectHost = new URL(redirectUrl).host;
+                            const currentHost = window.location.host;
+                            if (redirectHost === currentHost) {
+                                window.location.href = redirectUrl;
+                            } else {
+                                showFormMessage('Error de redirección. Contacta al administrador.', 'error');
+                            }
+                        } else {
+                            window.location.href = redirectUrl;
+                        }
+                    } else {
+                        showFormMessage(data.message || 'Error en el login', 'error');
+                        <?php if ($__RECAPTCHA_SITE_KEY): ?>
+                        if (typeof grecaptcha !== 'undefined') {
+                            grecaptcha.reset();
+                        }
+                        <?php endif; ?>
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showFormMessage('Error en la conexión. Por favor intenta de nuevo.', 'error');
+                    <?php if ($__RECAPTCHA_SITE_KEY): ?>
+                    if (typeof grecaptcha !== 'undefined') {
+                        grecaptcha.reset();
+                    }
+                    <?php endif; ?>
+                })
+                .finally(() => {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                });
+            }
         });
     </script>
 </body>

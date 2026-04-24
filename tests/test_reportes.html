@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Reportes</title>
+</head>
+<body>
+    <h1>Test de Reportes</h1>
+    <button onclick="testReport('ingresos_diario')">Ingresos Diario</button>
+    <button onclick="testReport('ingresos_mensual')">Ingresos Mensual</button>
+    <button onclick="testReport('historial_clientes')">Historial Clientes</button>
+
+    <script>
+        async function testReport(reportType) {
+            try {
+                console.log('Enviando petición para:', reportType);
+                const response = await fetch('/inversiones-rojas/api/generate_report.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        report_type: reportType,
+                        module: 'ventas'
+                    })
+                });
+
+                console.log('Respuesta status:', response.status);
+                console.log('Respuesta headers:', response.headers);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const blob = await response.blob();
+                console.log('Blob size:', blob.size);
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `reporte_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                alert('Reporte generado exitosamente');
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,8 +2,8 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     # If behind a proxy that sets X-Forwarded-Proto, you may want to handle it in Apache config
-    RewriteCond %{HTTPS} !=on
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    # RewriteCond %{HTTPS} !=on
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
 
 <IfModule mod_headers.c>

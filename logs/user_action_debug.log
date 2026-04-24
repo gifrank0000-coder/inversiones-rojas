@@ -1,0 +1,175 @@
+----
+2026-02-06 22:32:20
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"57","username":"asfsafas","email":"adda@gmail.com","nombre_completo":"dsadad","cedula_rif":"","telefono_principal":"","rol_id":"2","password":"","confirm_password":"","action":"update","id":"57"}
+----
+2026-02-06 22:54:32
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"asdfas","email":"asd@gmail.com","nombre_completo":"adadsa","cedula_rif":"23214124","telefono_principal":"041234343","rol_id":"4","password":"rivas1234","confirm_password":"rivas1234","action":"create"}
+----
+2026-02-06 22:55:04
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"59","username":"sdasd","email":"dasda@gmail.com","nombre_completo":"dasdsd","cedula_rif":"","telefono_principal":"","rol_id":"2","password":"","confirm_password":"","action":"update","id":"59"}
+----
+2026-02-06 23:51:29
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"32","username":"jovita45r","email":"jovita45r@gmail.com","nombre_completo":"Raizza","cedula_rif":"","telefono_principal":"","rol_id":"4","password":"","confirm_password":"","action":"update","id":"32"}
+----
+2026-02-07 00:21:26
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"32","username":"jovita45r","email":"jovita45r@gmail.com","nombre_completo":"Raizza","cedula_rif":"","telefono_principal":"","rol_id":"5","password":"","confirm_password":"","action":"update","id":"32"}
+----
+2026-02-08 00:51:54
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"jose jose","email":"jose@gmail.com","nombre_completo":"el rey","cedula_rif":"3121245346","telefono_principal":"04127687698","rol_id":"4","password":"rivas1234","confirm_password":"rivas1234","action":"create"}
+----
+2026-02-08 15:31:37
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"xx","email":"x@gmail.com","nombre_completo":"adsada","cedula_rif":"123123","telefono_principal":"0412435435","rol_id":"2","password":"rivas1234","confirm_password":"rivas1234","action":"create"}
+----
+2026-02-13 22:12:19
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"62","username":"xx","email":"x@gmail.com","nombre_completo":"adsada","cedula_rif":"","telefono_principal":"","rol_id":"3","password":"","confirm_password":"","action":"update","id":"62"}
+----
+2026-02-13 22:12:26
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"62","username":"xx","email":"x@gmail.com","nombre_completo":"adsada","cedula_rif":"","telefono_principal":"","rol_id":"2","password":"","confirm_password":"","action":"update","id":"62"}
+----
+2026-02-13 22:12:37
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"62","username":"xx","email":"x@gmail.com","nombre_completo":"adsada","cedula_rif":"","telefono_principal":"","rol_id":"3","password":"","confirm_password":"","action":"update","id":"62"}
+----
+2026-02-25 04:33:55
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"rivas2912","email":"rivas@gmail.com","nombre_completo":"rivas antonio","cedula_rif":"14234235","telefono_principal":"041289798709","rol_id":"5","password":"rivas1234","confirm_password":"rivas1234","action":"create"}
+----
+2026-03-13 16:02:56
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"Maria","email":"maria.garcia@email.com","nombre_completo":"maria castillo","cedula_rif":"V30924255","telefono_principal":"0412123456789","rol_id":"5","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-13 16:02:57
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"Maria","email":"maria.garcia@email.com","nombre_completo":"maria castillo","cedula_rif":"V30924255","telefono_principal":"0412123456789","rol_id":"5","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-13 16:03:28
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"Maria","email":"maria.garcia@email.com","nombre_completo":"maria castillo","cedula_rif":"V30924255","telefono_principal":"0412123456789","rol_id":"5","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-13 16:03:35
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"Maria","email":"mariagarcia@email.com","nombre_completo":"maria castillo","cedula_rif":"V30924255","telefono_principal":"0412123456789","rol_id":"5","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-13 16:04:47
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"Aponte ","email":"Aponte","nombre_completo":"Aponte luis","cedula_rif":"V6927865","telefono_principal":"0412345678","rol_id":"4","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-13 16:05:07
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"65","username":"Aponte","email":"Aponte@gmail.com","nombre_completo":"Aponte luis","cedula_rif":"","telefono_principal":"","rol_id":"4","password":"","confirm_password":"","action":"update","id":"65"}
+----
+2026-03-15 13:45:16
+SESSION_USER_ID=2
+RAW_INPUT=
+POST={"user_id":"","username":"luis carrillo","email":"carrillo@gmail.com","nombre_completo":"luisa ","cedula_rif":"V30924252","telefono_principal":"04175550246","rol_id":"3","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-16 04:19:26
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"Raizza","email":"jovita45r@gmail.com","nombre_completo":"Raizza marrero","cedula_rif":"V-6927868","telefono_principal":"04175550246","rol_id":"3","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-18 13:32:27
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"Cesar1234","email":"cesar@gmail.com","nombre_completo":"Cesar","cedula_rif":"201118722","telefono_principal":"04127550246","rol_id":"2","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-22 15:24:15
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"dylan2912","email":"dylan@gmail.com","nombre_completo":"dylan tablante","cedula_rif":"31555702","telefono_principal":"04127550242","rol_id":"6","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-22 15:25:17
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"luis","email":"luis@gmail.com","nombre_completo":"luis rondon","cedula_rif":"32555702","telefono_principal":"04121304521","rol_id":"5","password":"Rivas1234.","confirm_password":"Rivas1234.","action":"create"}
+----
+2026-03-24 18:02:27
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"9","username":"usuario2912","email":"user@gmail.com","nombre_completo":"Usuario de prueba123","cedula_rif":"V-12345678","telefono_principal":"0412-1304527","rol_id":"3","password":"","confirm_password":"","action":"update","id":"9"}
+----
+2026-03-24 18:02:37
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"action":"toggle_status","id":"9"}
+----
+2026-03-24 18:02:41
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"action":"toggle_status","id":"9"}
+----
+2026-03-24 18:03:23
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"usuario2912","email":"user1@gmail.com","nombre_completo":"Usuario de prueba123","cedula_rif":"V-12345678","telefono_principal":"0412-1304527","rol_id":"3","password":"12345678","confirm_password":"12345678","action":"create"}
+----
+2026-03-24 18:03:35
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"usuario2912","email":"user123@gmail.com","nombre_completo":"Usuario de prueba123","cedula_rif":"V-12345678","telefono_principal":"0412-1304527","rol_id":"3","password":"12345678","confirm_password":"12345678","action":"create"}
+----
+2026-03-24 18:03:43
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"usuario","email":"user123@gmail.com","nombre_completo":"Usuario de prueba123","cedula_rif":"V-12345678","telefono_principal":"0412-1304527","rol_id":"3","password":"12345678","confirm_password":"12345678","action":"create"}
+----
+2026-03-26 16:51:33
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"6","username":"juan","email":"juan@gmail.com","nombre_completo":"Juan Villegas","cedula_rif":"V-30555703","telefono_principal":"0412-7550247","rol_id":"6","password":"","confirm_password":"","action":"update","id":"6"}
+----
+2026-03-26 16:54:36
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"vendedor ","email":"Vendedor@gmail.com","nombre_completo":"Vendedor","cedula_rif":"V-30555702","telefono_principal":"0412-7550243","rol_id":"2","password":"12345678","confirm_password":"12345678","action":"create"}
+----
+2026-03-26 16:55:17
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"operador","email":"operador@gmail.com","nombre_completo":"operador","cedula_rif":"V-30555703","telefono_principal":"0412-7550242","rol_id":"6","password":"12345678","confirm_password":"12345678","action":"create"}
+----
+2026-03-26 16:56:05
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"user_id":"","username":"Gerente","email":"Gerente@gmail.com","nombre_completo":"Gerente","cedula_rif":"V-30555703","telefono_principal":"0412-7550242","rol_id":"5","password":"12345678","confirm_password":"12345678","action":"create"}
+----
+2026-04-21 15:11:56
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"action":"toggle_status","id":"14"}
+----
+2026-04-21 15:12:06
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"action":"toggle_status","id":"13"}
+----
+2026-04-21 15:12:10
+SESSION_USER_ID=1
+RAW_INPUT=
+POST={"action":"toggle_status","id":"13"}

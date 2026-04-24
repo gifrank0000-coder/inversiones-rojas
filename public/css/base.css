@@ -320,6 +320,10 @@ nav ul li a:hover {
     display: none;
 }
 
+.mobile-auth-links {
+    display: none;
+}
+
 .mobile-auth-btn {
     width: 100%;
     margin: 5px 0;
@@ -582,7 +586,7 @@ nav ul li a:hover {
 .main-promo-slider {
     flex: 2;
     position: relative;
-    height: 400px;
+    height: 600px;
     overflow: hidden;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -611,10 +615,14 @@ nav ul li a:hover {
     height: 100%;
     opacity: 0;
     transition: opacity 0.5s ease;
+    pointer-events: none;
+    z-index: 1;
 }
 
 .promo-slide.active {
     opacity: 1;
+    pointer-events: auto;
+    z-index: 2;
 }
 
 .promo-slide-image {
@@ -633,11 +641,10 @@ nav ul li a:hover {
 .promo-slide-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     transition: transform 0.5s ease;
 }
 
-.promo-slide:hover .promo-slide-image img {
+.promo-slide.active:hover .promo-slide-image img {
     transform: scale(1.05);
 }
 
@@ -654,7 +661,7 @@ nav ul li a:hover {
     text-align: center;
 }
 
-.promo-slide:hover .promo-slide-description {
+.promo-slide.active:hover .promo-slide-description {
     transform: translateY(0);
 }
 
@@ -789,18 +796,22 @@ nav ul li a:hover {
 
 .slider-custom {
     position: relative;
-    padding: 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .slider-track-custom {
     display: flex;
-    overflow-x: auto;
+    overflow: hidden;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 25px;
     padding: 10px 5px;
     cursor: grab;
+    flex: 1;
+    pointer-events: none;
 }
 
 .slider-track-custom:active {
@@ -821,6 +832,7 @@ nav ul li a:hover {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     border: 1px solid #27ae60;
     color: white;
+    pointer-events: auto;
 }
 
 .producto-custom:hover {
@@ -829,8 +841,8 @@ nav ul li a:hover {
 }
 
 .producto-imagen-custom {
-    height: 160px;
-    background: linear-gradient(145deg, #2a9c71, #34c893);
+  
+    background: white;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -838,6 +850,18 @@ nav ul li a:hover {
     font-size: 14px;
     font-style: italic;
     position: relative;
+    overflow: hidden;
+}
+
+.producto-imagen-custom img,
+.producto-imagen-custom .product-image {
+    width: auto;
+    max-width: 90%;
+    height: auto;
+    max-height: 140px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
 }
 
 .producto-imagen-custom::after {
@@ -909,46 +933,40 @@ nav ul li a:hover {
 }
 
 .slider-control-custom {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 50px;
-    height: 50px;
+    flex-shrink: 0;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
-    background: white;
-    border: 2px solid #27ae60;
-    color: #27ae60;
+    background: #1F9166;
+    border: none;
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 20px;
+    font-size: 18px;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
     z-index: 10;
-    opacity: 0;
-    visibility: hidden;
+    opacity: 0.7;
+    pointer-events: auto;
 }
 
-.slider-container-custom:hover .slider-control-custom,
-.slider-track-custom:active ~ .slider-control-custom,
-.slider-control-custom:hover {
+.slider-container-custom:hover .slider-control-custom {
     opacity: 1;
-    visibility: visible;
 }
 
 .slider-control-custom:hover {
-    background: #27ae60;
-    color: white;
-    transform: translateY(-50%) scale(1.05);
+    background: #156b4d;
+    transform: scale(1.1);
 }
 
 .slider-control-custom.prev-custom {
-    left: 10px;
+    order: -1;
 }
 
 .slider-control-custom.next-custom {
-    right: 10px;
+    order: 1;
 }
 
 /* --- FOOTER --- */
@@ -1113,6 +1131,40 @@ nav ul li a:hover {
     
     .auth-buttons {
         display: none;
+    }
+    
+    .desktop-only {
+        display: none !important;
+    }
+    
+    .mobile-auth-links {
+        display: block !important;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    
+    .mobile-auth-links a {
+        display: block;
+        padding: 10px 15px;
+        margin: 5px 0;
+        border-radius: 4px;
+        text-align: left;
+    }
+    
+    .mobile-auth-links .login-btn {
+        background-color: #1F9166;
+        color: white;
+    }
+    
+    .mobile-auth-links .register-btn {
+        background-color: #333;
+        color: white;
+    }
+    
+    /* Mobile cart adjustments */
+    .mobile-cart {
+        padding: 8px 12px;
     }
     
     /* Navegación móvil */
@@ -1460,4 +1512,104 @@ nav ul li a:hover {
     .combined-promo-slider .promo-slide-description p {
         font-size: 12px;
     }
+}
+
+/* Notificaciones personalizadas */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    min-width: 300px;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    border-left: 4px solid #1F9166;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast.success {
+    border-left-color: #1F9166;
+}
+
+.toast.success .toast-icon {
+    color: #1F9166;
+}
+
+.toast.error {
+    border-left-color: #e74c3c;
+}
+
+.toast.error .toast-icon {
+    color: #e74c3c;
+}
+
+.toast.warning {
+    border-left-color: #f39c12;
+}
+
+.toast.warning .toast-icon {
+    color: #f39c12;
+}
+
+.toast-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.toast-message {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.toast-close:hover {
+    background: #f5f5f5;
+    color: #666;
 }

@@ -195,7 +195,7 @@
     color: #1F9166;
     text-decoration: none;
     font-size: 14px;
-    text-align: right;
+    text-align: center;
 }
 
 .forgot-password:hover {
@@ -267,7 +267,6 @@
 /* Footer de autenticación */
 .auth-footer {
     text-align: center;
-    margin-top: 30px;
     padding-top: 20px;
     border-top: 1px solid #e0e0e0;
 }

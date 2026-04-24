@@ -1,0 +1,27 @@
+Array
+(
+    [timestamp] => 2026-02-03 00:17:39
+    [method] => POST
+    [content_type] => application/json
+    [raw_input] => {"cliente_id":"1","metodo_pago_id":"3","subtotal":10,"iva":1.6,"total":11.6,"productos":[{"id":"30","code":"ACEITE-001","name":"Aceite 4T 20W50","price":10,"quantity":1,"stock":4}],"efectivo_recibido":null}
+)
+
+
+Array
+(
+    [timestamp] => 2026-02-03 00:19:43
+    [method] => POST
+    [content_type] => application/json
+    [raw_input] => {"cliente_id":"18","metodo_pago_id":"5","subtotal":15,"iva":2.4,"total":17.4,"productos":[{"id":28,"code":"CASCO-001","name":"Casco integral","price":15,"quantity":1,"stock":6}],"efectivo_recibido":null}
+)
+
+
+Array
+(
+    [timestamp] => 2026-02-03 00:19:51
+    [method] => POST
+    [content_type] => application/json
+    [raw_input] => {"cliente_id":"18","metodo_pago_id":"5","subtotal":30,"iva":4.8,"total":34.8,"productos":[{"id":28,"code":"CASCO-001","name":"Casco integral","price":15,"quantity":2,"stock":6}],"efectivo_recibido":null}
+)
+
+

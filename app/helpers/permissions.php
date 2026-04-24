@@ -6,11 +6,12 @@ if (!function_exists('get_role_permissions')) {
     function get_role_permissions()
     {
         return [
-            'Administrador' => ['inventario','ventas','compras','pedidos','reservas','promociones','devoluciones','configuracion','perfil'],
-            'Gerente' => ['compras','ventas','promociones','inventario','devoluciones'],
-            'Vendedor' => ['ventas','reservas','promociones','devoluciones'],
-            'Operador' => ['pedidos','reservas','devoluciones'],
-            'Cliente' => ['pedidos','reservas','devoluciones'],
+            'Administrador' => ['inventario','ventas','compras','pedidos','reservas','promociones','devoluciones','configuracion','perfil','soporte'],
+            // Soporte técnico debe estar disponible para los roles operativos y usuarios
+            'Gerente' => ['compras','ventas','promociones','inventario','devoluciones','soporte'],
+            'Vendedor' => ['ventas','pedidos','reservas','promociones','devoluciones','soporte'],
+            'Operador' => ['pedidos','reservas','devoluciones','soporte'],
+            'Cliente' => ['inventario','ventas','compras','pedidos','reservas','promociones','devoluciones','configuracion','perfil','soporte'],
         ];
     }
 }

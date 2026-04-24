@@ -1,0 +1,1139 @@
+<?php
+// ============================================
+// GENERADOR DE REPORTES PROFESIONALES
+// Estilo dashboard con gráficas funcionales
+// Inversiones Rojas 2016 C.A.
+// ============================================
+
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+if (ob_get_length()) ob_end_clean();
+
+if (session_status() === PHP_SESSION_NONE) session_start();
+require_once __DIR__ . '/../lib/fpdf/fpdf.php';
+
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    die(json_encode(['error' => 'No autenticado']));
+}
+
+// Obtener datos del POST
+$data = json_decode(file_get_contents('php://input'), true);
+$report_type = $data['report_type'] ?? '';
+$module = $data['module'] ?? '';
+
+if (!$report_type || !$module) {
+    http_response_code(400);
+    die(json_encode(['error' => 'Parámetros requeridos faltantes']));
+}
+
+require_once __DIR__ . '/../app/models/database.php';
+$db = new Database();
+$conn = $db->getConnection();
+
+if (!$conn) {
+    http_response_code(500);
+    error_log('generate_report: database connection failed');
+    die(json_encode(['error' => 'Error de conexión a la base de datos']));
+}
+
+// Función para limpiar texto (eliminar acentos y caracteres especiales)
+function limpiarTexto($texto) {
+    if ($texto === null || $texto === '') return '';
+    $texto = utf8_decode($texto);
+    $buscar = ['á','é','í','ó','ú','ñ','Á','É','Í','Ó','Ú','Ñ'];
+    $reemplazar = ['a','e','i','o','u','n','A','E','I','O','U','N'];
+    return str_replace($buscar, $reemplazar, $texto);
+}
+
+// Función para registrar en bitácora
+function logReportGeneration($conn, $report_type, $module) {
+    try {
+        $sql = "INSERT INTO bitacora_sistema (usuario_id, accion, tabla_afectada, detalles, ip_address, created_at) 
+                VALUES (:usuario_id, 'GENERAR_REPORTE', :modulo, :detalles, :ip, NOW())";
+        $stmt = $conn->prepare($sql);
+        $detalles = json_encode([
+            'tipo_reporte' => $report_type,
+            'modulo' => $module,
+            'fecha_generacion' => date('Y-m-d H:i:s')
+        ]);
+        $stmt->execute([
+            ':usuario_id' => $_SESSION['user_id'] ?? null,
+            ':modulo' => $module,
+            ':detalles' => $detalles,
+            ':ip' => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'
+        ]);
+    } catch (Exception $e) {
+        error_log('Error registrando en bitácora: ' . $e->getMessage());
+    }
+}
+
+// ==================== CLASE PDF ESTILO DASHBOARD ====================
+class PDF_Dashboard extends FPDF {
+    protected $colores = [
+        'primary' => [31, 145, 102],      // Verde institucional
+        'secondary' => [52, 73, 94],       // Gris oscuro
+        'accent' => [241, 196, 15],        // Amarillo
+        'danger' => [231, 76, 60],          // Rojo
+        'info' => [52, 152, 219],           // Azul
+        'light' => [236, 240, 241],         // Gris claro
+        'dark' => [44, 62, 80]               // Casi negro
+    ];
+
+    function Header() {
+        // Encabezado corporativo
+        $this->SetFillColor($this->colores['primary'][0], $this->colores['primary'][1], $this->colores['primary'][2]);
+        $this->Rect(0, 0, 210, 35, 'F');
+        
+        // Título empresa
+        $this->SetY(10);
+        $this->SetFont('Helvetica', 'B', 16);
+        $this->SetTextColor(255, 255, 255);
+        $this->Cell(0, 8, 'INVERSIONES ROJAS 2016. C.A.', 0, 1, 'C');
+        
+        $this->SetY(18);
+        $this->SetFont('Helvetica', '', 9);
+        $this->Cell(0, 5, 'RIF: J-40888806-8 | Tel: 0243-2343044', 0, 1, 'C');
+        
+        $this->SetY(23);
+        $this->SetFont('Helvetica', '', 8);
+        $this->Cell(0, 5, 'AV ARAGUA LOCAL NRO 286, SECTOR ANDRES ELOY BLANCO, MARACAY', 0, 1, 'C');
+        
+        // Línea separadora
+        $this->SetY(38);
+        $this->SetDrawColor(200, 200, 200);
+        $this->Line(20, 38, 190, 38);
+        
+        // Fecha y usuario
+        $this->SetY(42);
+        $this->SetFont('Helvetica', 'I', 8);
+        $this->SetTextColor(100, 100, 100);
+        $usuario = $_SESSION['user_name'] ?? $_SESSION['username'] ?? 'Sistema';
+        $this->Cell(0, 4, 'Generado: ' . date('d/m/Y H:i:s') . ' | Usuario: ' . $usuario, 0, 1, 'R');
+        
+        $this->Ln(8);
+    }
+
+    function Footer() {
+        $this->SetY(-20);
+        $this->SetFont('Helvetica', '', 8);
+        $this->SetTextColor(100, 100, 100);
+        $this->Cell(0, 5, 'INVERSIONES ROJAS 2016. C.A. - Sistema de Gestión Empresarial', 0, 0, 'L');
+        $this->Cell(0, 5, 'Página ' . $this->PageNo() . ' de {nb}', 0, 0, 'R');
+        
+        $this->SetY(-15);
+        $this->SetFont('Helvetica', 'I', 7);
+        $this->Cell(0, 5, 'Documento generado electrónicamente. Válido sin firma.', 0, 0, 'C');
+    }
+
+    function Titulo($titulo, $subtitulo = '') {
+        $this->SetFont('Helvetica', 'B', 20);
+        $this->SetTextColor($this->colores['primary'][0], $this->colores['primary'][1], $this->colores['primary'][2]);
+        $this->Cell(0, 10, limpiarTexto($titulo), 0, 1, 'L');
+        
+        if ($subtitulo) {
+            $this->Ln(2);
+            $this->SetFont('Helvetica', '', 11);
+            $this->SetTextColor(100, 100, 100);
+            $this->Cell(0, 6, limpiarTexto($subtitulo), 0, 1, 'L');
+        }
+        
+        $this->Ln(5);
+    }
+
+    function Subtitulo($texto) {
+        $this->SetFont('Helvetica', 'B', 12);
+        $this->SetTextColor($this->colores['secondary'][0], $this->colores['secondary'][1], $this->colores['secondary'][2]);
+        $this->Cell(0, 8, limpiarTexto($texto), 0, 1, 'L');
+        $this->Ln(2);
+    }
+
+    // Tarjetas estilo dashboard
+    function Tarjeta($x, $y, $valor, $label, $subtitulo = '', $icono = '') {
+        $ancho = 45;
+        
+        // Fondo blanco con borde
+        $this->SetFillColor(255, 255, 255);
+        $this->SetDrawColor(220, 220, 220);
+        $this->SetXY($x, $y);
+        $this->Cell($ancho, 25, '', 1, 0, 'L', true);
+        
+        // Icono (si se proporciona)
+        if ($icono) {
+            $this->SetXY($x + 5, $y + 5);
+            $this->SetFont('Helvetica', '', 12);
+            $this->SetTextColor($this->colores['primary'][0], $this->colores['primary'][1], $this->colores['primary'][2]);
+            $this->Cell(8, 8, $icono, 0, 0, 'L');
+        }
+        
+        // Valor
+        $this->SetXY($x + 5, $y + 5);
+        $this->SetFont('Helvetica', 'B', 14);
+        $this->SetTextColor(0, 0, 0);
+        $this->Cell($ancho - 10, 8, limpiarTexto($valor), 0, 0, 'R');
+        
+        // Label principal
+        $this->SetXY($x + 5, $y + 13);
+        $this->SetFont('Helvetica', '', 8);
+        $this->SetTextColor(100, 100, 100);
+        $this->Cell($ancho - 10, 5, limpiarTexto($label), 0, 0, 'R');
+        
+        // Subtítulo (trend, periodo, etc.)
+        if ($subtitulo) {
+            $this->SetXY($x + 5, $y + 18);
+            $this->SetFont('Helvetica', 'I', 7);
+            $this->SetTextColor($this->colores['primary'][0], $this->colores['primary'][1], $this->colores['primary'][2]);
+            $this->Cell($ancho - 10, 4, limpiarTexto($subtitulo), 0, 0, 'R');
+        }
+    }
+
+    function CabeceraTabla($headers, $anchos) {
+        $this->SetFillColor($this->colores['light'][0], $this->colores['light'][1], $this->colores['light'][2]);
+        $this->SetTextColor(0, 0, 0);
+        $this->SetFont('Helvetica', 'B', 9);
+        $this->SetDrawColor(200, 200, 200);
+        
+        foreach ($headers as $i => $header) {
+            $this->Cell($anchos[$i], 8, limpiarTexto($header), 1, 0, 'C', true);
+        }
+        $this->Ln();
+        $this->SetFont('Helvetica', '', 8);
+    }
+
+    function FilaTabla($datos, $anchos, $alternar = false, $fila = 0) {
+        if ($alternar && ($fila % 2 == 0)) {
+            $this->SetFillColor(250, 250, 250);
+            $fill = true;
+        } else {
+            $fill = false;
+        }
+        
+        foreach ($datos as $i => $dato) {
+            $esNumerico = is_numeric(str_replace(['$', 'Bs', ','], '', $dato));
+            $this->Cell($anchos[$i], 6, limpiarTexto($dato), 1, 0, 
+                $esNumerico ? 'R' : 'L', $fill);
+        }
+        $this->Ln();
+    }
+
+    function FilaTablaWrap($datos, $anchos, $alternar = false, $fila = 0, $lineHeight = 5) {
+        if ($alternar && ($fila % 2 == 0)) {
+            $this->SetFillColor(250, 250, 250);
+            $fill = true;
+        } else {
+            $fill = false;
+        }
+        
+        $alturaMax = $lineHeight;
+        foreach ($datos as $i => $dato) {
+            $lineas = 1;
+            $anchoDisp = $anchos[$i] - 4;
+            $texto = limpiarTexto($dato);
+            if (strlen($texto) > 0) {
+                $lineas = ceil($this->GetStringWidth($texto) / $anchoDisp);
+                if ($lineas < 1) $lineas = 1;
+            }
+            $alturaMax = max($alturaMax, $lineas * $lineHeight);
+        }
+        
+        $xInicial = $this->GetX();
+        $yInicial = $this->GetY();
+        
+        for ($i = 0; $i < count($datos); $i++) {
+            $x = $xInicial + array_sum(array_slice($anchos, 0, $i));
+            $this->SetXY($x, $yInicial);
+            
+            $this->MultiCell($anchos[$i], $lineHeight, limpiarTexto($datos[$i]), 1, 
+                is_numeric(str_replace(['$', 'Bs', ','], '', $datos[$i])) ? 'R' : 'L', 
+                $fill);
+        }
+        
+        $this->SetXY($xInicial, $yInicial + $alturaMax);
+    }
+
+    // Gráfico de barras estilo dashboard
+    function GraficoBarras($datos, $etiquetas, $titulo = '', $ancho = 160, $alto = 60) {
+        if (empty($datos) || array_sum($datos) == 0) {
+            $this->SetFont('Helvetica', 'I', 9);
+            $this->SetTextColor(150, 150, 150);
+            $this->Cell(0, 5, 'No hay datos suficientes para mostrar el gráfico', 0, 1, 'C');
+            $this->Ln(5);
+            return;
+        }
+        
+        if ($titulo) {
+            $this->SetFont('Helvetica', 'B', 10);
+            $this->SetTextColor($this->colores['secondary'][0], $this->colores['secondary'][1], $this->colores['secondary'][2]);
+            $this->Cell(0, 6, limpiarTexto($titulo), 0, 1, 'L');
+            $this->Ln(2);
+        }
+        
+        $max = max($datos);
+        $x = $this->GetX() + 20;
+        $y = $this->GetY();
+        $barWidth = $ancho / (count($datos) * 2.5);
+        
+        // Ejes
+        $this->SetDrawColor(180, 180, 180);
+        $this->Line($x - 5, $y, $x - 5, $y + $alto);
+        $this->Line($x - 5, $y + $alto, $x + $ancho, $y + $alto);
+        
+        // Líneas de guía horizontales
+        $this->SetDrawColor(220, 220, 220);
+        $this->SetLineWidth(0.2);
+        for ($i = 0; $i <= 4; $i++) {
+            $nivelY = $y + ($alto * $i / 4);
+            $this->Line($x - 5, $nivelY, $x + $ancho, $nivelY);
+        }
+        
+        // Barras
+        for ($i = 0; $i < count($datos); $i++) {
+            if ($datos[$i] == 0) continue;
+            
+            $alturaBarra = ($datos[$i] / $max) * ($alto - 10);
+            
+            $this->SetFillColor($this->colores['primary'][0], $this->colores['primary'][1], $this->colores['primary'][2]);
+            $this->Rect($x + ($i * $barWidth * 2.5), $y + $alto - $alturaBarra - 5, 
+                       $barWidth, $alturaBarra, 'F');
+            
+            // Valor encima de la barra
+            $this->SetXY($x + ($i * $barWidth * 2.5), $y + $alto - $alturaBarra - 12);
+            $this->SetFont('Helvetica', '', 7);
+            $this->Cell($barWidth, 4, $datos[$i], 0, 0, 'C');
+            
+            // Etiqueta debajo
+            $this->SetXY($x + ($i * $barWidth * 2.5), $y + $alto + 2);
+            $this->SetFont('Helvetica', '', 7);
+            $this->Cell($barWidth, 4, limpiarTexto($etiquetas[$i]), 0, 0, 'C');
+        }
+        
+        $this->SetY($y + $alto + 10);
+        $this->SetFont('Helvetica', '', 8);
+    }
+
+    // Gráfico de torta estilo dashboard
+    function GraficoTorta($datos, $etiquetas, $titulo = '') {
+        if (empty($datos) || array_sum($datos) == 0) {
+            $this->SetFont('Helvetica', 'I', 9);
+            $this->SetTextColor(150, 150, 150);
+            $this->Cell(0, 5, 'No hay datos suficientes para mostrar el gráfico', 0, 1, 'C');
+            $this->Ln(5);
+            return;
+        }
+        
+        if ($titulo) {
+            $this->SetFont('Helvetica', 'B', 10);
+            $this->SetTextColor($this->colores['secondary'][0], $this->colores['secondary'][1], $this->colores['secondary'][2]);
+            $this->Cell(0, 6, limpiarTexto($titulo), 0, 1, 'L');
+            $this->Ln(2);
+        }
+        
+        $total = array_sum($datos);
+        $anguloInicial = 0;
+        $xCentro = $this->GetX() + 40;
+        $yCentro = $this->GetY() + 30;
+        $radio = 25;
+        
+        $coloresGrafico = [
+            [31, 145, 102],  // Verde
+            [52, 152, 219],  // Azul
+            [241, 196, 15],  // Amarillo
+            [155, 89, 182],  // Púrpura
+            [230, 126, 34],  // Naranja
+            [231, 76, 60]    // Rojo
+        ];
+        
+        // Dibujar sectores
+        foreach ($datos as $i => $valor) {
+            if ($valor == 0) continue;
+            
+            $angulo = ($valor / $total) * 360;
+            $color = $coloresGrafico[$i % count($coloresGrafico)];
+            
+            $this->SetFillColor($color[0], $color[1], $color[2]);
+            $this->SetDrawColor(255, 255, 255);
+            
+            $this->Sector($xCentro, $yCentro, $radio, $anguloInicial, $anguloInicial + $angulo, 'F');
+            
+            $anguloInicial += $angulo;
+        }
+        
+        // Leyenda
+        $xLeyenda = $xCentro + $radio + 20;
+        $yLeyenda = $yCentro - 15;
+        
+        foreach ($datos as $i => $valor) {
+            if ($valor == 0) continue;
+            
+            $color = $coloresGrafico[$i % count($coloresGrafico)];
+            $porcentaje = round(($valor * 100) / $total, 1);
+            
+            $this->SetFillColor($color[0], $color[1], $color[2]);
+            $this->Rect($xLeyenda, $yLeyenda + ($i * 6), 4, 4, 'F');
+            
+            $this->SetXY($xLeyenda + 6, $yLeyenda + ($i * 6) - 1);
+            $this->SetFont('Helvetica', '', 7);
+            $this->Cell(50, 4, limpiarTexto($etiquetas[$i] . ' (' . $porcentaje . '%)'), 0, 0, 'L');
+        }
+        
+        $this->SetY($yCentro + $radio + 15);
+    }
+
+    // Función auxiliar para dibujar sectores circulares
+    function Sector($xc, $yc, $r, $a, $b, $style = 'F') {
+        $d0 = $a;
+        $d1 = $b;
+        
+        while ($d0 < 0) $d0 += 360;
+        $d0 = deg2rad($d0);
+        while ($d1 < 0) $d1 += 360;
+        $d1 = deg2rad($d1);
+        
+        if ($d1 < $d0) $d1 += 2 * M_PI;
+        
+        $s = $d0;
+        $e = $d1;
+        
+        $this->_out('gsave');
+        $this->_out(sprintf('%.2f %.2f m', $xc * $this->k, ($this->h - $yc) * $this->k));
+        for ($i = $s; $i <= $e + 0.001; $i += (M_PI / 180)) {
+            $x = $xc + ($r * cos($i));
+            $y = $yc - ($r * sin($i));
+            $this->_out(sprintf('%.2f %.2f l', $x * $this->k, ($this->h - $y) * $this->k));
+        }
+        $this->_out('closepath');
+        if ($style == 'F') $this->_out('f');
+        $this->_out('grestore');
+    }
+}
+
+// ==================== DISPATCHER PRINCIPAL ====================
+
+try {
+    switch ($module) {
+        case 'ventas':
+            generarReporteVentas($conn, $report_type, $data);
+            break;
+        case 'inventario':
+            generarReporteInventario($conn, $report_type);
+            break;
+        case 'compras':
+            generarReporteCompras($conn, $report_type);
+            break;
+        case 'bitacora':
+            generarReporteBitacora($conn, $data);
+            break;
+        default:
+            http_response_code(400);
+            die(json_encode(['error' => 'Módulo no válido']));
+    }
+} catch (Exception $e) {
+    error_log('generate_report dispatcher exception: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error', 'details' => $e->getMessage()]);
+    exit;
+}
+
+// ==================== REPORTE DE VENTAS ====================
+function generarReporteVentas($conn, $report_type, $data = []) {
+    $pdf = new PDF_Dashboard();
+    $pdf->AliasNbPages();
+    $pdf->AddPage();
+    
+    switch ($report_type) {
+        case 'diario':
+            // Informe de Ingresos Diario
+            $fecha = date('Y-m-d'); // Fecha actual; puedes pasar una fecha específica en $data si lo deseas
+            $pdf->Titulo('INFORME DE INGRESOS DIARIOS', 'Resumen del día ' . date('d/m/Y', strtotime($fecha)));
+            
+            // Estadísticas clave
+            $sqlStats = "SELECT 
+                COUNT(v.id) as total_ventas,
+                COALESCE(SUM(v.total), 0) as total_ingresos,
+                COALESCE(AVG(v.total), 0) as promedio_venta,
+                COUNT(DISTINCT v.cliente_id) as clientes_unicos
+                FROM ventas v 
+                WHERE DATE(v.created_at) = :fecha AND v.estado_venta = 'completada'";
+            $stmtStats = $conn->prepare($sqlStats);
+            $stmtStats->execute([':fecha' => $fecha]);
+            $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
+            
+            // Tarjetas
+            $pdf->Tarjeta(25, $pdf->GetY(), number_format($stats['total_ingresos'], 2) . ' Bs', 'Total Ingresos', 'del día', '💰');
+            $pdf->Tarjeta(90, $pdf->GetY(), $stats['total_ventas'], 'Ventas Realizadas', 'transacciones', '📊');
+            $pdf->Tarjeta(155, $pdf->GetY(), number_format($stats['promedio_venta'], 2) . ' Bs', 'Promedio por Venta', 'monto', '📈');
+            $pdf->Ln(35);
+            
+            // Gráfico: Ventas por hora (barras)
+            $sqlGrafico = "SELECT 
+                EXTRACT(HOUR FROM v.created_at) as hora,
+                COUNT(v.id) as ventas
+                FROM ventas v 
+                WHERE DATE(v.created_at) = :fecha AND v.estado_venta = 'completada'
+                GROUP BY hora ORDER BY hora";
+            $stmtGrafico = $conn->prepare($sqlGrafico);
+            $stmtGrafico->execute([':fecha' => $fecha]);
+            $datosGrafico = $stmtGrafico->fetchAll(PDO::FETCH_ASSOC);
+            $valores = array_column($datosGrafico, 'ventas');
+            $etiquetas = array_map(fn($row) => $row['hora'] . ':00', $datosGrafico);
+            $pdf->GraficoBarras($valores, $etiquetas, 'Ventas por Hora del Día', 160, 60);
+            $pdf->Ln(70);
+            
+            // Tabla: Detalle de ventas
+            $pdf->Subtitulo('Detalle de Ventas');
+            $headers = ['Código', 'Cliente', 'Total (Bs)', 'Método Pago'];
+            $anchos = [30, 60, 30, 40];
+            $pdf->CabeceraTabla($headers, $anchos);
+            
+            $sqlTabla = "SELECT 
+                v.codigo_venta,
+                COALESCE(c.nombre_completo, 'Cliente Genérico') as cliente,
+                v.total,
+                COALESCE(mp.nombre, 'N/A') as metodo_pago
+                FROM ventas v 
+                LEFT JOIN clientes c ON v.cliente_id = c.id
+                LEFT JOIN metodos_pago mp ON v.metodo_pago_id = mp.id
+                WHERE DATE(v.created_at) = :fecha AND v.estado_venta = 'completada'
+                ORDER BY v.created_at DESC";
+            $stmtTabla = $conn->prepare($sqlTabla);
+            $stmtTabla->execute([':fecha' => $fecha]);
+            $ventas = $stmtTabla->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($ventas)) {
+                foreach ($ventas as $i => $venta) {
+                    $pdf->FilaTabla([
+                        $venta['codigo_venta'],
+                        limpiarTexto($venta['cliente']),
+                        number_format($venta['total'], 2),
+                        $venta['metodo_pago']
+                    ], $anchos, true, $i);
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->SetTextColor(150, 150, 150);
+                $pdf->Cell(0, 5, 'No hay ventas registradas para esta fecha.', 0, 1, 'C');
+            }
+            break;
+            
+        case 'mensual':
+            // Informe de Ingresos Mensual
+            $mes = date('Y-m'); // Mes actual; puedes pasar un mes específico en $data
+            $pdf->Titulo('INFORME DE INGRESOS MENSUALES', 'Resumen del mes ' . date('m/Y', strtotime($mes . '-01')));
+            
+            // Estadísticas clave (comparación con mes anterior)
+            $sqlStats = "SELECT 
+                COUNT(v.id) as total_ventas,
+                COALESCE(SUM(v.total), 0) as total_ingresos,
+                COALESCE(AVG(v.total), 0) as promedio_venta,
+                COUNT(DISTINCT v.cliente_id) as clientes_unicos,
+                (SELECT COALESCE(SUM(total), 0) FROM ventas WHERE DATE_PART('month', created_at) = DATE_PART('month', CURRENT_DATE - INTERVAL '1 month') AND estado_venta = 'completada') as ingresos_mes_anterior
+                FROM ventas v 
+                WHERE DATE_PART('month', v.created_at) = DATE_PART('month', CURRENT_DATE) AND v.estado_venta = 'completada'";
+            $stmtStats = $conn->prepare($sqlStats);
+            $stmtStats->execute();
+            $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
+            $diferencia = $stats['total_ingresos'] - $stats['ingresos_mes_anterior'];
+            $porcentaje = $stats['ingresos_mes_anterior'] > 0 ? (($diferencia / $stats['ingresos_mes_anterior']) * 100) : 0;
+            
+            // Tarjetas
+            $pdf->Tarjeta(25, $pdf->GetY(), number_format($stats['total_ingresos'], 2) . ' Bs', 'Total Ingresos', 'este mes', '💰');
+            $pdf->Tarjeta(90, $pdf->GetY(), $stats['total_ventas'], 'Ventas Realizadas', 'transacciones', '📊');
+            $pdf->Tarjeta(155, $pdf->GetY(), number_format($porcentaje, 1) . '%', 'Cambio vs Mes Anterior', ($diferencia >= 0 ? 'aumento' : 'disminución'), '📈');
+            $pdf->Ln(35);
+            
+            // Gráfico: Ingresos diarios (barras)
+            $sqlGrafico = "SELECT 
+                DATE(v.created_at) as fecha,
+                COALESCE(SUM(v.total), 0) as ingresos
+                FROM ventas v 
+                WHERE DATE_PART('month', v.created_at) = DATE_PART('month', CURRENT_DATE) AND v.estado_venta = 'completada'
+                GROUP BY fecha ORDER BY fecha";
+            $stmtGrafico = $conn->prepare($sqlGrafico);
+            $stmtGrafico->execute();
+            $datosGrafico = $stmtGrafico->fetchAll(PDO::FETCH_ASSOC);
+            $valores = array_column($datosGrafico, 'ingresos');
+            $etiquetas = array_map(fn($row) => date('d', strtotime($row['fecha'])), $datosGrafico);
+            $pdf->GraficoBarras($valores, $etiquetas, 'Ingresos Diarios del Mes', 160, 60);
+            $pdf->Ln(70);
+            
+            // Tabla: Top productos vendidos
+            $pdf->Subtitulo('Top Productos Vendidos');
+            $headers = ['Producto', 'Cantidad Vendida', 'Ingresos Generados (Bs)'];
+            $anchos = [80, 30, 40];
+            $pdf->CabeceraTabla($headers, $anchos);
+            
+            $sqlTabla = "SELECT 
+                p.nombre as producto,
+                SUM(dv.cantidad) as cantidad,
+                SUM(dv.subtotal) as ingresos
+                FROM detalle_ventas dv 
+                JOIN productos p ON dv.producto_id = p.id
+                JOIN ventas v ON dv.venta_id = v.id
+                WHERE DATE_PART('month', v.created_at) = DATE_PART('month', CURRENT_DATE) AND v.estado_venta = 'completada'
+                GROUP BY p.id, p.nombre ORDER BY ingresos DESC LIMIT 10";
+            $stmtTabla = $conn->prepare($sqlTabla);
+            $stmtTabla->execute();
+            $productos = $stmtTabla->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($productos)) {
+                foreach ($productos as $i => $prod) {
+                    $pdf->FilaTabla([
+                        limpiarTexto($prod['producto']),
+                        $prod['cantidad'],
+                        number_format($prod['ingresos'], 2)
+                    ], $anchos, true, $i);
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->SetTextColor(150, 150, 150);
+                $pdf->Cell(0, 5, 'No hay productos vendidos en este mes.', 0, 1, 'C');
+            }
+            break;
+            
+        case 'clientes':
+            // Historial de Clientes
+            $pdf->Titulo('HISTORIAL DE CLIENTES', 'Análisis de clientes y compras');
+            
+            // Estadísticas clave
+            $sqlStats = "SELECT 
+                COUNT(DISTINCT c.id) as total_clientes,
+                COUNT(v.id) as total_ventas,
+                COALESCE(SUM(v.total), 0) as total_ingresos,
+                COALESCE(AVG(v.total), 0) as promedio_compra
+                FROM clientes c 
+                LEFT JOIN ventas v ON c.id = v.cliente_id AND v.estado_venta = 'completada'";
+            $stmtStats = $conn->prepare($sqlStats);
+            $stmtStats->execute();
+            $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
+            
+            // Tarjetas
+            $pdf->Tarjeta(25, $pdf->GetY(), $stats['total_clientes'], 'Total Clientes', 'registrados', '👥');
+            $pdf->Tarjeta(90, $pdf->GetY(), number_format($stats['total_ingresos'], 2) . ' Bs', 'Ingresos Totales', 'de clientes', '💰');
+            $pdf->Tarjeta(155, $pdf->GetY(), number_format($stats['promedio_compra'], 2) . ' Bs', 'Promedio por Compra', 'monto', '📈');
+            $pdf->Ln(35);
+            
+            // Gráfico: Distribución de clientes por frecuencia (torta)
+            $sqlGrafico = "SELECT 
+                CASE 
+                    WHEN COUNT(v.id) = 0 THEN 'Sin Compras'
+                    WHEN COUNT(v.id) = 1 THEN '1 Compra'
+                    WHEN COUNT(v.id) BETWEEN 2 AND 5 THEN '2-5 Compras'
+                    ELSE 'Más de 5 Compras'
+                END as categoria,
+                COUNT(DISTINCT c.id) as cantidad
+                FROM clientes c 
+                LEFT JOIN ventas v ON c.id = v.cliente_id AND v.estado_venta = 'completada'
+                GROUP BY categoria";
+            $stmtGrafico = $conn->prepare($sqlGrafico);
+            $stmtGrafico->execute();
+            $datosGrafico = $stmtGrafico->fetchAll(PDO::FETCH_ASSOC);
+            $valores = array_column($datosGrafico, 'cantidad');
+            $etiquetas = array_column($datosGrafico, 'categoria');
+            $pdf->GraficoTorta($valores, $etiquetas, 'Distribución de Clientes por Frecuencia');
+            $pdf->Ln(70);
+            
+            // Tabla: Top clientes por ingresos
+            $pdf->Subtitulo('Top Clientes por Ingresos Generados');
+            $headers = ['Cliente', 'Total Compras', 'Ingresos Totales (Bs)', 'Última Compra'];
+            $anchos = [50, 25, 35, 30];
+            $pdf->CabeceraTabla($headers, $anchos);
+            
+            $sqlTabla = "SELECT 
+                c.nombre_completo as cliente,
+                COUNT(v.id) as total_compras,
+                COALESCE(SUM(v.total), 0) as ingresos_totales,
+                MAX(v.created_at) as ultima_compra
+                FROM clientes c 
+                LEFT JOIN ventas v ON c.id = v.cliente_id AND v.estado_venta = 'completada'
+                GROUP BY c.id, c.nombre_completo ORDER BY ingresos_totales DESC LIMIT 10";
+            $stmtTabla = $conn->prepare($sqlTabla);
+            $stmtTabla->execute();
+            $clientes = $stmtTabla->fetchAll(PDO::FETCH_ASSOC);
+            if (!empty($clientes)) {
+                foreach ($clientes as $i => $cli) {
+                    $pdf->FilaTabla([
+                        limpiarTexto($cli['cliente']),
+                        $cli['total_compras'],
+                        number_format($cli['ingresos_totales'], 2),
+                        $cli['ultima_compra'] ? date('d/m/Y', strtotime($cli['ultima_compra'])) : 'N/A'
+                    ], $anchos, true, $i);
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->SetTextColor(150, 150, 150);
+                $pdf->Cell(0, 5, 'No hay clientes con compras registradas.', 0, 1, 'C');
+            }
+            break;
+            
+        default:
+            $pdf->Cell(0, 10, 'Tipo de reporte no soportado.', 0, 1);
+    }
+    
+    logReportGeneration($conn, $report_type, 'ventas');
+    $pdf->Output('D', 'reporte_ventas_' . $report_type . '_' . date('Y-m-d') . '.pdf');
+}
+
+// ==================== REPORTE DE INVENTARIO ====================
+function generarReporteInventario($conn, $report_type) {
+    $pdf = new PDF_Dashboard();
+    $pdf->AliasNbPages();
+    $pdf->AddPage();
+    
+    switch ($report_type) {
+        case 'estado_inventario':
+            $pdf->Titulo('ESTADO DEL INVENTARIO', 'Valorización y existencias');
+            
+            // Estadísticas generales
+            $sql = "SELECT 
+                        COUNT(*) as total_productos,
+                        COUNT(CASE WHEN estado = true THEN 1 END) as disponibles,
+                        COUNT(CASE WHEN estado = false THEN 1 END) as no_disponibles,
+                        COUNT(DISTINCT categoria_id) as total_categorias,
+                        COALESCE(SUM(stock_actual), 0) as total_unidades,
+                        COALESCE(SUM(stock_actual * precio_venta), 0) as valor_total
+                    FROM productos";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Productos por nivel de stock
+            $sqlStock = "SELECT 
+                            COUNT(CASE WHEN stock_actual <= stock_minimo AND stock_actual > 0 THEN 1 END) as stock_bajo,
+                            COUNT(CASE WHEN stock_actual = 0 THEN 1 END) as stock_critico,
+                            COUNT(CASE WHEN stock_actual >= stock_maximo THEN 1 END) as stock_maximo,
+                            COUNT(CASE WHEN stock_actual > stock_minimo AND stock_actual < stock_maximo THEN 1 END) as stock_optimo
+                        FROM productos
+                        WHERE estado = true";
+            $stmtStock = $conn->prepare($sqlStock);
+            $stmtStock->execute();
+            $statsStock = $stmtStock->fetch(PDO::FETCH_ASSOC);
+            
+            // Tarjetas de resumen
+            $pdf->Tarjeta(15, $pdf->GetY(), $stats['total_productos'], 'Total Productos', 'en inventario', '📦');
+            $pdf->Tarjeta(65, $pdf->GetY(), $stats['disponibles'], 'Disponibles', 'activos', '✅');
+            $pdf->Tarjeta(115, $pdf->GetY(), $stats['no_disponibles'], 'No Disponibles', 'inactivos', '❌');
+            $pdf->Tarjeta(165, $pdf->GetY(), 'Bs ' . number_format($stats['valor_total'], 2), 'Valor Total', 'inventario', '💰');
+            $pdf->Ln(35);
+            
+            // Segunda fila de tarjetas
+            $pdf->Tarjeta(15, $pdf->GetY(), $stats['total_categorias'], 'Categorías', 'diferentes', '🏷️');
+            $pdf->Tarjeta(65, $pdf->GetY(), $stats['total_unidades'], 'Unidades', 'totales', '📊');
+            $pdf->Tarjeta(115, $pdf->GetY(), ($statsStock['stock_bajo'] ?? 0) . ' prod', 'Stock Bajo', 'requieren atención', '⚠️');
+            $pdf->Tarjeta(165, $pdf->GetY(), ($statsStock['stock_critico'] ?? 0) . ' prod', 'Stock Crítico', 'agotados', '🔴');
+            $pdf->Ln(35);
+            
+            // Gráfico de torta - Distribución por nivel de stock
+            $datosStock = [
+                $statsStock['stock_optimo'] ?? 0,
+                $statsStock['stock_bajo'] ?? 0,
+                $statsStock['stock_critico'] ?? 0,
+                $statsStock['stock_maximo'] ?? 0
+            ];
+            $etiquetasStock = ['Stock Óptimo', 'Stock Bajo', 'Stock Crítico', 'Stock Máximo'];
+            
+            if (array_sum($datosStock) > 0) {
+                $pdf->GraficoTorta($datosStock, $etiquetasStock, 'Distribución por Nivel de Stock');
+                $pdf->Ln(5);
+            }
+            
+            // Resumen ejecutivo
+            $pdf->SetFont('Helvetica', '', 9);
+            $pdf->SetTextColor(50, 50, 50);
+            $resumen = "El inventario cuenta con {$stats['total_productos']} productos, de los cuales {$stats['disponibles']} están disponibles y {$stats['no_disponibles']} no disponibles. ";
+            $resumen .= "Valor total del inventario: Bs " . number_format($stats['valor_total'], 2) . ". ";
+            $resumen .= "Hay " . ($statsStock['stock_bajo'] ?? 0) . " productos con stock bajo y " . ($statsStock['stock_critico'] ?? 0) . " productos agotados.";
+            $pdf->MultiCell(0, 5, limpiarTexto($resumen));
+            $pdf->Ln(8);
+            
+            // Distribución por categorías
+            $sqlCat = "SELECT 
+                        c.nombre as categoria,
+                        COUNT(p.id) as cantidad,
+                        ROUND(COUNT(p.id) * 100.0 / NULLIF((SELECT COUNT(*) FROM productos WHERE estado = true), 0), 1) as porcentaje
+                    FROM categorias c
+                    LEFT JOIN productos p ON c.id = p.categoria_id AND p.estado = true
+                    GROUP BY c.id, c.nombre
+                    HAVING COUNT(p.id) > 0
+                    ORDER BY cantidad DESC";
+            $stmtCat = $conn->prepare($sqlCat);
+            $stmtCat->execute();
+            $categorias = $stmtCat->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (!empty($categorias)) {
+                $pdf->Subtitulo('Distribución por Categorías');
+                
+                $pdf->CabeceraTabla(['Categoría', 'Cantidad', 'Porcentaje'], [90, 40, 40]);
+                
+                $fila = 0;
+                foreach ($categorias as $c) {
+                    $pdf->FilaTabla(
+                        [
+                            strtoupper($c['categoria']),
+                            $c['cantidad'] . ' productos',
+                            $c['porcentaje'] . '%'
+                        ],
+                        [90, 40, 40],
+                        true,
+                        $fila++
+                    );
+                }
+            }
+            break;
+            
+        case 'productos_demandados':
+            $pdf->Titulo('PRODUCTOS MÁS DEMANDADOS', 'Ranking de ventas últimos 30 días');
+            
+            $sql = "SELECT 
+                        p.nombre,
+                        p.codigo_interno,
+                        c.nombre as categoria,
+                        SUM(dv.cantidad) as total_vendido,
+                        COUNT(DISTINCT v.id) as ventas_unicas,
+                        SUM(dv.subtotal) as ingresos_generados
+                    FROM productos p
+                    JOIN detalle_ventas dv ON p.id = dv.producto_id
+                    JOIN ventas v ON dv.venta_id = v.id
+                    LEFT JOIN categorias c ON p.categoria_id = c.id
+                    WHERE v.created_at >= CURRENT_DATE - INTERVAL '30 days'
+                    GROUP BY p.id, p.nombre, p.codigo_interno, c.nombre
+                    ORDER BY total_vendido DESC
+                    LIMIT 20";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (!empty($productos)) {
+                $pdf->CabeceraTabla(['Producto', 'Código', 'Categoría', 'Unidades', 'Ingresos'], [50, 20, 25, 20, 35]);
+                
+                $fila = 0;
+                foreach ($productos as $p) {
+                    $pdf->FilaTabla(
+                        [
+                            limpiarTexto(substr($p['nombre'], 0, 25)),
+                            $p['codigo_interno'],
+                            $p['categoria'] ?: 'General',
+                            $p['total_vendido'],
+                            'Bs ' . number_format($p['ingresos_generados'], 2)
+                        ],
+                        [50, 20, 25, 20, 35],
+                        true,
+                        $fila++
+                    );
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->Cell(0, 5, 'No hay ventas en los últimos 30 días', 0, 1, 'C');
+            }
+            break;
+            
+        case 'alertas_stock_bajo':
+            $pdf->Titulo('ALERTAS DE STOCK BAJO', 'Productos que requieren reposición');
+            
+            $sql = "SELECT 
+                        p.nombre,
+                        p.codigo_interno,
+                        p.stock_actual,
+                        p.stock_minimo,
+                        (p.stock_minimo - p.stock_actual) as deficit,
+                        p.precio_compra,
+                        c.nombre as categoria,
+                        pr.razon_social as proveedor
+                    FROM productos p
+                    LEFT JOIN categorias c ON p.categoria_id = c.id
+                    LEFT JOIN proveedores pr ON p.proveedor_id = pr.id
+                    WHERE p.estado = true AND p.stock_actual <= p.stock_minimo
+                    ORDER BY deficit DESC";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $productos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (!empty($productos)) {
+                $totalProductos = count($productos);
+                $totalDeficit = array_sum(array_column($productos, 'deficit'));
+                $costoReposicion = array_sum(array_map(function($p) {
+                    return $p['deficit'] * $p['precio_compra'];
+                }, $productos));
+                
+                $pdf->SetFont('Helvetica', 'B', 11);
+                $pdf->SetTextColor($pdf->colores['danger'][0], $pdf->colores['danger'][1], $pdf->colores['danger'][2]);
+                $pdf->Cell(0, 8, 'Total productos críticos: ' . $totalProductos, 0, 1);
+                $pdf->Cell(0, 8, 'Unidades necesarias: ' . $totalDeficit, 0, 1);
+                $pdf->Cell(0, 8, 'Costo de reposición: Bs ' . number_format($costoReposicion, 2), 0, 1);
+                $pdf->Ln(5);
+                
+                $pdf->CabeceraTabla(['Producto', 'Stock', 'Mínimo', 'Necesitas', 'Costo', 'Proveedor'], [45, 18, 18, 18, 25, 36]);
+                
+                $fila = 0;
+                foreach ($productos as $p) {
+                    $costo = $p['deficit'] * $p['precio_compra'];
+                    $pdf->FilaTabla(
+                        [
+                            limpiarTexto(substr($p['nombre'], 0, 22)),
+                            $p['stock_actual'],
+                            $p['stock_minimo'],
+                            $p['deficit'],
+                            'Bs ' . number_format($costo, 2),
+                            substr($p['proveedor'] ?: 'No asignado', 0, 15)
+                        ],
+                        [45, 18, 18, 18, 25, 36],
+                        true,
+                        $fila++
+                    );
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->SetTextColor($pdf->colores['primary'][0], $pdf->colores['primary'][1], $pdf->colores['primary'][2]);
+                $pdf->Cell(0, 5, 'No hay productos con stock bajo en este momento', 0, 1, 'C');
+            }
+            break;
+            
+        default:
+            throw new Exception('Tipo de reporte de inventario no válido: ' . $report_type);
+    }
+    
+    logReportGeneration($conn, $report_type, 'inventario');
+    $pdf->Output('D', 'reporte_inventario_' . $report_type . '_' . date('Y-m-d') . '.pdf');
+}
+
+// ==================== REPORTE DE COMPRAS ====================
+function generarReporteCompras($conn, $report_type) {
+    $pdf = new PDF_Dashboard();
+    $pdf->AliasNbPages();
+    $pdf->AddPage();
+    
+    switch ($report_type) {
+        case 'ordenes_compras':
+            $pdf->Titulo('ÓRDENES DE COMPRA', 'Seguimiento de compras');
+            
+            // Estadísticas
+            $sql = "SELECT 
+                        COUNT(*) as total_ordenes,
+                        COALESCE(SUM(total), 0) as total_invertido,
+                        COUNT(CASE WHEN estado = 'PENDIENTE' THEN 1 END) as pendientes,
+                        COUNT(CASE WHEN estado = 'COMPLETADA' THEN 1 END) as completadas
+                    FROM compras";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $stats = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Tarjetas de resumen
+            $pdf->Tarjeta(25, $pdf->GetY(), $stats['total_ordenes'], 'Total Órdenes', 'registradas', '📋');
+            $pdf->Tarjeta(85, $pdf->GetY(), 'Bs ' . number_format($stats['total_invertido'], 2), 'Total Invertido', 'acumulado', '💰');
+            $pdf->Tarjeta(145, $pdf->GetY(), $stats['pendientes'], 'Pendientes', 'por recibir', '⏳');
+            $pdf->Ln(35);
+            
+            // Listado de órdenes
+            $sql = "SELECT 
+                        c.codigo_compra,
+                        COALESCE(p.razon_social, 'Proveedor no especificado') as proveedor,
+                        TO_CHAR(c.created_at, 'DD/MM/YYYY') as fecha,
+                        TO_CHAR(c.fecha_estimada_entrega, 'DD/MM/YYYY') as entrega,
+                        c.total,
+                        c.estado
+                    FROM compras c
+                    LEFT JOIN proveedores p ON c.proveedor_id = p.id
+                    ORDER BY c.created_at DESC
+                    LIMIT 50";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $compras = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (!empty($compras)) {
+                $pdf->Subtitulo('Listado de Órdenes Recientes');
+                $pdf->CabeceraTabla(['Orden', 'Proveedor', 'Fecha', 'Entrega', 'Total', 'Estado'], [30, 45, 25, 25, 30, 25]);
+                
+                $fila = 0;
+                foreach ($compras as $c) {
+                    $pdf->FilaTabla(
+                        [
+                            $c['codigo_compra'],
+                            limpiarTexto(substr($c['proveedor'], 0, 22)),
+                            $c['fecha'],
+                            $c['entrega'] ?? 'N/D',
+                            'Bs ' . number_format($c['total'], 2),
+                            $c['estado']
+                        ],
+                        [30, 45, 25, 25, 30, 25],
+                        true,
+                        $fila++
+                    );
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->Cell(0, 5, 'No hay órdenes de compra registradas', 0, 1, 'C');
+            }
+            break;
+            
+        case 'listado_proveedores':
+            $pdf->Titulo('LISTADO DE PROVEEDORES', 'Directorio de contactos');
+            
+            $sql = "SELECT 
+                        p.razon_social,
+                        p.rif,
+                        p.persona_contacto,
+                        p.telefono_principal,
+                        p.email,
+                        COUNT(c.id) as total_compras,
+                        COALESCE(SUM(c.total), 0) as total_comprado
+                    FROM proveedores p
+                    LEFT JOIN compras c ON p.id = c.proveedor_id
+                    WHERE p.estado = true
+                    GROUP BY p.id, p.razon_social, p.rif, p.persona_contacto, p.telefono_principal, p.email
+                    ORDER BY total_comprado DESC";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute();
+            $proveedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (!empty($proveedores)) {
+                $pdf->CabeceraTabla(['Proveedor', 'RIF', 'Contacto', 'Teléfono', 'Compras', 'Total'], [40, 20, 25, 20, 15, 30]);
+                
+                $fila = 0;
+                foreach ($proveedores as $pr) {
+                    $pdf->FilaTabla(
+                        [
+                            limpiarTexto(substr($pr['razon_social'], 0, 20)),
+                            $pr['rif'] ?: 'N/A',
+                            limpiarTexto(substr($pr['persona_contacto'] ?: 'N/A', 0, 12)),
+                            $pr['telefono_principal'] ?: 'N/A',
+                            $pr['total_compras'] ?: 0,
+                            'Bs ' . number_format($pr['total_comprado'] ?: 0, 2)
+                        ],
+                        [40, 20, 25, 20, 15, 30],
+                        true,
+                        $fila++
+                    );
+                }
+            } else {
+                $pdf->SetFont('Helvetica', 'I', 9);
+                $pdf->Cell(0, 5, 'No hay proveedores registrados', 0, 1, 'C');
+            }
+            break;
+            
+        default:
+            throw new Exception('Tipo de reporte de compras no válido: ' . $report_type);
+    }
+    
+    logReportGeneration($conn, $report_type, 'compras');
+    $pdf->Output('D', 'reporte_compras_' . $report_type . '_' . date('Y-m-d') . '.pdf');
+}
+
+// ==================== REPORTE DE BITÁCORA ====================
+function generarReporteBitacora($conn, $data) {
+    $pdf = new PDF_Dashboard();
+    $pdf->AliasNbPages();
+    $pdf->AddPage('L'); // Horizontal para más columnas
+    
+    $pdf->Titulo('REPORTE DE BITÁCORA', 'Auditoría del sistema');
+    
+    // Construir consulta con filtros
+    $where = [];
+    $params = [];
+    
+    if (!empty($data['bitacora_q'])) {
+        $where[] = "(b.accion ILIKE :q1 OR b.tabla_afectada ILIKE :q2 OR u.username ILIKE :q3 OR u.nombre_completo ILIKE :q4 OR b.detalles::text ILIKE :q5)";
+        $params[':q1'] = '%' . $data['bitacora_q'] . '%';
+        $params[':q2'] = '%' . $data['bitacora_q'] . '%';
+        $params[':q3'] = '%' . $data['bitacora_q'] . '%';
+        $params[':q4'] = '%' . $data['bitacora_q'] . '%';
+        $params[':q5'] = '%' . $data['bitacora_q'] . '%';
+    }
+    
+    if (!empty($data['bitacora_usuario'])) {
+        $where[] = "b.usuario_id = :usuario";
+        $params[':usuario'] = $data['bitacora_usuario'];
+    }
+    
+    if (!empty($data['bitacora_fecha'])) {
+        switch ($data['bitacora_fecha']) {
+            case 'today':
+                $where[] = "DATE(b.created_at) = CURRENT_DATE";
+                break;
+            case 'week':
+                $where[] = "b.created_at >= CURRENT_DATE - INTERVAL '7 days'";
+                break;
+            case 'month':
+                $where[] = "EXTRACT(MONTH FROM b.created_at) = EXTRACT(MONTH FROM CURRENT_DATE)";
+                break;
+        }
+    }
+    
+    $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+    
+    // Estadísticas
+    $sqlStats = "SELECT 
+                    COUNT(*) as total,
+                    COUNT(DISTINCT usuario_id) as usuarios,
+                    COUNT(DISTINCT accion) as acciones
+                FROM bitacora_sistema b
+                LEFT JOIN usuarios u ON b.usuario_id = u.id
+                $whereClause";
+    $stmtStats = $conn->prepare($sqlStats);
+    $stmtStats->execute($params);
+    $stats = $stmtStats->fetch(PDO::FETCH_ASSOC);
+    
+    // Tarjetas de resumen
+    $pdf->Tarjeta(25, $pdf->GetY(), $stats['total'] ?? 0, 'Total Registros', 'en bitácora', '📋');
+    $pdf->Tarjeta(90, $pdf->GetY(), $stats['usuarios'] ?? 0, 'Usuarios', 'que han accedido', '👥');
+    $pdf->Tarjeta(155, $pdf->GetY(), $stats['acciones'] ?? 0, 'Acciones', 'diferentes', '🔍');
+    $pdf->Ln(35);
+    
+    // Consulta principal
+    $sql = "SELECT 
+                TO_CHAR(b.created_at, 'DD/MM/YYYY HH24:MI:SS') as fecha,
+                COALESCE(u.nombre_completo, 'Sistema') as usuario,
+                b.accion,
+                b.tabla_afectada,
+                b.registro_id,
+                b.detalles,
+                b.ip_address
+            FROM bitacora_sistema b
+            LEFT JOIN usuarios u ON b.usuario_id = u.id
+            $whereClause
+            ORDER BY b.created_at DESC
+            LIMIT 200";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $registros = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (!empty($registros)) {
+        $pdf->Subtitulo('Detalle de Actividades');
+        $pdf->CabeceraTabla(['Fecha/Hora', 'Usuario', 'Acción', 'Tabla', 'ID', 'IP', 'Detalles'], [40, 35, 30, 25, 15, 25, 40]);
+        
+        $fila = 0;
+        foreach ($registros as $r) {
+            $detallesTexto = '-';
+            if ($r['detalles']) {
+                $det = json_decode($r['detalles'], true);
+                if (is_array($det)) {
+                    $info = [];
+                    if (isset($det['username'])) $info[] = $det['username'];
+                    if (isset($det['email'])) $info[] = $det['email'];
+                    if (isset($det['tipo_reporte'])) $info[] = $det['tipo_reporte'];
+                    if (!empty($info)) $detallesTexto = implode(' | ', $info);
+                }
+            }
+            
+            $pdf->FilaTabla(
+                [
+                    $r['fecha'],
+                    limpiarTexto(substr($r['usuario'], 0, 18)),
+                    limpiarTexto(substr($r['accion'], 0, 15)),
+                    $r['tabla_afectada'] ?: '-',
+                    $r['registro_id'] ?: '-',
+                    $r['ip_address'] ?: '-',
+                    $detallesTexto
+                ],
+                [40, 35, 30, 25, 15, 25, 40],
+                true,
+                $fila++
+            );
+        }
+    } else {
+        $pdf->SetFont('Helvetica', 'I', 12);
+        $pdf->SetTextColor(150, 150, 150);
+        $pdf->Cell(0, 20, 'No hay registros en la bitácora con los filtros seleccionados', 0, 1, 'C');
+    }
+    
+    logReportGeneration($conn, 'bitacora', 'bitacora');
+    $pdf->Output('D', 'reporte_bitacora_' . date('Y-m-d') . '.pdf');
+}
+?>

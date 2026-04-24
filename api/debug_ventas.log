@@ -1,0 +1,1420 @@
+=== 2026-02-03 00:34:49 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"18","metodo_pago_id":"3","subtotal":15,"iva":2.4,"total":17.4,"productos":[{"id":28,"code":"CASCO-001","name":"Casco integral","price":15,"quantity":1,"stock":6}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 18
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203003449-406
+Cliente regular ID: 18
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=15, iva=2.4, total=17.4
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203003449-406
+    [1] => 18
+    [2] => 1
+    [3] => 3
+    [4] => 15
+    [5] => 2.4
+    [6] => 17.4
+    [7] => 
+)
+
+Venta insertada ID: 85
+Insertando detalles de venta...
+  Producto 0: ID=28, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 85
+    [1] => 28
+    [2] => 1
+    [3] => 15
+    [4] => 15
+)
+
+  Producto procesado OK
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203003449-406","venta_id":85,"total":17.4,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 00:35:43 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"21","metodo_pago_id":"4","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":28}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 21
+Método Pago ID: 4
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203003543-295
+Cliente regular ID: 21
+Método pago ID final: 4
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203003543-295
+    [1] => 21
+    [2] => 1
+    [3] => 4
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 87
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 87
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+  Producto procesado OK
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203003543-295","venta_id":87,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 01:47:31 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"18","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":26}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 18
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203014731-344
+Cliente regular ID: 18
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203014731-344
+    [1] => 18
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 89
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 89
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+  Producto procesado OK
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203014731-344","venta_id":89,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 17:02:35 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"3","subtotal":10,"iva":1.6,"total":11.6,"productos":[{"id":30,"code":"ACEITE-001","name":"Aceite 4T 20W50","price":10,"quantity":1,"stock":4}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 4
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203170235-301
+Cliente regular ID: 4
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=10, iva=1.6, total=11.6
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203170235-301
+    [1] => 4
+    [2] => 1
+    [3] => 3
+    [4] => 10
+    [5] => 1.6
+    [6] => 11.6
+    [7] => 
+)
+
+Venta insertada ID: 91
+Insertando detalles de venta...
+  Producto 0: ID=30, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 91
+    [1] => 30
+    [2] => 1
+    [3] => 10
+    [4] => 10
+)
+
+  Producto procesado OK
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203170235-301","venta_id":91,"total":11.6,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 17:08:58 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"4","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":24}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Productos únicos: 1
+Cliente ID: 4
+Método Pago ID: 4
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203170858-268
+Cliente regular ID: 4
+Método pago ID final: 4
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Verificando stock disponible...
+  Producto kawasaki ninja: Stock=24, Solicitado=1
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203170858-268
+    [1] => 4
+    [2] => 1
+    [3] => 4
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 93
+Procesando detalles de venta y actualizando stock...
+  Procesando producto 0: ID=27, Cant=1
+    Producto: kawasaki ninja
+    Precio: 20
+    Stock anterior: 24
+    Cantidad vendida: 1
+    Nuevo stock: 23
+    SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+    Params Detalle: Array
+(
+    [0] => 93
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+    SQL Stock: UPDATE productos SET stock_actual = ?, updated_at = NOW() WHERE id = ? AND stock_actual = ?
+    Params Stock: Array
+(
+    [0] => 23
+    [1] => 27
+    [2] => 24
+)
+
+ERROR en transacción: Error: El stock del producto 'kawasaki ninja' cambió durante la transacción. Operación cancelada.
+ROLLBACK ejecutado
+=== VENTA FALLIDA ===
+
+=== 2026-02-03 17:08:58 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"4","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":24}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Productos únicos: 1
+Cliente ID: 4
+Método Pago ID: 4
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203170858-268
+Cliente regular ID: 4
+Método pago ID final: 4
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Verificando stock disponible...
+  Producto kawasaki ninja: Stock=24, Solicitado=1
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203170858-268
+    [1] => 4
+    [2] => 1
+    [3] => 4
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 93
+Procesando detalles de venta y actualizando stock...
+  Procesando producto 0: ID=27, Cant=1
+    Producto: kawasaki ninja
+    Precio: 20
+    Stock anterior: 24
+    Cantidad vendida: 1
+    Nuevo stock: 23
+    SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+    Params Detalle: Array
+(
+    [0] => 93
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+    SQL Stock: UPDATE productos SET stock_actual = ?, updated_at = NOW() WHERE id = ? AND stock_actual = ?
+    Params Stock: Array
+(
+    [0] => 23
+    [1] => 27
+    [2] => 24
+)
+
+ERROR en transacción: Error: El stock del producto 'kawasaki ninja' cambió durante la transacción. Operación cancelada.
+ROLLBACK ejecutado
+=== VENTA FALLIDA ===
+
+ERROR GENERAL: Error: El stock del producto 'kawasaki ninja' cambió durante la transacción. Operación cancelada.
+TRACE: #0 {main}
+=== PROCESO FALLIDO ===
+
+=== 2026-02-03 17:24:01 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":24}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 4
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203172401-481
+Cliente regular ID: 4
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203172401-481
+    [1] => 4
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 95
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 95
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203172401-481","venta_id":95,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 17:24:18 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"18","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":23}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 18
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203172418-769
+Cliente regular ID: 18
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203172418-769
+    [1] => 18
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 97
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 97
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203172418-769","venta_id":97,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 20:02:25 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"21","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":22}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 21
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203200225-848
+Cliente regular ID: 21
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203200225-848
+    [1] => 21
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 99
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 99
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203200225-848","venta_id":99,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 20:05:52 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"2","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":21}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 2
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203200552-739
+Cliente regular ID: 2
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203200552-739
+    [1] => 2
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 101
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 101
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203200552-739","venta_id":101,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 20:07:39 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":20}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 4
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203200739-536
+Cliente regular ID: 4
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203200739-536
+    [1] => 4
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 103
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 103
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203200739-536","venta_id":103,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 20:24:44 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":29,"code":"HERR-001","name":"kit de herramientas","price":20,"quantity":1,"stock":8}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 4
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203202444-716
+Cliente regular ID: 4
+Método pago ID final: 3
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203202444-716
+    [1] => 4
+    [2] => 1
+    [3] => 3
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 105
+Insertando detalles de venta...
+  Producto 0: ID=29, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 105
+    [1] => 29
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203202444-716","venta_id":105,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 20:31:14 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"5","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":19}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 4
+Método Pago ID: 5
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203203114-889
+Cliente regular ID: 4
+Método pago ID final: 5
+Usuario ID: 1
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203203114-889
+    [1] => 4
+    [2] => 1
+    [3] => 5
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 107
+Insertando detalles de venta...
+  Producto 0: ID=27, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 107
+    [1] => 27
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203203114-889","venta_id":107,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-03 20:33:21 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"18","metodo_pago_id":"5","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":29,"code":"HERR-001","name":"kit de herramientas","price":20,"quantity":1,"stock":7}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 18
+Método Pago ID: 5
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260203203322-895
+Cliente regular ID: 18
+Método pago ID final: 5
+Usuario ID: 32
+Valores: subtotal=20, iva=3.2, total=23.2
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260203203322-895
+    [1] => 18
+    [2] => 32
+    [3] => 5
+    [4] => 20
+    [5] => 3.2
+    [6] => 23.2
+    [7] => 
+)
+
+Venta insertada ID: 109
+Insertando detalles de venta...
+  Producto 0: ID=29, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 109
+    [1] => 29
+    [2] => 1
+    [3] => 20
+    [4] => 20
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260203203322-895","venta_id":109,"total":23.2,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-06 02:35:28 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"4","metodo_pago_id":"3","subtotal":10,"iva":1.6,"total":11.6,"productos":[{"id":30,"code":"ACEITE-001","name":"Aceite 4T 20W50","price":10,"quantity":1,"stock":2}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 4
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260206023529-736
+Cliente regular ID: 4
+Método pago ID final: 3
+Usuario ID: 2
+Valores: subtotal=10, iva=1.6, total=11.6
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260206023529-736
+    [1] => 4
+    [2] => 2
+    [3] => 3
+    [4] => 10
+    [5] => 1.6
+    [6] => 11.6
+    [7] => 
+)
+
+Venta insertada ID: 111
+Insertando detalles de venta...
+  Producto 0: ID=30, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 111
+    [1] => 30
+    [2] => 1
+    [3] => 10
+    [4] => 10
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260206023529-736","venta_id":111,"total":11.6,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-10 18:18:29 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"26","metodo_pago_id":"8","subtotal":0,"iva":0,"total":0,"productos":[{"id":43,"code":"AC-425766-737","name":"chaqueta","price":0,"quantity":1,"stock":5}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 26
+Método Pago ID: 8
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260210181829-893
+Cliente regular ID: 26
+Método pago ID final: 8
+Usuario ID: 2
+Valores: subtotal=0, iva=0, total=0
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260210181829-893
+    [1] => 26
+    [2] => 2
+    [3] => 8
+    [4] => 0
+    [5] => 0
+    [6] => 0
+    [7] => 
+)
+
+Venta insertada ID: 113
+Insertando detalles de venta...
+  Producto 0: ID=43, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 113
+    [1] => 43
+    [2] => 1
+    [3] => 0
+    [4] => 0
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260210181829-893","venta_id":113,"total":0,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-02-25 03:54:27 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"16","metodo_pago_id":"3","subtotal":0,"iva":0,"total":0,"productos":[{"id":42,"code":"RP-133032-917","name":"Casco integral","price":0,"quantity":1,"stock":6}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 16
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260225035427-306
+Cliente regular ID: 16
+Método pago ID final: 3
+Usuario ID: 2
+Valores: subtotal=0, iva=0, total=0
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260225035427-306
+    [1] => 16
+    [2] => 2
+    [3] => 3
+    [4] => 0
+    [5] => 0
+    [6] => 0
+    [7] => 
+)
+
+Venta insertada ID: 183
+Insertando detalles de venta...
+  Producto 0: ID=42, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 183
+    [1] => 42
+    [2] => 1
+    [3] => 0
+    [4] => 0
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260225035427-306","venta_id":183,"total":0,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-03-10 02:19:05 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"16","metodo_pago_id":"3","subtotal":849.98,"iva":135.9968,"total":985.9768,"productos":[{"id":54,"code":"VH-807227-436","name":"BRF 150cc","price":849.98,"quantity":1,"stock":21}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 16
+Método Pago ID: 3
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260310021905-967
+Cliente regular ID: 16
+Método pago ID final: 3
+Usuario ID: 2
+Valores: subtotal=849.98, iva=135.9968, total=985.9768
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260310021905-967
+    [1] => 16
+    [2] => 2
+    [3] => 3
+    [4] => 849.98
+    [5] => 135.9968
+    [6] => 985.9768
+    [7] => 
+)
+
+Venta insertada ID: 199
+Insertando detalles de venta...
+  Producto 0: ID=54, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 199
+    [1] => 54
+    [2] => 1
+    [3] => 849.98
+    [4] => 849.98
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260310021905-967","venta_id":199,"total":985.9768,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-03-15 22:37:46 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"1","metodo_pago_id":"1","subtotal":40,"iva":6.4,"total":46.4,"productos":[{"id":1,"code":"AC-449461-311","name":"chaqueta","price":40,"quantity":1,"stock":10}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 1
+Método Pago ID: 1
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260315223746-251
+Cliente regular ID: 1
+Método pago ID final: 1
+Usuario ID: 1
+Valores: subtotal=40, iva=6.4, total=46.4
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260315223746-251
+    [1] => 1
+    [2] => 1
+    [3] => 1
+    [4] => 40
+    [5] => 6.4
+    [6] => 46.4
+    [7] => 
+)
+
+Venta insertada ID: 1
+Insertando detalles de venta...
+  Producto 0: ID=1, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 1
+    [1] => 1
+    [2] => 1
+    [3] => 40
+    [4] => 40
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260315223746-251","venta_id":1,"total":46.4,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-03-16 00:23:05 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"1","metodo_pago_id":"1","subtotal":30,"iva":4.8,"total":34.8,"productos":[{"id":3,"quantity":1}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 1
+Método Pago ID: 1
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260316002305-742
+Cliente regular ID: 1
+Método pago ID final: 1
+Usuario ID: 1
+Valores: subtotal=30, iva=4.8, total=34.8
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260316002305-742
+    [1] => 1
+    [2] => 1
+    [3] => 1
+    [4] => 30
+    [5] => 4.8
+    [6] => 34.8
+    [7] => 
+)
+
+Venta insertada ID: 2
+Insertando detalles de venta...
+  Producto 0: ID=3, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 2
+    [1] => 3
+    [2] => 1
+    [3] => 30
+    [4] => 30
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260316002305-742","venta_id":2,"total":34.8,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-03-16 00:26:41 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"1","metodo_pago_id":"1","subtotal":40,"iva":6.4,"total":46.4,"productos":[{"id":1,"quantity":1}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 1
+Método Pago ID: 1
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260316002641-835
+Cliente regular ID: 1
+Método pago ID final: 1
+Usuario ID: 1
+Valores: subtotal=40, iva=6.4, total=46.4
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260316002641-835
+    [1] => 1
+    [2] => 1
+    [3] => 1
+    [4] => 40
+    [5] => 6.4
+    [6] => 46.4
+    [7] => 
+)
+
+Venta insertada ID: 3
+Insertando detalles de venta...
+  Producto 0: ID=1, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 3
+    [1] => 1
+    [2] => 1
+    [3] => 40
+    [4] => 40
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260316002641-835","venta_id":3,"total":46.4,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-03-16 00:52:35 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"1","metodo_pago_id":"1","subtotal":40,"iva":6.4,"total":46.4,"productos":[{"id":1,"quantity":1}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 1
+Método Pago ID: 1
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260316005235-187
+Cliente regular ID: 1
+Método pago ID final: 1
+Usuario ID: 1
+Valores: subtotal=40, iva=6.4, total=46.4
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260316005235-187
+    [1] => 1
+    [2] => 1
+    [3] => 1
+    [4] => 40
+    [5] => 6.4
+    [6] => 46.4
+    [7] => 
+)
+
+Venta insertada ID: 4
+Insertando detalles de venta...
+  Producto 0: ID=1, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 4
+    [1] => 1
+    [2] => 1
+    [3] => 40
+    [4] => 40
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260316005235-187","venta_id":4,"total":46.4,"productos_count":1}
+=== VENTA EXITOSA ===
+
+=== 2026-03-16 00:54:21 ===
+REQUEST_METHOD: POST
+RAW INPUT (primeros 500 chars):
+{"cliente_id":"1","metodo_pago_id":"1","subtotal":19.98,"iva":3.1968,"total":23.1768,"productos":[{"id":4,"quantity":1}],"efectivo_recibido":null}
+JSON decode OK
+Productos recibidos: 1
+Cliente ID: 1
+Método Pago ID: 1
+Incluyendo database.php...
+database.php incluido OK
+Obteniendo instancia de Database...
+Conexión PDO obtenida OK
+Driver: pgsql
+Código venta generado: V-20260316005421-991
+Cliente regular ID: 1
+Método pago ID final: 1
+Usuario ID: 1
+Valores: subtotal=19.98, iva=3.1968, total=23.1768
+Iniciando transacción...
+Preparando INSERT en ventas...
+SQL Venta: 
+            INSERT INTO ventas (
+                codigo_venta, cliente_id, usuario_id, metodo_pago_id,
+                subtotal, iva, total, estado_venta, observaciones, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'COMPLETADA', ?, NOW())
+            RETURNING id
+        
+Parámetros venta: Array
+(
+    [0] => V-20260316005421-991
+    [1] => 1
+    [2] => 1
+    [3] => 1
+    [4] => 19.98
+    [5] => 3.1968
+    [6] => 23.1768
+    [7] => 
+)
+
+Venta insertada ID: 5
+Insertando detalles de venta...
+  Producto 0: ID=4, Cant=1
+  SQL Detalle: 
+                INSERT INTO detalle_ventas (
+                    venta_id, producto_id, cantidad, precio_unitario, subtotal, created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
+            
+  Params Detalle: Array
+(
+    [0] => 5
+    [1] => 4
+    [2] => 1
+    [3] => 19.98
+    [4] => 19.98
+)
+
+Transacción COMMIT exitoso
+Respuesta: {"success":true,"message":"Venta registrada exitosamente","codigo_venta":"V-20260316005421-991","venta_id":5,"total":23.1768,"productos_count":1}
+=== VENTA EXITOSA ===
+

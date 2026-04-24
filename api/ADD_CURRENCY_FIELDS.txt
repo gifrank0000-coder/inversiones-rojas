@@ -1,0 +1,22 @@
+<?php
+// add_product_currency.php - Versión con soporte para moneda dual
+// Copia este contenido en add_product.php替换现有的货币字段处理
+
+// Después de la línea 76 (donde se obtiene $precio_venta), agregar:
+
+/*
+    // Nuevos campos de moneda (agregar después de la línea 76 en add_product.php)
+    $moneda_base = $_POST['moneda_base'] ?? 'USD';
+    $precio_compra_bs = !empty($_POST['precio_compra_bs']) ? (float)$_POST['precio_compra_bs'] : null;
+    $precio_compra_usd = !empty($_POST['precio_compra_usd']) ? (float)$_POST['precio_compra_usd'] : null;
+    $precio_venta_bs = !empty($_POST['precio_venta_bs']) ? (float)$_POST['precio_venta_bs'] : null;
+    $precio_venta_usd = !empty($_POST['precio_venta_usd']) ? (float)$_POST['precio_venta_usd'] : null;
+*/
+
+echo "Este archivo indica los campos que deben agregarse a add_product.php";
+echo "\nCampos requeridos:";
+echo "\n- moneda_base (USD o BS)";
+echo "\n- precio_compra_bs";
+echo "\n- precio_compra_usd";
+echo "\n- precio_venta_bs";
+echo "\n- precio_venta_usd";

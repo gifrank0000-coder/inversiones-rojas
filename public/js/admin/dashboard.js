@@ -10,13 +10,72 @@ document.addEventListener('DOMContentLoaded', function() {
     // Chart initialization
     try {
         const data = window.DASHBOARD_DATA || {};
-        const meses = data.meses || [];
-        const datosGrafico = data.datosGrafico || [];
+        const salesChartData = data.salesChartData || {
+            '7': { labels: [], data: [] },
+            '30': { labels: [], data: [] },
+            '12': { labels: [], data: [] }
+        };
+        const defaultRange = data.defaultSalesRange || '12';
         const canvas = document.getElementById('salesChart');
-        if (canvas && typeof Chart !== 'undefined') {
-            const ctx = canvas.getContext('2d');
-            new Chart(ctx, { type: 'line', data: { labels: meses, datasets: [{ label: 'Ventas ($)', data: datosGrafico, borderColor: '#1F9166', backgroundColor: 'rgba(31, 145, 102, 0.1)', borderWidth: 2, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { drawBorder: false } }, x: { grid: { display: false } } } } });
+        let salesChartInstance = null;
+
+        const chartOptions = {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Ventas ($)',
+                    data: [],
+                    borderColor: '#1F9166',
+                    backgroundColor: 'rgba(31, 145, 102, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { drawBorder: false }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        };
+
+        function updateSalesChart(range) {
+            const selected = salesChartData[range] ? range : defaultRange;
+            const chartData = salesChartData[selected];
+            if (!canvas || typeof Chart === 'undefined') return;
+            if (!salesChartInstance) {
+                chartOptions.data.labels = chartData.labels;
+                chartOptions.data.datasets[0].data = chartData.data;
+                salesChartInstance = new Chart(canvas.getContext('2d'), chartOptions);
+            } else {
+                salesChartInstance.data.labels = chartData.labels;
+                salesChartInstance.data.datasets[0].data = chartData.data;
+                salesChartInstance.update();
+            }
         }
+
+        const chartFilter = document.getElementById('salesRangeFilter');
+        if (chartFilter) {
+            chartFilter.addEventListener('change', function() {
+                updateSalesChart(this.value);
+            });
+        }
+
+        updateSalesChart(defaultRange);
     } catch(e) { console.error('chart init', e); }
 
     // Settings modal (abrir/cerrar y botón Gestión de Usuarios)

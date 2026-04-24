@@ -1,0 +1,1126 @@
+2026-02-02 16:31:33 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 16:31:33 - Array
+(
+    [raw_input_length] => 230
+)
+
+2026-02-02 16:31:33 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 10
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 16:31:33 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 16:31:33 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-163133-546
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+        )
+
+)
+
+2026-02-02 16:31:33 - Array
+(
+    [error_transaccion] => SQLSTATE[22001]: String data, right truncated: 7 ERROR:  el valor es demasiado largo para el tipo character varying(20)
+)
+
+2026-02-02 16:31:33 - Array
+(
+    [error_global] => SQLSTATE[22001]: String data, right truncated: 7 ERROR:  el valor es demasiado largo para el tipo character varying(20)
+)
+
+2026-02-02 16:34:38 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 16:34:38 - Array
+(
+    [raw_input_length] => 230
+)
+
+2026-02-02 16:34:38 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 10
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 16:34:39 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 16:34:39 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-1634-83
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+        )
+
+)
+
+2026-02-02 16:34:39 - Array
+(
+    [venta_insertada] => 3
+)
+
+2026-02-02 16:34:39 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 30
+            [cantidad] => 1
+            [precio] => 10
+            [subtotal] => 10
+        )
+
+)
+
+2026-02-02 16:34:39 - Array
+(
+    [error_transaccion] => SQLSTATE[23514]: Check violation: 7 ERROR:  el nuevo registro para la relación «movimientos_inventario» viola la restricción «check» «movimientos_inventario_tipo_movimiento_check»
+DETAIL:  La fila que falla contiene (2, 30, VENTA, 1, 10, 8, Venta registrada, V-20260202-1634-83, 2, 2026-02-02 15:34:39.14069).
+)
+
+2026-02-02 16:34:39 - Array
+(
+    [error_global] => SQLSTATE[23514]: Check violation: 7 ERROR:  el nuevo registro para la relación «movimientos_inventario» viola la restricción «check» «movimientos_inventario_tipo_movimiento_check»
+DETAIL:  La fila que falla contiene (2, 30, VENTA, 1, 10, 8, Venta registrada, V-20260202-1634-83, 2, 2026-02-02 15:34:39.14069).
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [raw_input_length] => 230
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 10
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-1643-33
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+        )
+
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [venta_insertada] => 5
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 30
+            [cantidad] => 1
+            [precio] => 10
+            [subtotal] => 10
+        )
+
+)
+
+2026-02-02 16:43:58 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [raw_input_length] => 216
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 26
+                            [code] => MOTO-001
+                            [name] => SBR
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 10
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-1644-91
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [venta_insertada] => 7
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 26
+            [cantidad] => 1
+            [precio] => 20
+            [subtotal] => 20
+        )
+
+)
+
+2026-02-02 16:44:44 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 16:59:47 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 16:59:47 - Array
+(
+    [raw_input_length] => 228
+)
+
+2026-02-02 16:59:47 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 15
+            [iva] => 2.4
+            [total] => 17.4
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 28
+                            [code] => CASCO-001
+                            [name] => Casco integral
+                            [price] => 15
+                            [quantity] => 1
+                            [stock] => 10
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 16:59:48 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 16:59:48 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-1659-48
+            [cliente_id] => 2
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 15
+            [iva] => 2.4
+            [total] => 17.4
+        )
+
+)
+
+2026-02-02 16:59:48 - Array
+(
+    [venta_insertada] => 9
+)
+
+2026-02-02 16:59:48 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 28
+            [cantidad] => 1
+            [precio] => 15
+            [subtotal] => 15
+        )
+
+)
+
+2026-02-02 16:59:48 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 17:00:28 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 17:00:28 - Array
+(
+    [raw_input_length] => 227
+)
+
+2026-02-02 17:00:28 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_id] => 4
+            [metodo_pago_id] => 3
+            [subtotal] => 15
+            [iva] => 2.4
+            [total] => 17.4
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 28
+                            [code] => CASCO-001
+                            [name] => Casco integral
+                            [price] => 15
+                            [quantity] => 1
+                            [stock] => 8
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 17:00:29 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 17:00:29 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-1700-38
+            [cliente_id] => 4
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 15
+            [iva] => 2.4
+            [total] => 17.4
+        )
+
+)
+
+2026-02-02 17:00:29 - Array
+(
+    [venta_insertada] => 11
+)
+
+2026-02-02 17:00:29 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 28
+            [cantidad] => 1
+            [precio] => 15
+            [subtotal] => 15
+        )
+
+)
+
+2026-02-02 17:00:29 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [raw_input_length] => 225
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 26
+                            [code] => MOTO-001
+                            [name] => SBR
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 8
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-1957-70
+            [cliente_id] => 
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [error_transaccion] => SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 5:                 cliente_facturacion_id,
+                        ^
+)
+
+2026-02-02 19:57:12 - Array
+(
+    [error_global] => SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 5:                 cliente_facturacion_id,
+                        ^
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [raw_input_length] => 225
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 2
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 26
+                            [code] => MOTO-001
+                            [name] => SBR
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 8
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2013-94
+            [cliente_id] => 
+            [metodo_pago_id] => 2
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [venta_insertada] => 13
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 26
+            [cantidad] => 1
+            [precio] => 20
+            [subtotal] => 20
+        )
+
+)
+
+2026-02-02 20:13:31 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [raw_input_length] => 239
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 8
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2014-68
+            [cliente_id] => 
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+        )
+
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [venta_insertada] => 15
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [detalle_insertado] => Array
+        (
+            [producto_id] => 30
+            [cantidad] => 1
+            [precio] => 10
+            [subtotal] => 10
+        )
+
+)
+
+2026-02-02 20:14:08 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [raw_input_length] => 237
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 27
+                            [code] => MOTO-002
+                            [name] => kawasaki ninja
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 30
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2022-62
+            [cliente_id] => 
+            [cliente_facturacion_id] => 1
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [error_transaccion] => SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 5:                 cliente_facturacion_id,
+                        ^
+)
+
+2026-02-02 20:22:25 - Array
+(
+    [error_global] => SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 5:                 cliente_facturacion_id,
+                        ^
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [raw_input_length] => 225
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 26
+                            [code] => MOTO-001
+                            [name] => SBR
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 6
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2029-35
+            [cliente_id] => 
+            [cliente_facturacion_id] => 1
+            [metodo_pago_id] => 3
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [error_transaccion] => SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 5:                 cliente_facturacion_id,
+                        ^
+)
+
+2026-02-02 20:29:59 - Array
+(
+    [error_global] => SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 5:                 cliente_facturacion_id,
+                        ^
+)
+
+2026-02-02 20:36:28 - [unknown] Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+2026-02-02 20:36:28 - [unknown] Array
+(
+    [raw_input_length] => 239
+)
+
+2026-02-02 20:36:28 - [unknown] Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 6
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:43:06 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [path_used] => C:/xampp/htdocs/inversiones-rojas/app/models/database.php
+)
+
+2026-02-02 20:43:06 - Array
+(
+    [raw_input] => {"cliente_facturacion_id":"2","metodo_pago_id":"2","subtotal":10,"iva":1.6,"total":11.6,"productos":[{"id":30,"code":"ACEITE-001","name":"Aceite 4T 20W50","price":10,"quantity":1,"stock":6}],"efectivo_recibido":null,"pagos_multiples":null}
+)
+
+2026-02-02 20:43:06 - Array
+(
+    [datos_recibidos] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 2
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 6
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:43:06 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:43:06 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2043-82
+            [cliente_id] => 
+            [metodo_pago_id] => 2
+            [productos_count] => 1
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+        )
+
+)
+
+2026-02-02 20:43:07 - Array
+(
+    [venta_insertada] => 19
+)
+
+2026-02-02 20:43:07 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [path_used] => C:/xampp/htdocs/inversiones-rojas/app/models/database.php
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [raw_input] => {"cliente_facturacion_id":"3","metodo_pago_id":"2","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":29,"code":"HERR-001","name":"kit de herramientas","price":20,"quantity":1,"stock":10}],"efectivo_recibido":null,"pagos_multiples":null}
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [datos_recibidos] => Array
+        (
+            [cliente_facturacion_id] => 3
+            [metodo_pago_id] => 2
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 29
+                            [code] => HERR-001
+                            [name] => kit de herramientas
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 10
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2045-91
+            [cliente_id] => 
+            [metodo_pago_id] => 2
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [venta_insertada] => 21
+)
+
+2026-02-02 20:45:24 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [inicio] => Procesar venta iniciado
+    [path_used] => C:/xampp/htdocs/inversiones-rojas/app/models/database.php
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [raw_input] => {"cliente_facturacion_id":"3","metodo_pago_id":"2","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":30}],"efectivo_recibido":null,"pagos_multiples":null}
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [datos_recibidos] => Array
+        (
+            [cliente_facturacion_id] => 3
+            [metodo_pago_id] => 2
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 27
+                            [code] => MOTO-002
+                            [name] => kawasaki ninja
+                            [price] => 20
+                            [quantity] => 1
+                            [stock] => 30
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [database] => Conexión exitosa
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [venta_info] => Array
+        (
+            [codigo] => V-20260202-2046-77
+            [cliente_id] => 
+            [metodo_pago_id] => 2
+            [productos_count] => 1
+            [subtotal] => 20
+            [iva] => 3.2
+            [total] => 23.2
+        )
+
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [venta_insertada] => 23
+)
+
+2026-02-02 20:46:32 - Array
+(
+    [transaccion] => Completada exitosamente
+)
+

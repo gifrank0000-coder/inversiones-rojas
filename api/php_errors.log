@@ -1,0 +1,44 @@
+[02-Feb-2026 20:36:28 Europe/Berlin] 2026-02-02 20:36:28 - [unknown] Array
+(
+    [inicio] => Procesar venta iniciado
+    [method] => POST
+)
+
+[02-Feb-2026 20:36:28 Europe/Berlin] 2026-02-02 20:36:28 - [unknown] Array
+(
+    [raw_input_length] => 239
+)
+
+[02-Feb-2026 20:36:28 Europe/Berlin] 2026-02-02 20:36:28 - [unknown] Array
+(
+    [parsed_input] => Array
+        (
+            [cliente_facturacion_id] => 2
+            [metodo_pago_id] => 3
+            [subtotal] => 10
+            [iva] => 1.6
+            [total] => 11.6
+            [productos] => Array
+                (
+                    [0] => Array
+                        (
+                            [id] => 30
+                            [code] => ACEITE-001
+                            [name] => Aceite 4T 20W50
+                            [price] => 10
+                            [quantity] => 1
+                            [stock] => 6
+                        )
+
+                )
+
+            [efectivo_recibido] => 
+            [pagos_multiples] => 
+        )
+
+)
+
+[02-Feb-2026 20:36:28 Europe/Berlin] PHP Fatal error:  Uncaught Error: Class "Database" not found in C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php:69
+Stack trace:
+#0 {main}
+  thrown in C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php on line 69

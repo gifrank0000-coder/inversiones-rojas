@@ -1,0 +1,116 @@
+[2026-02-02 22:23:51] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:24:18] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:08] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:20] Inicio de proceso
+Raw input recibido (229 bytes)
+JSON decodificado correctamente
+Datos validados: subtotal=10, iva=1.6, total=11.6
+Conexión BD OK
+Datos preparados: codigo=VEN-20260202-222520, cliente_id=1, metodo_pago=3, usuario=1
+Transacción iniciada
+ERROR Transacción: SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 3:                 codigo_venta, cliente_id, cliente_facturacio...
+                                                  ^
+ERROR Final: SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 3:                 codigo_venta, cliente_id, cliente_facturacio...
+                                                  ^
+[2026-02-02 22:25:36] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:37] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:37] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:38] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:38] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:38] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+[2026-02-02 22:25:49] Inicio de proceso
+Raw input recibido (229 bytes)
+JSON decodificado correctamente
+Datos validados: subtotal=10, iva=1.6, total=11.6
+Conexión BD OK
+Datos preparados: codigo=VEN-20260202-222549, cliente_id=1, metodo_pago=3, usuario=1
+Transacción iniciada
+ERROR Transacción: SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 3:                 codigo_venta, cliente_id, cliente_facturacio...
+                                                  ^
+ERROR Final: SQLSTATE[42703]: Undefined column: 7 ERROR:  no existe la columna «cliente_facturacion_id» en la relación «ventas»
+LINE 3:                 codigo_venta, cliente_id, cliente_facturacio...
+                                                  ^
+[2026-02-02 22:26:31] Inicio de proceso
+Raw input recibido (0 bytes)
+ERROR: No hay datos recibidos
+ERROR Final: No se recibieron datos
+
+[2026-02-03 00:10:58] Iniciando procesamiento
+Datos raw: {"cliente_id":"18","metodo_pago_id":"4","subtotal":15,"iva":2.4,"total":17.4,"productos":[{"id":"28","code":"CASCO-001","name":"Casco integral","price":15,"quantity":1,"stock":6}],"efectivo_recibido":null}
+Datos decodificados OK
+Productos recibidos: 1
+Buscando DB en: C:\xampp\htdocs\inversiones-rojas\api/../app/models/database.php
+Database.php incluido OK
+Conexión DB OK
+Código venta: V-20260203001058394
+Insertando venta...
+Venta insertada ID: 68
+ERROR: SQLSTATE[23503]: Foreign key violation: 7 ERROR:  inserción o actualización en la tabla «detalle_ventas» viola la llave foránea «detalle_ventas_venta_id_fkey»
+DETAIL:  La llave (venta_id)=(68) no está presente en la tabla «ventas».
+TRACE: #0 C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php(138): PDOStatement->execute(Array)
+#1 {main}
+
+[2026-02-03 00:12:05] Iniciando procesamiento
+Datos raw: 
+ERROR: No se recibieron datos
+TRACE: #0 {main}
+
+[2026-02-03 00:12:53] Iniciando procesamiento
+Datos raw: {"cliente_id":"18","metodo_pago_id":"4","subtotal":35,"iva":5.6000000000000005,"total":40.6,"productos":[{"id":"28","code":"CASCO-001","name":"Casco integral","price":15,"quantity":1,"stock":6},{"id":"27","code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":28}],"efectivo_recibido":null}
+Datos decodificados OK
+Productos recibidos: 2
+Buscando DB en: C:\xampp\htdocs\inversiones-rojas\api/../app/models/database.php
+Database.php incluido OK
+Conexión DB OK
+Código venta: V-20260203001253756
+Insertando venta...
+Venta insertada ID: 70
+ERROR: SQLSTATE[23503]: Foreign key violation: 7 ERROR:  inserción o actualización en la tabla «detalle_ventas» viola la llave foránea «detalle_ventas_venta_id_fkey»
+DETAIL:  La llave (venta_id)=(70) no está presente en la tabla «ventas».
+TRACE: #0 C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php(138): PDOStatement->execute(Array)
+#1 {main}
+
+[2026-02-03 00:13:42] Iniciando procesamiento
+Datos raw: {"cliente_id":"18","metodo_pago_id":"3","subtotal":15,"iva":2.4,"total":17.4,"productos":[{"id":"28","code":"CASCO-001","name":"Casco integral","price":15,"quantity":1,"stock":6}],"efectivo_recibido":null}
+Datos decodificados OK
+Productos recibidos: 1
+Buscando DB en: C:\xampp\htdocs\inversiones-rojas\api/../app/models/database.php
+Database.php incluido OK
+Conexión DB OK
+Código venta: V-20260203001342563
+Insertando venta...
+Venta insertada ID: 72
+ERROR: SQLSTATE[23503]: Foreign key violation: 7 ERROR:  inserción o actualización en la tabla «detalle_ventas» viola la llave foránea «detalle_ventas_venta_id_fkey»
+DETAIL:  La llave (venta_id)=(72) no está presente en la tabla «ventas».
+TRACE: #0 C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php(138): PDOStatement->execute(Array)
+#1 {main}

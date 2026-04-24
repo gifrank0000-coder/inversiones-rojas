@@ -19,4 +19,69 @@
 .dropdown-item:hover { background: #f7f7f9; }
 .dropdown-divider { height: 1px; background: #eee; margin: 6px 0; }
 
-@media (max-width: 768px) { .user-info { display: none; } .user-toggle { padding: 6px 8px; } }
+/* Auth buttons responsive */
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.auth-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.login-btn {
+    background: transparent;
+    border: 2px solid #1F9166;
+    color: #1F9166;
+}
+
+.login-btn:hover {
+    background: #1F9166;
+    color: white;
+}
+
+.register-btn {
+    background: #1F9166;
+    color: white;
+    border: 2px solid #1F9166;
+}
+
+.register-btn:hover {
+    background: #156b4d;
+    border-color: #156b4d;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .user-info { 
+        display: none; 
+    }
+    
+    .user-toggle { 
+        padding: 6px 8px; 
+    }
+    
+    .auth-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .auth-btn {
+        padding: 6px 10px;
+        font-size: 0.85em;
+    }
+    
+    .user-dropdown {
+        right: -10px;
+        left: auto;
+        min-width: 200px;
+    }
+}

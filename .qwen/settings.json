@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php *)",
+      "Bash(del *)",
+      "Bash(findstr *)"
+    ]
+  },
+  "$version": 3
+}

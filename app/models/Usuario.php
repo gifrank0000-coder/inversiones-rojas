@@ -95,9 +95,18 @@ class Usuario {
         $params = [];
         $where = [];
 
+        // Si la búsqueda contiene la palabra 'inhabilitados', mostrar inactivos
         if ($q !== null && $q !== '') {
-            $where[] = "(username ILIKE :q OR email ILIKE :q OR nombre_completo ILIKE :q)";
-            $params[':q'] = '%' . $q . '%';
+            if (stripos($q, 'inhabilitados') !== false) {
+                // Forzar estado inactivo y remover la palabra de la búsqueda
+                $estado = 'inactivo';
+                $q = trim(preg_replace('/\binhabilitados\b/i', '', $q));
+            }
+
+            if ($q !== '') {
+                $where[] = "(username ILIKE :q OR email ILIKE :q OR nombre_completo ILIKE :q)";
+                $params[':q'] = '%' . $q . '%';
+            }
         }
 
         if ($rol !== null && $rol !== '') {
@@ -108,10 +117,14 @@ class Usuario {
             }
         }
 
+        // Por defecto mostrar solo activos si no se especificó estado
         if ($estado === 'activo') {
             $where[] = "estado = true";
         } elseif ($estado === 'inactivo') {
             $where[] = "estado = false";
+        } else {
+            // Default: mostrar activos (incluye caso de cadena vacía)
+            $where[] = "estado = true";
         }
 
         $sql = "SELECT id, username, email, nombre_completo, rol_id, estado, ultimo_acceso, created_at FROM " . $this->table_name;

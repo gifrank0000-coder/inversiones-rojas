@@ -1,7 +1,9 @@
 <?php
 class Database {
+    /** Singleton holder for PDO instance */
+    private static $pdoInstance = null;
     private $host = "localhost";
-    private $db_name = "Inversiones_Rojas";
+    private $db_name = "InversionesRojas";
     private $username = "postgres";
     private $password = "1234";
     private $port = "5432";
@@ -27,6 +29,18 @@ class Database {
             $this->conn = null;
         }
         return $this->conn;
+    }
+
+    /**
+     * Devuelve una instancia singleton de PDO para simplificar uso estático
+     * Ejemplo: $pdo = Database::getInstance();
+     */
+    public static function getInstance() {
+        if (self::$pdoInstance === null) {
+            $db = new Database();
+            self::$pdoInstance = $db->getConnection();
+        }
+        return self::$pdoInstance;
     }
 
     /**

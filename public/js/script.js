@@ -1,74 +1,31 @@
 // JavaScript para funcionalidades básicas
 document.addEventListener('DOMContentLoaded', function() {
-    // CONEXIÓN DE BOTONES DE LOGIN Y REGISTRO
-    const base = window.APP_BASE || '';
-    const loginButtons = document.querySelectorAll('.login-btn');
-    loginButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const url = base ? (base + '/app/views/auth/Login.php') : '/app/views/auth/Login.php';
-            window.location.href = url;
-        });
-    });
-    
-    const registerButtons = document.querySelectorAll('.register-btn');
-    registerButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const url = base ? (base + '/app/views/auth/register.php') : '/app/views/auth/register.php';
-            window.location.href = url;
-        });
-    });
 
-    // PANEL DE USUARIO DESPLEGABLE: si ya cargó el componente específico, no inicializamos de nuevo
+
+    // PANEL DE USUARIO DESPLEGABLE
     if (!window.USER_PANEL_COMPONENT_LOADED) {
         const userPanel = document.getElementById('userPanel');
         const userToggle = document.getElementById('userToggle');
         
         if (userToggle && userPanel) {
-            // Toggle del dropdown
             userToggle.addEventListener('click', function(e) {
                 e.stopPropagation();
                 userPanel.classList.toggle('active');
             });
             
-            // Cerrar dropdown al hacer clic fuera
             document.addEventListener('click', function() {
                 userPanel.classList.remove('active');
             });
             
-            // Prevenir que el dropdown se cierre al hacer clic dentro
             const userDropdown = userPanel.querySelector('.user-dropdown');
             if (userDropdown) {
                 userDropdown.addEventListener('click', function(e) {
                     e.stopPropagation();
                 });
             }
-            
-            // Conectar botones del dropdown
-            const profileBtn = userPanel.querySelector('.dropdown-item[onclick*="openProfile"]');
-            const ordersBtn = userPanel.querySelector('.dropdown-item[onclick*="openOrders"]');
-            const settingsBtn = userPanel.querySelector('.dropdown-item[onclick*="openSettings"]');
-            
-            if (profileBtn) {
-                profileBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openProfile();
-                });
-            }
-            
-            if (ordersBtn) {
-                ordersBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openOrders();
-                });
-            }
-            
-            if (settingsBtn) {
-                settingsBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    openSettings();
-                });
-            }
         }
+        // Evitar inicialización duplicada en futuras cargas del script
+        window.USER_PANEL_COMPONENT_LOADED = true;
     }
 
     // Menú móvil mejorado
@@ -81,7 +38,6 @@ document.addEventListener('DOMContentLoaded', function() {
             navMenu.classList.toggle('active');
         });
         
-        // Cerrar menú al hacer clic en un enlace
         const navLinks = navMenu.querySelectorAll('a');
         navLinks.forEach(link => {
             link.addEventListener('click', function() {
@@ -89,7 +45,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         
-        // Cerrar menú al hacer clic fuera de él
         document.addEventListener('click', function(event) {
             const isClickInsideNav = navMenu.contains(event.target);
             const isClickOnToggle = navToggle.contains(event.target);
@@ -99,7 +54,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Cerrar menú al redimensionar la ventana (si se cambia a desktop)
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
                 navMenu.classList.remove('active');
@@ -107,7 +61,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Slider automático HERO
+    // ============================================
+    // SLIDER HERO - 10 segundos - CORREGIDO
+    // ============================================
     const heroSlider = document.getElementById('heroSlider');
     const heroSlides = document.querySelectorAll('.hero-slide');
     const heroDots = document.querySelectorAll('.hero-slider-dot');
@@ -115,354 +71,362 @@ document.addEventListener('DOMContentLoaded', function() {
     if (heroSlider && heroSlides.length > 0) {
         let currentHeroSlide = 0;
         let heroInterval;
+        let isHeroPaused = false;
         
         function goToHeroSlide(index) {
-            heroSlider.style.transform = `translateX(-${index * 100}%)`;
+            if (index < 0) index = heroSlides.length - 1;
+            if (index >= heroSlides.length) index = 0;
             
-            // Actualizar dots activos
+            heroSlider.style.transform = `translateX(-${index * 100}%)`;
             heroDots.forEach((dot, i) => {
                 dot.classList.toggle('active', i === index);
             });
-            
             currentHeroSlide = index;
         }
         
-        // Iniciar slider hero
+        function startHeroAutoPlay() {
+            if (heroInterval) clearInterval(heroInterval);
+            if (!isHeroPaused) {
+                heroInterval = setInterval(() => {
+                    goToHeroSlide(currentHeroSlide + 1);
+                }, 5000); // 10 segundos
+            }
+        }
+        
+        function pauseHeroAutoPlay() {
+            isHeroPaused = true;
+            if (heroInterval) {
+                clearInterval(heroInterval);
+                heroInterval = null;
+            }
+        }
+        
+        function resumeHeroAutoPlay() {
+            isHeroPaused = false;
+            startHeroAutoPlay();
+        }
+        
+        // Inicializar
         goToHeroSlide(0);
+        startHeroAutoPlay();
         
-        // Cambiar slide cada 5 segundos
-        heroInterval = setInterval(() => {
-            let nextSlide = (currentHeroSlide + 1) % heroSlides.length;
-            goToHeroSlide(nextSlide);
-        }, 5000);
-        
-        // Añadir event listeners a los dots
+        // Event listeners para dots
         heroDots.forEach((dot, index) => {
             dot.addEventListener('click', () => {
+                pauseHeroAutoPlay();
                 goToHeroSlide(index);
-                // Reiniciar intervalo
-                clearInterval(heroInterval);
-                heroInterval = setInterval(() => {
-                    let nextSlide = (currentHeroSlide + 1) % heroSlides.length;
-                    goToHeroSlide(nextSlide);
-                }, 5000);
+                setTimeout(resumeHeroAutoPlay, 10000);
             });
         });
-        
-        // Pausar slider al hacer hover
-        heroSlider.addEventListener('mouseenter', () => {
-            clearInterval(heroInterval);
-        });
-        
-        heroSlider.addEventListener('mouseleave', () => {
-            heroInterval = setInterval(() => {
-                let nextSlide = (currentHeroSlide + 1) % heroSlides.length;
-                goToHeroSlide(nextSlide);
-            }, 5000);
-        });
-    }
-    
-    // FUNCIÓN PARA COMBINAR SLIDERS EN MÓVIL (3 EN 1)
-    function setupResponsiveSliders() {
-        const promoSlidersContainer = document.querySelector('.promo-sliders-container');
-        const mainPromoSlider = document.getElementById('main-promo-slider');
-        const secondarySliders = document.querySelectorAll('.secondary-promo-slider');
-        
-        if (!promoSlidersContainer || !mainPromoSlider || secondarySliders.length === 0) return;
-        
-        // Crear slider combinado para móvil
-        let combinedSlider = document.getElementById('combined-promo-slider');
-        
-        if (window.innerWidth <= 768) {
-            // Modo móvil - Combinar sliders
-            if (!combinedSlider) {
-                combinedSlider = document.createElement('div');
-                combinedSlider.id = 'combined-promo-slider';
-                combinedSlider.className = 'combined-promo-slider';
-                
-                // Obtener todos los slides de los 3 sliders
-                const mainSlides = mainPromoSlider.querySelectorAll('.promo-slide');
-                const secondary1Slides = secondarySliders[0]?.querySelectorAll('.promo-slide') || [];
-                const secondary2Slides = secondarySliders[1]?.querySelectorAll('.promo-slide') || [];
-                
-                // Combinar todos los slides
-                const allSlides = [...mainSlides, ...secondary1Slides, ...secondary2Slides];
-                
-                allSlides.forEach((slide, index) => {
-                    const clonedSlide = slide.cloneNode(true);
-                    clonedSlide.classList.remove('active');
-                    if (index === 0) clonedSlide.classList.add('active');
-                    combinedSlider.appendChild(clonedSlide);
-                });
-                
-                // Agregar navegación
-                const navContainer = document.createElement('div');
-                navContainer.className = 'combined-slider-nav';
-                
-                allSlides.forEach((_, index) => {
-                    const dot = document.createElement('div');
-                    dot.className = 'combined-slider-dot';
-                    if (index === 0) dot.classList.add('active');
-                    dot.addEventListener('click', () => goToCombinedSlide(index));
-                    navContainer.appendChild(dot);
-                });
-                
-                // Agregar flechas de navegación
-                const prevBtn = document.createElement('div');
-                prevBtn.className = 'combined-slider-nav-btn prev';
-                prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
-                prevBtn.addEventListener('click', () => navigateCombinedSlider(-1));
-                
-                const nextBtn = document.createElement('div');
-                nextBtn.className = 'combined-slider-nav-btn next';
-                nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
-                nextBtn.addEventListener('click', () => navigateCombinedSlider(1));
-                
-                combinedSlider.appendChild(prevBtn);
-                combinedSlider.appendChild(nextBtn);
-                combinedSlider.appendChild(navContainer);
-                
-                // Ocultar sliders originales y mostrar el combinado
-                mainPromoSlider.style.display = 'none';
-                secondarySliders.forEach(slider => slider.style.display = 'none');
-                promoSlidersContainer.appendChild(combinedSlider);
-                
-                // Iniciar slider combinado
-                startCombinedSlider();
-            }
-        } else {
-            // Modo desktop - Mostrar sliders originales
-            if (combinedSlider) {
-                combinedSlider.remove();
-            }
-            mainPromoSlider.style.display = 'block';
-            secondarySliders.forEach(slider => slider.style.display = 'block');
-            
-            // Reiniciar sliders originales
-            setupOriginalPromoSliders();
-        }
-    }
-    
-    // Variables para el slider combinado
-    let currentCombinedSlide = 0;
-    let combinedInterval;
-    
-    function startCombinedSlider() {
-        const slides = document.querySelectorAll('#combined-promo-slider .promo-slide');
-        if (slides.length === 0) return;
-        
-        // Cambiar slide cada 4 segundos (más rápido porque hay más contenido)
-        combinedInterval = setInterval(() => {
-            navigateCombinedSlider(1);
-        }, 4000);
         
         // Pausar al hacer hover
-        const combinedSlider = document.getElementById('combined-promo-slider');
-        if (combinedSlider) {
-            combinedSlider.addEventListener('mouseenter', () => {
-                clearInterval(combinedInterval);
-            });
+        heroSlider.addEventListener('mouseenter', pauseHeroAutoPlay);
+        heroSlider.addEventListener('mouseleave', resumeHeroAutoPlay);
+        
+        // Soporte para touch en móvil
+        let touchStartX = 0;
+        heroSlider.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            pauseHeroAutoPlay();
+        });
+        
+        heroSlider.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
             
-            combinedSlider.addEventListener('mouseleave', () => {
-                combinedInterval = setInterval(() => {
-                    navigateCombinedSlider(1);
-                }, 4000);
-            });
-        }
-    }
-    
-    function navigateCombinedSlider(direction) {
-        const slides = document.querySelectorAll('#combined-promo-slider .promo-slide');
-        if (slides.length === 0) return;
-        
-        const dots = document.querySelectorAll('#combined-promo-slider .combined-slider-dot');
-        
-        slides[currentCombinedSlide].classList.remove('active');
-        dots[currentCombinedSlide].classList.remove('active');
-        
-        currentCombinedSlide = (currentCombinedSlide + direction + slides.length) % slides.length;
-        
-        slides[currentCombinedSlide].classList.add('active');
-        dots[currentCombinedSlide].classList.add('active');
-        
-        // Reiniciar intervalo
-        clearInterval(combinedInterval);
-        combinedInterval = setInterval(() => {
-            navigateCombinedSlider(1);
-        }, 4000);
-    }
-    
-    function goToCombinedSlide(index) {
-        const slides = document.querySelectorAll('#combined-promo-slider .promo-slide');
-        const dots = document.querySelectorAll('#combined-promo-slider .combined-slider-dot');
-        
-        if (slides.length === 0) return;
-        
-        slides[currentCombinedSlide].classList.remove('active');
-        dots[currentCombinedSlide].classList.remove('active');
-        
-        currentCombinedSlide = index;
-        
-        slides[currentCombinedSlide].classList.add('active');
-        dots[currentCombinedSlide].classList.add('active');
-        
-        // Reiniciar intervalo
-        clearInterval(combinedInterval);
-        combinedInterval = setInterval(() => {
-            navigateCombinedSlider(1);
-        }, 4000);
-    }
-    
-    // Configuración original de los sliders de promociones (para desktop)
-    function setupOriginalPromoSliders() {
-        const promoSliders = document.querySelectorAll('.main-promo-slider, .secondary-promo-slider');
-        
-        promoSliders.forEach(slider => {
-            const slides = slider.querySelectorAll('.promo-slide');
-            if (slides.length === 0) return;
-            
-            let currentSlide = 0;
-            let promoInterval;
-            
-            // Función para cambiar slide
-            function goToSlide(n) {
-                slides[currentSlide].classList.remove('active');
-                currentSlide = (n + slides.length) % slides.length;
-                slides[currentSlide].classList.add('active');
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    goToHeroSlide(currentHeroSlide + 1);
+                } else {
+                    goToHeroSlide(currentHeroSlide - 1);
+                }
             }
-            
-            // Añadir event listeners a las flechas de navegación
-            const prevBtn = slider.querySelector('.promo-slider-nav.prev');
-            const nextBtn = slider.querySelector('.promo-slider-nav.next');
-            
-            if (prevBtn) {
-                prevBtn.addEventListener('click', () => {
-                    goToSlide(currentSlide - 1);
-                    resetPromoInterval();
-                });
-            }
-            
-            if (nextBtn) {
-                nextBtn.addEventListener('click', () => {
-                    goToSlide(currentSlide + 1);
-                    resetPromoInterval();
-                });
-            }
-            
-            function resetPromoInterval() {
-                clearInterval(promoInterval);
-                promoInterval = setInterval(() => {
-                    goToSlide(currentSlide + 1);
-                }, 5000);
-            }
-            
-            // Cambio automático cada 5 segundos
-            promoInterval = setInterval(() => {
-                goToSlide(currentSlide + 1);
-            }, 5000);
-            
-            // Pausar al hacer hover
-            slider.addEventListener('mouseenter', () => {
-                clearInterval(promoInterval);
-            });
-            
-            slider.addEventListener('mouseleave', () => {
-                promoInterval = setInterval(() => {
-                    goToSlide(currentSlide + 1);
-                }, 5000);
-            });
-            
-            // Inicializar primer slide
-            goToSlide(0);
+            setTimeout(resumeHeroAutoPlay, 10000);
         });
     }
     
-    // Configurar sliders según el tamaño de pantalla
-    setupResponsiveSliders();
-    setupOriginalPromoSliders();
+    // ============================================
+    // SLIDER DE PROMOCIONES - UN SOLO SLIDER - CORREGIDO
+    // ============================================
+    function setupPromoSlider() {
+        const mainPromoSlider = document.getElementById('main-promo-slider');
+        if (!mainPromoSlider) return;
+        
+        const slides = mainPromoSlider.querySelectorAll('.promo-slide');
+        if (slides.length === 0) return;
+        
+        let currentSlide = 0;
+        let promoInterval;
+        let isPromoPaused = false;
+        
+        // Función para ir a un slide específico
+        function goToSlide(index) {
+            if (index < 0) index = slides.length - 1;
+            if (index >= slides.length) index = 0;
+            
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+            currentSlide = index;
+        }
+        
+        function startPromoAutoPlay() {
+            if (promoInterval) clearInterval(promoInterval);
+            if (!isPromoPaused) {
+                promoInterval = setInterval(() => {
+                    goToSlide(currentSlide + 1);
+                }, 12000); // 12 segundos
+            }
+        }
+        
+        function pausePromoAutoPlay() {
+            isPromoPaused = true;
+            if (promoInterval) {
+                clearInterval(promoInterval);
+                promoInterval = null;
+            }
+        }
+        
+        function resumePromoAutoPlay() {
+            isPromoPaused = false;
+            startPromoAutoPlay();
+        }
+        
+        // Botones de navegación
+        const prevBtn = mainPromoSlider.querySelector('.promo-slider-nav.prev');
+        const nextBtn = mainPromoSlider.querySelector('.promo-slider-nav.next');
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                pausePromoAutoPlay();
+                goToSlide(currentSlide - 1);
+                setTimeout(resumePromoAutoPlay, 12000);
+            });
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                pausePromoAutoPlay();
+                goToSlide(currentSlide + 1);
+                setTimeout(resumePromoAutoPlay, 12000);
+            });
+        }
+        
+        // Inicializar
+        goToSlide(0);
+        startPromoAutoPlay();
+        
+        // Pausar al hacer hover
+        mainPromoSlider.addEventListener('mouseenter', pausePromoAutoPlay);
+        mainPromoSlider.addEventListener('mouseleave', resumePromoAutoPlay);
+        
+        slides.forEach(slide => {
+            slide.addEventListener('mouseenter', pausePromoAutoPlay);
+            slide.addEventListener('mouseleave', resumePromoAutoPlay);
+        });
+        
+        // Soporte para touch en móvil
+        let touchStartX = 0;
+        mainPromoSlider.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            pausePromoAutoPlay();
+        });
+        
+        mainPromoSlider.addEventListener('touchend', (e) => {
+            const touchEndX = e.changedTouches[0].clientX;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    goToSlide(currentSlide + 1);
+                } else {
+                    goToSlide(currentSlide - 1);
+                }
+            }
+            setTimeout(resumePromoAutoPlay, 12000);
+        });
+    }
+    
+    // ============================================
+    // SLIDERS DE PRODUCTOS Y VEHÍCULOS - CORREGIDO
+    // ============================================
+    function setupProductSliders() {
+        const sliders = [
+            {
+                track: document.getElementById('track-productos'),
+                prev: document.getElementById('prev-productos'),
+                next: document.getElementById('next-productos'),
+                container: document.querySelectorAll('.slider-container-custom')[0]
+            },
+            {
+                track: document.getElementById('track-vehiculos'),
+                prev: document.getElementById('prev-vehiculos'),
+                next: document.getElementById('next-vehiculos'),
+                container: document.querySelectorAll('.slider-container-custom')[1]
+            }
+        ];
+        
+        const itemWidth = 265 + 25; // Ancho de producto + gap
+        let scrollTimeout;
+        
+        sliders.forEach((slider, index) => {
+            if (!slider.track || !slider.prev || !slider.next) return;
+            
+            // Mostrar/ocultar controles al hacer hover
+            if (slider.container) {
+                slider.container.addEventListener('mouseenter', () => {
+                    slider.prev.style.opacity = '1';
+                    slider.prev.style.visibility = 'visible';
+                    slider.next.style.opacity = '1';
+                    slider.next.style.visibility = 'visible';
+                });
+                
+                slider.container.addEventListener('mouseleave', () => {
+                    // No ocultar si estamos en móvil
+                    if (window.innerWidth > 768) {
+                        slider.prev.style.opacity = '0';
+                        slider.prev.style.visibility = 'hidden';
+                        slider.next.style.opacity = '0';
+                        slider.next.style.visibility = 'hidden';
+                    }
+                });
+            }
+            
+            // Event listeners para los botones
+            slider.next.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const maxScroll = slider.track.scrollWidth - slider.track.clientWidth;
+                const newScroll = Math.min(slider.track.scrollLeft + (itemWidth * 2), maxScroll);
+                
+                slider.track.scrollTo({
+                    left: newScroll,
+                    behavior: 'smooth'
+                });
+            });
+            
+            slider.prev.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const newScroll = Math.max(slider.track.scrollLeft - (itemWidth * 2), 0);
+                
+                slider.track.scrollTo({
+                    left: newScroll,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Soporte para scroll con rueda del mouse
+            slider.track.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    slider.track.scrollBy({
+                        left: e.deltaY > 0 ? itemWidth : -itemWidth,
+                        behavior: 'smooth'
+                    });
+                }, 50);
+            }, { passive: false });
+            
+            // En móvil, aseguramos que los controles sean visibles
+            if (window.innerWidth <= 768) {
+                slider.prev.style.opacity = '1';
+                slider.prev.style.visibility = 'visible';
+                slider.next.style.opacity = '1';
+                slider.next.style.visibility = 'visible';
+            }
+        });
+    }
+    
+    // ============================================
+    // AJUSTES PARA MÓVIL
+    // ============================================
+    function setupMobileLayout() {
+        const mainPromoSlider = document.getElementById('main-promo-slider');
+        
+        if (window.innerWidth <= 768) {
+            // En móvil, ajustar altura del slider de promociones
+            if (mainPromoSlider) {
+                mainPromoSlider.style.height = '300px';
+            }
+            
+            // Hacer visibles los controles de navegación
+            const promoNavBtns = document.querySelectorAll('.promo-slider-nav');
+            promoNavBtns.forEach(btn => {
+                btn.style.opacity = '1';
+                btn.style.visibility = 'visible';
+            });
+        } else {
+            // Restaurar en desktop
+            if (mainPromoSlider) {
+                mainPromoSlider.style.height = '';
+            }
+        }
+    }
+    
+    // ============================================
+    // INICIALIZAR TODO
+    // ============================================
+    
+    // Inicializar sliders
+    setupPromoSlider();
+    setupProductSliders();
+    setupMobileLayout();
     
     // Reconfigurar cuando cambie el tamaño de la ventana
-    window.addEventListener('resize', setupResponsiveSliders);
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            setupMobileLayout();
+            setupProductSliders(); // Reconfigurar sliders de productos
+        }, 250);
+    });
     
-    // Expandir barra de búsqueda al hacer clic
+    // Barra de búsqueda - funcionalidad con Enter
     const searchBar = document.querySelector('.search-bar');
     const searchIcon = document.querySelector('.search-icon');
     
     if (searchBar && searchIcon) {
-        searchIcon.addEventListener('click', function() {
-            searchBar.focus();
-        });
+        // Hacer focus al hacer clic en el icono
+        searchIcon.addEventListener('click', () => searchBar.focus());
         
-        // Cerrar menú móvil si está abierto al hacer focus en búsqueda
-        searchBar.addEventListener('focus', function() {
+        // Cerrar menú móvil si está abierto
+        searchBar.addEventListener('focus', () => {
             if (navMenu && navMenu.classList.contains('active')) {
                 navMenu.classList.remove('active');
+            }
+        });
+        
+        // Búsqueda al presionar Enter - usar keydown para mejor compatibilidad
+        searchBar.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const query = searchBar.value.trim();
+                console.log('Search triggered:', query);
+                if (query.length >= 2) {
+                    const baseUrl = document.querySelector('[data-base-url]')?.getAttribute('data-base-url') || 
+                                   (typeof BASE_URL !== 'undefined' ? BASE_URL : '/inversiones-rojas');
+                    const searchUrl = baseUrl + '/app/views/layouts/search_results.php?q=' + encodeURIComponent(query);
+                    console.log('Redirecting to:', searchUrl);
+                    window.location.href = searchUrl;
+                } else {
+                    console.log('Query too short:', query.length);
+                }
             }
         });
     }
 });
 
-// Sliders de Productos y Vehículos
-document.addEventListener('DOMContentLoaded', function() {
-    // Configuración para ambos sliders
-    const sliders = [
-        {
-            track: document.getElementById('track-productos'),
-            prev: document.getElementById('prev-productos'),
-            next: document.getElementById('next-productos'),
-            container: document.querySelector('.slider-container-custom')
-        },
-        {
-            track: document.getElementById('track-vehiculos'),
-            prev: document.getElementById('prev-vehiculos'),
-            next: document.getElementById('next-vehiculos'),
-            container: document.querySelectorAll('.slider-container-custom')[1]
-        }
-    ];
-    
-    // Ancho de un producto + gap
-    const itemWidth = 265 + 25;
-    
-    sliders.forEach((slider) => {
-        if (!slider.track || !slider.prev || !slider.next || !slider.container) {
-            return;
-        }
-        
-        // Mostrar flechas al pasar el mouse sobre el contenedor
-        slider.container.addEventListener('mouseenter', function() {
-            slider.prev.style.opacity = '1';
-            slider.prev.style.visibility = 'visible';
-            slider.next.style.opacity = '1';
-            slider.next.style.visibility = 'visible';
-        });
-        
-        // Ocultar flechas al salir del contenedor
-        slider.container.addEventListener('mouseleave', function(e) {
-            if (!e.relatedTarget || 
-                (!e.relatedTarget.closest('.slider-control-custom') && 
-                 !e.relatedTarget.closest('.slider-track-custom'))) {
-                slider.prev.style.opacity = '0';
-                slider.prev.style.visibility = 'hidden';
-                slider.next.style.opacity = '0';
-                slider.next.style.visibility = 'hidden';
-            }
-        });
-        
-        // Navegación con flechas
-        slider.next.addEventListener('click', function() {
-            slider.track.scrollBy({ left: itemWidth * 2, behavior: 'smooth' });
-        });
-        
-        slider.prev.addEventListener('click', function() {
-            slider.track.scrollBy({ left: -itemWidth * 2, behavior: 'smooth' });
-        });
-    });
-});
-
-// =============================================
+// ============================================
 // FUNCIONES GLOBALES DEL PANEL DE USUARIO
-// =============================================
-
+// ============================================
 function openSettings() {
     alert('Configuración - Esta funcionalidad estará disponible pronto');
     const userPanel = document.getElementById('userPanel');

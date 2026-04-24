@@ -17,6 +17,13 @@ if (file_exists($root_path . '/app/helpers/permissions.php')) {
 session_start();
 header('Content-Type: application/json');
 
+// Validar token CSRF
+$submittedToken = $_POST['csrf_token'] ?? '';
+if (empty($submittedToken) || !hash_equals($_SESSION['csrf_token'] ?? '', $submittedToken)) {
+    echo json_encode(['success' => false, 'message' => 'Token de seguridad inválido. Por favor recarga la página.']);
+    exit;
+}
+
 // Solo ejecutar si es una petición POST real
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $database = new Database();
@@ -40,63 +47,88 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         echo json_encode(['success' => false, 'message' => 'Envío detectado como spam']);
         exit;
     }
-    if ($notRobot !== '1') {
-        echo json_encode(['success' => false, 'message' => 'Por favor confirma que no eres un robot']);
+    // Si hay una clave secreta de reCAPTCHA configurada, usaremos reCAPTCHA
+    // y no requerimos la casilla manual `not_robot`. Si no hay clave, exigirla.
+    if (empty($__RECAPTCHA_SECRET_KEY)) {
+        if ($notRobot !== '1') {
+            echo json_encode(['success' => false, 'message' => 'Por favor confirma que no eres un robot']);
+            exit;
+        }
+    }
+
+    // En process_login.php, reemplaza la sección de verificación de reCAPTCHA:
+
+// Si se ha configurado RECAPTCHA_SECRET_KEY en config, verificar el token enviado
+$recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
+
+if ($__RECAPTCHA_SECRET_KEY) {
+    // Verificar que se envió el token del checkbox
+    if (empty($recaptchaResponse)) {
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Por favor marca la casilla "No soy un robot"'
+        ]);
         exit;
     }
 
-    // Si se ha configurado RECAPTCHA_SECRET_KEY en config, verificar el token enviado
-    $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
-    if ($__RECAPTCHA_SECRET_KEY) {
-        if (empty($recaptchaResponse)) {
-            echo json_encode(['success' => false, 'message' => 'reCAPTCHA no fue completado']);
-            exit;
-        }
+    $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
+    $postData = http_build_query([
+        'secret' => $__RECAPTCHA_SECRET_KEY,
+        'response' => $recaptchaResponse,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ]);
 
-        $verifyUrl = 'https://www.google.com/recaptcha/api/siteverify';
-        $postData = http_build_query([
-            'secret' => $__RECAPTCHA_SECRET_KEY,
-            'response' => $recaptchaResponse,
-            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
-        ]);
+    // Preferir cURL si está disponible
+    $verifyResponse = false;
+    if (function_exists('curl_init')) {
+        $ch = curl_init($verifyUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+        $verifyResponse = curl_exec($ch);
+        curl_close($ch);
+    } else {
+        // Fallback a file_get_contents
+        $opts = ['http' => [
+            'method' => 'POST',
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'content' => $postData,
+            'timeout' => 5
+        ]];
+        $context = stream_context_create($opts);
+        $verifyResponse = @file_get_contents($verifyUrl, false, $context);
+    }
 
-        // Preferir cURL si está disponible
-        $verifyResponse = false;
-        if (function_exists('curl_init')) {
-            $ch = curl_init($verifyUrl);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-            $verifyResponse = curl_exec($ch);
-            curl_close($ch);
-        } else {
-            // Fallback a file_get_contents
-            $opts = ['http' => [
-                'method' => 'POST',
-                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-                'content' => $postData,
-                'timeout' => 5
-            ]];
-            $context = stream_context_create($opts);
-            $verifyResponse = @file_get_contents($verifyUrl, false, $context);
-        }
+    if (!$verifyResponse) {
+        error_log('reCAPTCHA verification call failed');
+        echo json_encode(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA. Intenta de nuevo.']);
+        exit;
+    }
 
-        if (!$verifyResponse) {
-            error_log('reCAPTCHA verification call failed');
-            echo json_encode(['success' => false, 'message' => 'No se pudo verificar reCAPTCHA']);
-            exit;
+    $decoded = json_decode($verifyResponse, true);
+    
+    // Verificación para reCAPTCHA v2 (más simple)
+    if (empty($decoded['success'])) {
+        error_log('reCAPTCHA verification failed: ' . json_encode($decoded));
+        $errorMessage = 'Verificación de seguridad fallida. ';
+        
+        // Mensajes más específicos según el error
+        if (isset($decoded['error-codes'])) {
+            if (in_array('timeout-or-duplicate', $decoded['error-codes'])) {
+                $errorMessage .= 'El tiempo de verificación expiró.';
+            } elseif (in_array('missing-input-response', $decoded['error-codes'])) {
+                $errorMessage .= 'No se marcó la casilla.';
+            } else {
+                $errorMessage .= 'Por favor inténtalo de nuevo.';
+            }
         }
-
-        $decoded = json_decode($verifyResponse, true);
-        if (empty($decoded['success'])) {
-            // Puedes revisar $decoded para más detalles (score, challenge_ts, hostname)
-            error_log('reCAPTCHA failed: ' . json_encode($decoded));
-            echo json_encode(['success' => false, 'message' => 'Verificación reCAPTCHA fallida']);
-            exit;
-        }
+        
+        echo json_encode(['success' => false, 'message' => $errorMessage]);
+        exit;
     }
     
+}
     // Validaciones básicas
     if (empty($email) || empty($password)) {
         echo json_encode(['success' => false, 'message' => 'Email y contraseña son requeridos']);
@@ -141,6 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['nombre_completo'];
             $_SESSION['user_email'] = $user['email'];
+            
+            // Regenerar token CSRF después de login exitoso
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             
             // Normalizar el rol antes de guardarlo en sesión si el helper existe
             $rawRole = $user['rol_nombre'] ?? $user['rol_id'] ?? null;

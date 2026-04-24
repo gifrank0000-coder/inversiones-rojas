@@ -1,8 +1,13 @@
 <?php
 session_start();
 require_once __DIR__ . '/../../../config/config.php';
-?>
 
+// Si el usuario ya está logueado, redirigir al dashboard
+if (isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . '/index.php');
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -14,9 +19,9 @@ require_once __DIR__ . '/../../../config/config.php';
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/base.css">
     <link rel="stylesheet" href="<?php echo BASE_URL; ?>/public/css/pages/auth.css">
     <style>
-        /* Estilos para el proceso de recuperación */
+        /* Estilos específicos para recuperación */
         .recovery-container {
-            max-width: 500px;
+            max-width: 450px;
             margin: 50px auto;
             padding: 40px;
             background: white;
@@ -98,52 +103,6 @@ require_once __DIR__ . '/../../../config/config.php';
             animation: fadeIn 0.5s;
         }
         
-        .recovery-method {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .recovery-method:hover {
-            border-color: #1F9166;
-            transform: translateY(-3px);
-        }
-        
-        .recovery-method.selected {
-            border-color: #1F9166;
-            background: #e8f5e8;
-        }
-        
-        .method-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1F9166, #30B583);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            margin-bottom: 15px;
-        }
-        
-        .method-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 8px;
-        }
-        
-        .method-description {
-            color: #6c757d;
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-        
         .recovery-actions {
             display: flex;
             gap: 15px;
@@ -174,15 +133,6 @@ require_once __DIR__ . '/../../../config/config.php';
             box-shadow: 0 5px 15px rgba(31, 145, 102, 0.3);
         }
         
-        .btn-recovery-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-recovery-secondary:hover {
-            background: #5a6268;
-        }
-        
         .btn-recovery-outline {
             background: transparent;
             border: 2px solid #e9ecef;
@@ -192,25 +142,6 @@ require_once __DIR__ . '/../../../config/config.php';
         .btn-recovery-outline:hover {
             border-color: #1F9166;
             color: #1F9166;
-        }
-        
-        .security-questions {
-            display: grid;
-            gap: 20px;
-            margin: 25px 0;
-        }
-        
-        .question-item {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #1F9166;
-        }
-        
-        .question-text {
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 10px;
         }
         
         .code-inputs {
@@ -272,6 +203,19 @@ require_once __DIR__ . '/../../../config/config.php';
             text-align: center;
         }
         
+        .info-box {
+            background: #e8f4ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .info-box i {
+            color: #0066cc;
+            margin-right: 10px;
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -293,11 +237,13 @@ require_once __DIR__ . '/../../../config/config.php';
                 font-size: 1.2rem;
             }
         }
+        
+        /* Debug styles removed */
     </style>
 </head>
 <body class="auth-page">
     <!-- Botón de volver al login -->
-    <a href="Login.php" class="auth-back-btn" aria-label="Volver al login">
+    <a href="<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/app/views/auth/Login.php" class="auth-back-btn" aria-label="Volver al login">
         <i class="fas fa-arrow-left" aria-hidden="true"></i>
         <span>Volver al Login</span>
     </a>
@@ -305,21 +251,26 @@ require_once __DIR__ . '/../../../config/config.php';
     <div class="recovery-container">
         <div class="auth-header">
             <div class="auth-logo">
-                <i class="fas fa-motorcycle"></i>
+                <i class="fas fa-key"></i>
                 <h1>Recuperar Contraseña</h1>
             </div>
-            <p>Selecciona un método para recuperar tu acceso</p>
+            <p>Te enviaremos un código de verificación a tu correo electrónico</p>
         </div>
+
+        <!-- Mensajes de error/éxito -->
+        <div id="messageContainer"></div>
+        
+        <!-- Debug info removed -->
 
         <!-- Pasos del proceso -->
         <div class="recovery-steps">
             <div class="step active" id="step1">
                 <div class="step-number">1</div>
-                <div class="step-label">Método</div>
+                <div class="step-label">Ingresar Email</div>
             </div>
             <div class="step" id="step2">
                 <div class="step-number">2</div>
-                <div class="step-label">Verificación</div>
+                <div class="step-label">Verificar Código</div>
             </div>
             <div class="step" id="step3">
                 <div class="step-number">3</div>
@@ -327,121 +278,37 @@ require_once __DIR__ . '/../../../config/config.php';
             </div>
         </div>
 
-        <!-- Paso 1: Selección de Método -->
+        <!-- Paso 1: Ingresar Email -->
         <div class="recovery-content active" id="step1-content">
-            <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">
-                <i class="fas fa-shield-alt"></i> Selecciona un método de recuperación
-            </h3>
-            
-            <div class="recovery-method" data-method="cedula">
-                <div class="method-icon">
-                    <i class="fas fa-id-card"></i>
-                </div>
-                <div class="method-title">Por Cédula y Preguntas de Seguridad</div>
-                <div class="method-description">
-                    Verifica tu identidad con tu número de cédula y responde las preguntas de seguridad que configuraste.
-                </div>
+            <div class="info-box">
+                <i class="fas fa-info-circle"></i>
+                <span>Introduce el correo electrónico asociado a tu cuenta para recibir un código de verificación.</span>
             </div>
-            
-            <div class="recovery-method" data-method="correo">
-                <div class="method-icon">
-                    <i class="fas fa-envelope"></i>
-                </div>
-                <div class="method-title">Por Correo Electrónico</div>
-                <div class="method-description">
-                    Te enviaremos un código de verificación al correo asociado a tu cuenta.
-                </div>
-            </div>
-            
-            <div class="recovery-actions">
-                <button type="button" class="btn-recovery btn-recovery-secondary" onclick="window.location.href='Login.php'">
-                    <i class="fas fa-times"></i>
-                    Cancelar
-                </button>
-                <button type="button" class="btn-recovery btn-recovery-primary" id="nextStep1" disabled>
-                    Continuar
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Paso 2: Verificación por Cédula -->
-        <div class="recovery-content" id="step2-cedula-content">
-            <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">
-                <i class="fas fa-id-card"></i> Verificación por Cédula
-            </h3>
-            
-            <div class="form-group">
-                <label for="cedula">Número de Cédula o RIF</label>
-                <div class="input-group">
-                    <i class="fas fa-user"></i>
-                    <input type="text" id="cedula" name="cedula" placeholder="Ej: V-12345678 o J-123456789">
-                </div>
-                <div class="form-hint">Ingresa tu cédula o RIF sin puntos ni guiones</div>
-            </div>
-            
-            <div class="recovery-actions">
-                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToStep1()">
-                    <i class="fas fa-arrow-left"></i>
-                    Volver
-                </button>
-                <button type="button" class="btn-recovery btn-recovery-primary" id="verifyCedula">
-                    Verificar Cédula
-                    <i class="fas fa-check"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Paso 2.1: Preguntas de Seguridad -->
-        <div class="recovery-content" id="step2-questions-content">
-            <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">
-                <i class="fas fa-question-circle"></i> Preguntas de Seguridad
-            </h3>
-            
-            <div class="security-questions" id="securityQuestionsContainer">
-                <!-- Las preguntas se cargarán dinámicamente -->
-            </div>
-            
-            <div class="recovery-actions">
-                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToCedula()">
-                    <i class="fas fa-arrow-left"></i>
-                    Volver
-                </button>
-                <button type="button" class="btn-recovery btn-recovery-primary" id="verifyAnswers">
-                    Verificar Respuestas
-                    <i class="fas fa-check"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Paso 2: Verificación por Correo -->
-        <div class="recovery-content" id="step2-correo-content">
-            <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">
-                <i class="fas fa-envelope"></i> Verificación por Correo
-            </h3>
             
             <div class="form-group">
                 <label for="emailRecovery">Correo Electrónico Registrado</label>
                 <div class="input-group">
                     <i class="fas fa-envelope"></i>
-                    <input type="email" id="emailRecovery" name="email" placeholder="tu@email.com">
+                    <input type="email" id="emailRecovery" name="email" placeholder="tu@email.com" required>
                 </div>
             </div>
             
             <div class="recovery-actions">
-                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToStep1()">
-                    <i class="fas fa-arrow-left"></i>
-                    Volver
+                <button type="button" class="btn-recovery btn-recovery-outline" onclick="window.location.href='Login.php'">
+                    <i class="fas fa-times"></i>
+                    Cancelar
                 </button>
                 <button type="button" class="btn-recovery btn-recovery-primary" id="sendCode">
                     Enviar Código
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
+            
+            <!-- Botón de debug eliminado -->
         </div>
 
-        <!-- Paso 2.2: Ingreso de Código -->
-        <div class="recovery-content" id="step2-code-content">
+        <!-- Paso 2: Verificar Código -->
+        <div class="recovery-content" id="step2-content">
             <h3 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">
                 <i class="fas fa-key"></i> Código de Verificación
             </h3>
@@ -469,7 +336,7 @@ require_once __DIR__ . '/../../../config/config.php';
             </div>
             
             <div class="recovery-actions">
-                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToEmail()">
+                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToStep1()">
                     <i class="fas fa-arrow-left"></i>
                     Volver
                 </button>
@@ -490,33 +357,35 @@ require_once __DIR__ . '/../../../config/config.php';
                 <label for="newPassword">Nueva Contraseña</label>
                 <div class="input-group">
                     <i class="fas fa-key"></i>
-                    <input type="password" id="newPassword" name="newPassword" placeholder="Mínimo 8 caracteres">
+                    <input type="password" id="newPassword" name="newPassword" placeholder="Mínimo 8 caracteres" required>
                     <button type="button" class="toggle-password" onclick="togglePassword('newPassword')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
                 <div class="form-hint">
-                    <i class="fas fa-info-circle"></i> Debe incluir mayúsculas, minúsculas, números y caracteres especiales
+                    <i class="fas fa-info-circle"></i> Debe incluir mayúsculas, minúsculas y números
                 </div>
+                <div class="password-strength" id="passwordStrength" style="margin-top: 10px;"></div>
             </div>
             
             <div class="form-group">
                 <label for="confirmPassword">Confirmar Contraseña</label>
                 <div class="input-group">
                     <i class="fas fa-key"></i>
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Repite tu contraseña">
+                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Repite tu contraseña" required>
                     <button type="button" class="toggle-password" onclick="togglePassword('confirmPassword')">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
+                <div id="passwordMatch" style="margin-top: 5px; font-size: 0.9rem;"></div>
             </div>
             
             <div class="recovery-actions">
-                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToVerification()">
+                <button type="button" class="btn-recovery btn-recovery-outline" onclick="backToStep2()">
                     <i class="fas fa-arrow-left"></i>
                     Volver
                 </button>
-                <button type="button" class="btn-recovery btn-recovery-primary" id="updatePassword">
+                <button type="button" class="btn-recovery btn-recovery-primary" id="updatePassword" disabled>
                     Cambiar Contraseña
                     <i class="fas fa-save"></i>
                 </button>
@@ -543,83 +412,64 @@ require_once __DIR__ . '/../../../config/config.php';
 
     <script>
         // Variables globales
-        let selectedMethod = null;
-        let verificationData = {};
+        let verificationData = {
+            email: '',
+            token: '',
+            user_id: null
+        };
         let timerInterval;
         let countdown = 60;
         let currentStep = 1;
 
         // Inicialización
         document.addEventListener('DOMContentLoaded', function() {
-            // Selección de método
-            document.querySelectorAll('.recovery-method').forEach(method => {
-                method.addEventListener('click', function() {
-                    document.querySelectorAll('.recovery-method').forEach(m => {
-                        m.classList.remove('selected');
-                    });
-                    this.classList.add('selected');
-                    selectedMethod = this.getAttribute('data-method');
-                    document.getElementById('nextStep1').disabled = false;
-                });
-            });
+            console.log('=== RECUPERACIÓN INICIADA ===');
+            console.log('Base URL:', '<?php echo BASE_URL; ?>');
             
-            // Navegación
-            document.getElementById('nextStep1').addEventListener('click', goToStep2);
-            document.getElementById('verifyCedula').addEventListener('click', verifyCedula);
+            // Event listeners
             document.getElementById('sendCode').addEventListener('click', sendVerificationCode);
             document.getElementById('verifyCode').addEventListener('click', verifyCode);
-            document.getElementById('verifyAnswers').addEventListener('click', verifyAnswers);
             document.getElementById('updatePassword').addEventListener('click', updatePassword);
             document.getElementById('resendCode').addEventListener('click', resendCode);
             
-            // Código de verificación
+            // Configurar inputs de código
             setupCodeInputs();
             
-            // Validación en tiempo real
-            document.getElementById('newPassword')?.addEventListener('input', validatePassword);
-            document.getElementById('confirmPassword')?.addEventListener('input', validatePassword);
+            // Validación de contraseña en tiempo real
+            document.getElementById('newPassword').addEventListener('input', validatePassword);
+            document.getElementById('confirmPassword').addEventListener('input', validatePassword);
+            
+            // Permitir enviar con Enter en el email
+            document.getElementById('emailRecovery').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendVerificationCode();
+                }
+            });
+            
+            // Debug info removed from UI
         });
         
+        // Mostrar mensaje
+        function showMessage(message, type = 'error') {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `
+                <div class="${type === 'error' ? 'error-message' : 'success-message'}">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-ocultar mensajes de éxito después de 5 segundos
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
+        // showDebugInfo removed
+        
         // Navegación entre pasos
-        function goToStep2() {
-            if (!selectedMethod) return;
-            
-            updateSteps(2);
-            
-            if (selectedMethod === 'cedula') {
-                showContent('step2-cedula-content');
-            } else if (selectedMethod === 'correo') {
-                showContent('step2-correo-content');
-            }
-        }
-        
-        function backToStep1() {
-            updateSteps(1);
-            showContent('step1-content');
-            selectedMethod = null;
-            document.querySelectorAll('.recovery-method').forEach(m => {
-                m.classList.remove('selected');
-            });
-            document.getElementById('nextStep1').disabled = true;
-        }
-        
-        function backToCedula() {
-            showContent('step2-cedula-content');
-        }
-        
-        function backToEmail() {
-            showContent('step2-correo-content');
-        }
-        
-        function backToVerification() {
-            if (selectedMethod === 'cedula') {
-                showContent('step2-questions-content');
-            } else if (selectedMethod === 'correo') {
-                showContent('step2-code-content');
-            }
-        }
-        
-        // Actualizar indicador de pasos
         function updateSteps(step) {
             currentStep = step;
             
@@ -647,132 +497,36 @@ require_once __DIR__ . '/../../../config/config.php';
                 content.classList.remove('active');
             });
             document.getElementById(contentId).classList.add('active');
+            document.getElementById('messageContainer').innerHTML = '';
         }
         
-        // Verificar cédula
-        function verifyCedula() {
-            const cedula = document.getElementById('cedula').value.trim();
-            
-            if (!cedula) {
-                alert('Por favor ingresa tu número de cédula');
-                return;
-            }
-            
-            // Validar formato de cédula/RIF
-            const cedulaPattern = /^[JGVEP]-?\d{7,9}$/i;
-            if (!cedulaPattern.test(cedula)) {
-                alert('Formato de cédula/RIF inválido. Use: V-12345678 o J-123456789');
-                return;
-            }
-            
-            // Mostrar carga
-            const btn = document.getElementById('verifyCedula');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-            btn.disabled = true;
-            
-            // Simular verificación (en producción sería una petición AJAX)
-            setTimeout(() => {
-                // Guardar datos de verificación
-                verificationData.cedula = cedula;
-                verificationData.userId = 'USR_' + Math.random().toString(36).substr(2, 9);
-                verificationData.userName = 'Juan Pérez'; // Esto vendría del servidor
-                
-                // Cargar preguntas de seguridad
-                loadSecurityQuestions();
-                
-                // Mostrar preguntas
-                showContent('step2-questions-content');
-                
-                // Restaurar botón
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }, 1500);
+        // Volver al paso 1
+        function backToStep1() {
+            updateSteps(1);
+            showContent('step1-content');
         }
         
-        // Cargar preguntas de seguridad
-        function loadSecurityQuestions() {
-            const container = document.getElementById('securityQuestionsContainer');
-            
-            // Simular preguntas de la base de datos
-            const questions = [
-                {
-                    id: 1,
-                    question: "¿Cuál es el nombre de tu primera mascota?",
-                    placeholder: "Nombre de tu mascota"
-                },
-                {
-                    id: 2,
-                    question: "¿En qué ciudad naciste?",
-                    placeholder: "Ciudad de nacimiento"
-                },
-                {
-                    id: 3,
-                    question: "¿Cuál es tu comida favorita?",
-                    placeholder: "Tu comida favorita"
-                }
-            ];
-            
-            container.innerHTML = '';
-            
-            questions.forEach((q, index) => {
-                const questionHtml = `
-                    <div class="question-item">
-                        <div class="question-text">${q.question}</div>
-                        <div class="input-group">
-                            <i class="fas fa-question"></i>
-                            <input type="text" 
-                                   class="security-answer" 
-                                   data-question-id="${q.id}"
-                                   placeholder="${q.placeholder}"
-                                   required>
-                        </div>
-                    </div>
-                `;
-                container.innerHTML += questionHtml;
-            });
+        // Volver al paso 2
+        function backToStep2() {
+            updateSteps(2);
+            showContent('step2-content');
         }
         
-        // Verificar respuestas
-        function verifyAnswers() {
-            const answers = document.querySelectorAll('.security-answer');
-            const emptyAnswers = Array.from(answers).filter(a => !a.value.trim());
-            
-            if (emptyAnswers.length > 0) {
-                alert('Por favor responde todas las preguntas de seguridad');
-                return;
-            }
-            
-            // Mostrar carga
-            const btn = document.getElementById('verifyAnswers');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
-            btn.disabled = true;
-            
-            // Simular verificación
-            setTimeout(() => {
-                // En producción, aquí se enviarían las respuestas al servidor
-                goToStep3();
-                
-                // Restaurar botón
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }, 1500);
-        }
-        
-        // Enviar código por correo
+     
+        // FUNCIÓN CORREGIDA: Enviar código de verificación
+       
         function sendVerificationCode() {
             const email = document.getElementById('emailRecovery').value.trim();
             
             if (!email) {
-                alert('Por favor ingresa tu correo electrónico');
+                showMessage('Por favor ingresa tu correo electrónico', 'error');
                 return;
             }
             
             // Validar formato de email
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailPattern.test(email)) {
-                alert('Por favor ingresa un correo electrónico válido');
+                showMessage('Por favor ingresa un correo electrónico válido', 'error');
                 return;
             }
             
@@ -786,22 +540,85 @@ require_once __DIR__ . '/../../../config/config.php';
             verificationData.email = email;
             document.getElementById('userEmail').textContent = email;
             
-            // Simular envío
-            setTimeout(() => {
-                // Generar código de 6 dígitos
-                verificationData.verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-                console.log('Código generado:', verificationData.verificationCode); // Solo para desarrollo
+           
+            // CORRECCIÓN PRINCIPAL: Usar URLSearchParams en lugar de FormData
+          
+            const params = new URLSearchParams();
+            params.append('action', 'send_code'); 
+            params.append('email', email);
+            
+            // URL de la API
+            const apiUrl = '<?php echo BASE_URL; ?>/api/auth/recover.php';
+            
+            // DEBUG: Mostrar qué se envía
+            console.log('=== ENVIANDO CÓDIGO ===');
+            console.log('URL:', apiUrl);
+            console.log('Parámetros:', params.toString());
+            console.log('Email:', email);
+            
+            // Enviar petición
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: params.toString()
+            })
+            .then(response => {
+                console.log('Status:', response.status);
+                console.log('OK?', response.ok);
                 
-                // Mostrar paso de código
-                showContent('step2-code-content');
-                startCountdown();
+                // Primero obtener como texto para debug
+                return response.text().then(text => {
+                    console.log('Respuesta cruda:', text);
+                    
+                    // Intentar parsear como JSON
+                    try {
+                        const data = JSON.parse(text);
+                        return { ok: response.ok, data: data };
+                    } catch (e) {
+                        console.error('Error parseando JSON:', e);
+                        console.error('Texto que causó error:', text);
+                        throw new Error('Respuesta no es JSON válido: ' + text.substring(0, 100));
+                    }
+                });
+            })
+            .then(result => {
+                const data = result.data;
+                console.log('Datos parseados:', data);
                 
-                // Restaurar botón
+                if (data.success) {
+                    // Guardar token
+                    verificationData.token = data.token || 'test_token';
+                    
+                    // Mostrar paso de código
+                    updateSteps(2);
+                    showContent('step2-content');
+                    startCountdown();
+                    
+                    if (data.code_debug) {
+                       
+                        alert(`🔑 CÓDIGO DE VERIFICACIÓN (MODO PRUEBA): ${data.code_debug}\n\nUsa este código para continuar.`);
+                        showMessage(`Código generado: ${data.code_debug} (ver alerta)`, 'success');
+                    } else if (data.code) {
+                        alert(`🔑 CÓDIGO DE VERIFICACIÓN: ${data.code}`);
+                        showMessage('Código enviado a tu correo electrónico', 'success');
+                    } else {
+                        showMessage(data.message || 'Código enviado', 'success');
+                    }
+                    
+                } else {
+                    showMessage(data.message || 'Error al enviar el código', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error completo:', error);
+                showMessage(`Error: ${error.message}`, 'error');
+            })
+            .finally(() => {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                
-                alert(`Código enviado a ${email}. En desarrollo, el código es: ${verificationData.verificationCode}`);
-            }, 2000);
+            });
         }
         
         // Configurar inputs de código
@@ -810,6 +627,9 @@ require_once __DIR__ . '/../../../config/config.php';
             
             inputs.forEach((input, index) => {
                 input.addEventListener('input', function() {
+                    // Solo permitir números
+                    this.value = this.value.replace(/\D/g, '');
+                    
                     // Mover al siguiente input
                     if (this.value.length === 1 && index < inputs.length - 1) {
                         inputs[index + 1].focus();
@@ -831,6 +651,22 @@ require_once __DIR__ . '/../../../config/config.php';
                         }
                     }
                 });
+                
+                // Pegar código completo
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '');
+                    
+                    if (pasteData.length === 6) {
+                        const inputs = document.querySelectorAll('.code-input');
+                        for (let i = 0; i < 6; i++) {
+                            if (inputs[i]) {
+                                inputs[i].value = pasteData[i] || '';
+                            }
+                        }
+                        checkCodeInputs();
+                    }
+                });
             });
         }
         
@@ -847,7 +683,7 @@ require_once __DIR__ . '/../../../config/config.php';
             const enteredCode = Array.from(inputs).map(input => input.value).join('');
             
             if (enteredCode.length !== 6) {
-                alert('Por favor ingresa el código completo de 6 dígitos');
+                showMessage('Por favor ingresa el código completo de 6 dígitos', 'error');
                 return;
             }
             
@@ -857,39 +693,96 @@ require_once __DIR__ . '/../../../config/config.php';
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
             btn.disabled = true;
             
-            // Simular verificación
-            setTimeout(() => {
-                if (enteredCode === verificationData.verificationCode) {
-                    goToStep3();
-                } else {
-                    alert('Código incorrecto. Por favor intenta nuevamente.');
-                }
+            // Enviar petición
+            const params = new URLSearchParams();
+            params.append('action', 'verify_code');
+            params.append('code', enteredCode);
+            params.append('token', verificationData.token);
+            params.append('email', verificationData.email);
+            
+            fetch('<?php echo BASE_URL; ?>/api/auth/recover.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: params.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Respuesta verify:', data);
                 
-                // Restaurar botón
+                if (data.success) {
+                
+                    updateSteps(3);
+                    showContent('step3-content');
+                    showMessage('Código verificado correctamente', 'success');
+                } else {
+                    showMessage(data.message || 'Código incorrecto', 'error');
+                  
+                    document.querySelectorAll('.code-input').forEach(input => {
+                        input.value = '';
+                    });
+                    document.getElementById('verifyCode').disabled = true;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error de conexión con el servidor', 'error');
+            })
+            .finally(() => {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-            }, 1000);
-        }
-        
-        // Ir al paso 3
-        function goToStep3() {
-            updateSteps(3);
-            showContent('step3-content');
+            });
         }
         
         // Reenviar código
         function resendCode() {
             if (countdown > 0) return;
             
-            // Generar nuevo código
-            verificationData.verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-            console.log('Nuevo código:', verificationData.verificationCode); // Solo para desarrollo
+            // Mostrar carga
+            const resendLink = document.getElementById('resendCode');
+            resendLink.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            resendLink.style.pointerEvents = 'none';
             
-            // Reiniciar countdown
-            countdown = 60;
-            startCountdown();
+            // Enviar petición
+            const params = new URLSearchParams();
+            params.append('action', 'resend_code');
+            params.append('email', verificationData.email);
+            params.append('token', verificationData.token);
             
-            alert(`Nuevo código enviado. En desarrollo, el código es: ${verificationData.verificationCode}`);
+            fetch('<?php echo BASE_URL; ?>/api/auth/recover.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: params.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reiniciar countdown
+                    countdown = 60;
+                    startCountdown();
+                    
+                    showMessage('Nuevo código enviado a tu correo', 'success');
+                    
+                    // Mostrar nuevo código si está en debug
+                    if (data.code_debug) {
+                        alert(`🔑 NUEVO CÓDIGO: ${data.code_debug}`);
+                    }
+                } else {
+                    showMessage(data.message || 'Error al reenviar el código', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error de conexión con el servidor', 'error');
+            })
+            .finally(() => {
+                setTimeout(() => {
+                    resendLink.innerHTML = 'Reenviar código';
+                }, 1000);
+            });
         }
         
         // Iniciar countdown
@@ -897,10 +790,11 @@ require_once __DIR__ . '/../../../config/config.php';
             clearInterval(timerInterval);
             countdown = 60;
             
+            const countdownEl = document.getElementById('countdown');
+            const resendLink = document.getElementById('resendCode');
+            
             timerInterval = setInterval(() => {
                 countdown--;
-                const countdownEl = document.getElementById('countdown');
-                const resendLink = document.getElementById('resendCode');
                 
                 if (countdown > 0) {
                     countdownEl.textContent = `(Puedes reenviar en ${countdown} segundos)`;
@@ -917,20 +811,75 @@ require_once __DIR__ . '/../../../config/config.php';
         
         // Validar contraseña
         function validatePassword() {
-            const newPass = document.getElementById('newPassword')?.value || '';
-            const confirmPass = document.getElementById('confirmPassword')?.value || '';
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+            const strengthEl = document.getElementById('passwordStrength');
+            const matchEl = document.getElementById('passwordMatch');
             const btn = document.getElementById('updatePassword');
             
-            // Validar fortaleza
+            // Validar fortaleza de contraseña
             const hasMinLength = newPass.length >= 8;
             const hasUpperCase = /[A-Z]/.test(newPass);
             const hasLowerCase = /[a-z]/.test(newPass);
             const hasNumbers = /\d/.test(newPass);
-            const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPass);
-            const passwordsMatch = newPass === confirmPass && newPass !== '';
             
-            btn.disabled = !(hasMinLength && hasUpperCase && hasLowerCase && 
-                           hasNumbers && hasSpecialChar && passwordsMatch);
+            let strength = 0;
+            let strengthText = '';
+            let strengthColor = '';
+            
+            if (hasMinLength) strength++;
+            if (hasUpperCase) strength++;
+            if (hasLowerCase) strength++;
+            if (hasNumbers) strength++;
+            
+            switch(strength) {
+                case 0:
+                    strengthText = 'Muy débil';
+                    strengthColor = '#dc3545';
+                    break;
+                case 1:
+                    strengthText = 'Débil';
+                    strengthColor = '#ffc107';
+                    break;
+                case 2:
+                    strengthText = 'Regular';
+                    strengthColor = '#fd7e14';
+                    break;
+                case 3:
+                    strengthText = 'Buena';
+                    strengthColor = '#28a745';
+                    break;
+                case 4:
+                    strengthText = 'Excelente';
+                    strengthColor = '#20c997';
+                    break;
+            }
+            
+            // Mostrar fortaleza
+            strengthEl.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-weight: 600; color: ${strengthColor}">
+                        Fortaleza: ${strengthText}
+                    </div>
+                    <div style="flex: 1; height: 5px; background: #e9ecef; border-radius: 3px;">
+                        <div style="width: ${strength * 25}%; height: 100%; background: ${strengthColor}; border-radius: 3px;"></div>
+                    </div>
+                </div>
+            `;
+            
+            // Validar coincidencia
+            if (confirmPass) {
+                if (newPass === confirmPass) {
+                    matchEl.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check"></i> Las contraseñas coinciden</span>';
+                } else {
+                    matchEl.innerHTML = '<span style="color: #dc3545;"><i class="fas fa-times"></i> Las contraseñas no coinciden</span>';
+                }
+            } else {
+                matchEl.innerHTML = '';
+            }
+            
+            // Habilitar botón si todo está correcto
+            btn.disabled = !(strength >= 3 && newPass === confirmPass && newPass.length > 0);
         }
         
         // Cambiar contraseña
@@ -939,7 +888,7 @@ require_once __DIR__ . '/../../../config/config.php';
             const confirmPass = document.getElementById('confirmPassword').value;
             
             if (newPass !== confirmPass) {
-                alert('Las contraseñas no coinciden');
+                showMessage('Las contraseñas no coinciden', 'error');
                 return;
             }
             
@@ -949,21 +898,44 @@ require_once __DIR__ . '/../../../config/config.php';
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
             btn.disabled = true;
             
-            // Simular actualización
-            setTimeout(() => {
-                // En producción, aquí se enviaría la nueva contraseña al servidor
-                showContent('success-content');
-                
-                // Restaurar botón
+            // Enviar petición
+            const params = new URLSearchParams();
+            params.append('action', 'update_password');
+            params.append('new_password', newPass);
+            params.append('confirm_password', confirmPass);
+            params.append('token', verificationData.token);
+            params.append('email', verificationData.email);
+            
+            fetch('<?php echo BASE_URL; ?>/api/auth/recover.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                },
+                body: params.toString()
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    showContent('success-content');
+                } else {
+                    showMessage(data.message || 'Error al actualizar la contraseña', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error de conexión con el servidor', 'error');
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-            }, 1500);
+            });
         }
         
         // Mostrar/ocultar contraseña
         function togglePassword(inputId) {
             const input = document.getElementById(inputId);
-            const icon = input.nextElementSibling.querySelector('i');
+            const icon = input.parentElement.querySelector('.toggle-password i');
             
             if (input.type === 'password') {
                 input.type = 'text';
@@ -975,6 +947,69 @@ require_once __DIR__ . '/../../../config/config.php';
                 icon.classList.add('fa-eye');
             }
         }
+        
+        // Función para testear la conexión (solo debug)
+        function testConnection() {
+            console.log('=== TEST CONNECTION ===');
+            
+            // Probar diferentes métodos
+            const tests = [
+                { 
+                    name: 'Test 1: FormData', 
+                    fn: () => {
+                        const formData = new FormData();
+                        formData.append('action', 'send_code');
+                        formData.append('email', 'test@test.com');
+                        return fetch('<?php echo BASE_URL; ?>/api/auth/recover.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+                    }
+                },
+                { 
+                    name: 'Test 2: URLSearchParams', 
+                    fn: () => {
+                        const params = new URLSearchParams();
+                        params.append('action', 'send_code');
+                        params.append('email', 'test@test.com');
+                        return fetch('<?php echo BASE_URL; ?>/api/auth/recover.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: params.toString()
+                        });
+                    }
+                },
+                { 
+                    name: 'Test 3: JSON', 
+                    fn: () => {
+                        return fetch('<?php echo BASE_URL; ?>/api/auth/recover.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ action: 'send_code', email: 'test@test.com' })
+                        });
+                    }
+                }
+            ];
+            
+            // Ejecutar tests
+            tests.forEach(test => {
+                test.fn()
+                    .then(response => response.text())
+                    .then(text => {
+                        console.log(`${test.name}:`, text);
+                    })
+                    .catch(error => {
+                        console.error(`${test.name} error:`, error);
+                    });
+            });
+            
+            showMessage('Tests ejecutados. Revisa la consola (F12)', 'success');
+        }
     </script>
+    
 </body>
 </html>

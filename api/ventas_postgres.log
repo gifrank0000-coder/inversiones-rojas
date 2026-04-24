@@ -1,0 +1,38 @@
+[2026-02-03 00:28:03] INICIANDO PROCESAMIENTO POSTGRESQL
+Método: POST
+Raw input: {"cliente_id":"16","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":28}],"efectivo_recibido":null}
+Productos recibidos: 1
+Conexión PostgreSQL establecida
+Driver de BD: pgsql
+Código venta: V-20260203002803-391
+Método pago ID: 3
+Usuario ID: 1
+Transacción PostgreSQL iniciada
+Valores: subtotal=20, iva=3.2, total=23.2
+Venta insertada ID: 81
+Procesando producto 0: ID=27, Cant=1
+  Precio: 20, Subtotal: 20
+  Producto procesado OK
+Advertencia movimientos: SQLSTATE[23514]: Check violation: 7 ERROR:  el nuevo registro para la relación «movimientos_inventario» viola la restricción «check» «movimientos_inventario_tipo_movimiento_check»
+DETAIL:  La fila que falla contiene (23, 27, VENTA, 1, 27, 26, Venta registrada, V-20260203002803-391, 1, 2026-02-02 23:28:03.788954).
+Advertencia bitácora: SQLSTATE[25P02]: In failed sql transaction: 7 ERROR:  transacción abortada, las órdenes serán ignoradas hasta el fin de bloque de transacción
+Transacción confirmada exitosamente
+[2026-02-03 00:28:31] INICIANDO PROCESAMIENTO POSTGRESQL
+Método: POST
+Raw input: {"cliente_id":"18","metodo_pago_id":"3","subtotal":20,"iva":3.2,"total":23.2,"productos":[{"id":27,"code":"MOTO-002","name":"kawasaki ninja","price":20,"quantity":1,"stock":28}],"efectivo_recibido":null}
+Productos recibidos: 1
+Conexión PostgreSQL establecida
+Driver de BD: pgsql
+Código venta: V-20260203002831-266
+Método pago ID: 3
+Usuario ID: 1
+Transacción PostgreSQL iniciada
+Valores: subtotal=20, iva=3.2, total=23.2
+Venta insertada ID: 83
+Procesando producto 0: ID=27, Cant=1
+  Precio: 20, Subtotal: 20
+  Producto procesado OK
+Advertencia movimientos: SQLSTATE[23514]: Check violation: 7 ERROR:  el nuevo registro para la relación «movimientos_inventario» viola la restricción «check» «movimientos_inventario_tipo_movimiento_check»
+DETAIL:  La fila que falla contiene (25, 27, VENTA, 1, 27, 26, Venta registrada, V-20260203002831-266, 1, 2026-02-02 23:28:31.246636).
+Advertencia bitácora: SQLSTATE[25P02]: In failed sql transaction: 7 ERROR:  transacción abortada, las órdenes serán ignoradas hasta el fin de bloque de transacción
+Transacción confirmada exitosamente

@@ -1,0 +1,41 @@
+[2026-02-01 19:23:46] Inicio
+Método: POST
+Intentando incluir database.php...
+Buscando en: C:\xampp\htdocs\inversiones-rojas\api/../models/database.php
+Buscando en: C:\xampp\htdocs\inversiones-rojas\api/../../models/database.php
+Buscando en: C:\xampp\htdocs\inversiones-rojas\api/../app/models/database.php
+✅ Encontrado
+✅ database.php incluido
+Probando conexión a BD...
+✅ Conexión establecida
+JSON recibido (longitud: 230)
+✅ JSON parseado
+Datos recibidos: Array
+(
+    [cliente_id] => 2
+    [metodo_pago_id] => 3
+    [subtotal] => 10
+    [iva] => 1.6
+    [total] => 11.6
+    [productos] => Array
+        (
+            [0] => Array
+                (
+                    [id] => 30
+                    [code] => ACEITE-001
+                    [name] => Aceite 4T 20W50
+                    [price] => 10
+                    [quantity] => 1
+                    [stock] => 10
+                )
+
+        )
+
+    [efectivo_recibido] => 
+    [pagos_multiples] => 
+)
+
+❌ ERROR: SQLSTATE[22001]: String data, right truncated: 7 ERROR:  el valor es demasiado largo para el tipo character varying(20)
+Archivo: C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php Línea: 85
+Trace: #0 C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php(85): PDOStatement->execute(Array)
+#1 {main}

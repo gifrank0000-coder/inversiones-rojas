@@ -1,0 +1,50 @@
+[2026-02-03 00:24:31] ===== INICIANDO PROCESAMIENTO =====
+Método: POST
+Raw input recibido (primeros 500 chars): {"cliente_id":"4","metodo_pago_id":"2","subtotal":10,"iva":1.6,"total":11.6,"productos":[{"id":30,"code":"ACEITE-001","name":"Aceite 4T 20W50","price":10,"quantity":1,"stock":4}],"efectivo_recibido":null}
+JSON decode error: No error
+Datos decodificados OK. Productos: 1
+Buscando DB en: C:\xampp\htdocs\inversiones-rojas\api/../app/models/database.php
+Archivo existe: SÍ
+Database.php incluido OK
+Conexión a DB establecida
+Código venta generado: V-20260203002431-166
+Cliente regular ID: 4
+Método pago ID: 2
+Usuario ID: 1
+Iniciando transacción...
+Insertando venta en tabla...
+Datos venta: subtotal=10, iva=1.6, total=11.6
+Venta insertada ID: 80
+Insertando detalles de venta...
+  Producto 0: ID=30, Cantidad=1
+ERROR en transacción: SQLSTATE[23503]: Foreign key violation: 7 ERROR:  inserción o actualización en la tabla «detalle_ventas» viola la llave foránea «detalle_ventas_venta_id_fkey»
+DETAIL:  La llave (venta_id)=(80) no está presente en la tabla «ventas».
+TRACE: #0 C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php(172): PDOStatement->execute(Array)
+#1 {main}
+[2026-02-03 00:24:31] ===== INICIANDO PROCESAMIENTO =====
+Método: POST
+Raw input recibido (primeros 500 chars): {"cliente_id":"4","metodo_pago_id":"2","subtotal":10,"iva":1.6,"total":11.6,"productos":[{"id":30,"code":"ACEITE-001","name":"Aceite 4T 20W50","price":10,"quantity":1,"stock":4}],"efectivo_recibido":null}
+JSON decode error: No error
+Datos decodificados OK. Productos: 1
+Buscando DB en: C:\xampp\htdocs\inversiones-rojas\api/../app/models/database.php
+Archivo existe: SÍ
+Database.php incluido OK
+Conexión a DB establecida
+Código venta generado: V-20260203002431-166
+Cliente regular ID: 4
+Método pago ID: 2
+Usuario ID: 1
+Iniciando transacción...
+Insertando venta en tabla...
+Datos venta: subtotal=10, iva=1.6, total=11.6
+Venta insertada ID: 80
+Insertando detalles de venta...
+  Producto 0: ID=30, Cantidad=1
+ERROR en transacción: SQLSTATE[23503]: Foreign key violation: 7 ERROR:  inserción o actualización en la tabla «detalle_ventas» viola la llave foránea «detalle_ventas_venta_id_fkey»
+DETAIL:  La llave (venta_id)=(80) no está presente en la tabla «ventas».
+TRACE: #0 C:\xampp\htdocs\inversiones-rojas\api\procesar_venta.php(172): PDOStatement->execute(Array)
+#1 {main}
+ERROR FINAL: SQLSTATE[23503]: Foreign key violation: 7 ERROR:  inserción o actualización en la tabla «detalle_ventas» viola la llave foránea «detalle_ventas_venta_id_fkey»
+DETAIL:  La llave (venta_id)=(80) no está presente en la tabla «ventas».
+===== PROCESAMIENTO FALLIDO =====
+

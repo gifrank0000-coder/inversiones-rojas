@@ -1,3 +1,113 @@
+<?php
+// Iniciar sesión y cargar datos del usuario antes de enviar cualquier salida
+if (session_status() == PHP_SESSION_NONE) session_start();
+
+// Cargar configuración general (BASE_URL, etc.)
+require_once __DIR__ . '/../../../config/config.php';
+
+require_once __DIR__ . '/../../models/database.php';
+
+// Conexión a la base de datos
+$pdo = Database::getInstance();
+
+// Obtener información del usuario desde la sesión
+$user = null;
+$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+$session_username = isset($_SESSION['username']) ? $_SESSION['username'] : null;
+$session_email = isset($_SESSION['email']) ? $_SESSION['email'] : null;
+
+try {
+    if ($user_id) {
+        $stmt = $pdo->prepare("SELECT u.*, r.nombre as rol_nombre FROM usuarios u LEFT JOIN roles r ON u.rol_id = r.id WHERE u.id = ?");
+        $stmt->execute([$user_id]);
+        $user = $stmt->fetch();
+    } elseif ($session_username) {
+        $stmt = $pdo->prepare("SELECT u.*, r.nombre as rol_nombre FROM usuarios u LEFT JOIN roles r ON u.rol_id = r.id WHERE u.username = ?");
+        $stmt->execute([$session_username]);
+        $user = $stmt->fetch();
+    } elseif ($session_email) {
+        $stmt = $pdo->prepare("SELECT u.*, r.nombre as rol_nombre FROM usuarios u LEFT JOIN roles r ON u.rol_id = r.id WHERE u.email = ?");
+        $stmt->execute([$session_email]);
+        $user = $stmt->fetch();
+    }
+} catch (Exception $e) {
+    $user = null;
+}
+
+// Si encontramos el usuario, establecer su id para consultas posteriores
+if ($user && isset($user['id'])) {
+    $user_id = $user['id'];
+}
+
+// Iniciales para avatar
+$iniciales = 'J';
+if ($user && isset($user['nombre_completo'])) {
+    $nombre_tmp = trim($user['nombre_completo']);
+    if (!empty($nombre_tmp)) {
+        $iniciales = strtoupper(substr($nombre_tmp, 0, 1));
+    }
+}
+
+// Obtener actividades y estadísticas solo si hay un usuario identificado
+if ($user_id) {
+    try {
+        $stmt = $pdo->prepare("SELECT bs.accion, bs.usuario_id, u.nombre_completo as usuario, bs.created_at FROM bitacora_sistema bs LEFT JOIN usuarios u ON bs.usuario_id = u.id WHERE bs.usuario_id = ? ORDER BY bs.created_at DESC LIMIT 10");
+        $stmt->execute([$user_id]);
+        $actividades = $stmt->fetchAll();
+
+        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT v.id) as total_ventas, COUNT(DISTINCT c.id) as clientes_registrados, COUNT(DISTINCT bs.id) as actividades_total, COALESCE(SUM(v.total), 0) as ventas_monto_total FROM usuarios u LEFT JOIN ventas v ON u.id = v.usuario_id LEFT JOIN clientes c ON u.id = c.usuario_id LEFT JOIN bitacora_sistema bs ON u.id = bs.usuario_id WHERE u.id = ?");
+        $stmt->execute([$user_id]);
+        $estadisticas = $stmt->fetch();
+    } catch (Exception $e) {
+        $actividades = [];
+        $estadisticas = ['total_ventas' => 0, 'clientes_registrados' => 0, 'actividades_total' => 0, 'ventas_monto_total' => 0];
+    }
+} else {
+    $actividades = [];
+    $estadisticas = ['total_ventas' => 0, 'clientes_registrados' => 0, 'actividades_total' => 0, 'ventas_monto_total' => 0];
+}
+
+// Preparar valores para mostrar y para poblar el formulario
+$display_username = $user['username'] ?? '';
+$display_nombre = $user['nombre_completo'] ?? '';
+$display_email = $user['email'] ?? '';
+$display_rol = $user['rol_nombre'] ?? '';
+$member_since = isset($user['created_at']) ? date('d/m/Y', strtotime($user['created_at'])) : '';
+
+// separar nombre completo en nombre y apellido (fallback simples)
+$first_name = '';
+$last_name = '';
+if (!empty($display_nombre)) {
+    $parts = preg_split('/\s+/', $display_nombre, 2);
+    $first_name = $parts[0] ?? '';
+    $last_name = $parts[1] ?? '';
+}
+
+$display_telefono = '';
+$display_cedula = '';
+
+// Intentar obtener teléfono y cédula desde la tabla clientes si existe relación por usuario
+if (isset($pdo) && $user_id) {
+    try {
+        $stmt = $pdo->prepare("SELECT cedula_rif, telefono_principal FROM clientes WHERE usuario_id = ? LIMIT 1");
+        $stmt->execute([$user_id]);
+        $cliente = $stmt->fetch();
+        if ($cliente) {
+            $display_cedula = $cliente['cedula_rif'] ?? '';
+            $display_telefono = $cliente['telefono_principal'] ?? '';
+        }
+    } catch (Exception $e) {
+        // no interrumpir la vista por errores menores
+    }
+
+    // fallback: si existe columna 'cedula' en usuarios
+    if (empty($display_cedula) && isset($user['cedula'])) {
+        $display_cedula = $user['cedula'];
+    }
+}
+
+?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -42,6 +152,29 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             border-left: 5px solid #1F9166;
         }
+
+        /* Estilos para botón de regreso mejorado (reutilizable) */
+        .back-btn-wrapper {
+            padding: 18px 24px;
+            background: transparent;
+            margin-bottom: 12px;
+        }
+        .back-btn-enhanced {
+            background: linear-gradient(135deg, #1F9166 0%, #30B583 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 20px rgba(31,145,102,0.18);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .back-btn-enhanced:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(31,145,102,0.22); }
+        .back-btn-enhanced i { font-size: 16px; }
 
         .profile-header-content {
             display: flex;
@@ -378,38 +511,96 @@
         }
 
         /* ========================================== */
-        /* TARJETAS DE ACTIVIDAD */
+        /* TARJETAS DE ACTIVIDAD - Estilo como en ventas.php */
         /* ========================================== */
-        .activity-card {
-            background: white;
-            border-radius: 12px;
+        .activity-section {
+            margin-top: 30px;
             padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .activity-section h3 {
             margin-bottom: 20px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.05);
-            border-left: 4px solid #1F9166;
-        }
-
-        .activity-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .activity-title {
-            font-size: 1.1rem;
             color: #2c3e50;
-            font-weight: 600;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .activity-time {
-            color: #95a5a6;
-            font-size: 0.85rem;
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #1F9166;
+            transition: all 0.3s;
+        }
+
+        .activity-item:hover {
+            background: #f1f3f4;
+            transform: translateX(5px);
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.sales {
+            background: linear-gradient(135deg, #1F9166, #30B583);
+        }
+
+        .activity-icon.payment {
+            background: linear-gradient(135deg, #3498db, #5dade2);
+        }
+
+        .activity-icon.client {
+            background: linear-gradient(135deg, #9b59b6, #bb8fce);
+        }
+
+        .activity-icon.info {
+            background: linear-gradient(135deg, #f39c12, #f5b041);
         }
 
         .activity-content {
+            flex: 1;
+        }
+
+        .activity-content p {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .activity-content span {
+            font-size: 0.85rem;
             color: #6c757d;
-            line-height: 1.6;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .activity-content span i {
+            font-size: 0.75rem;
         }
 
         /* ========================================== */
@@ -583,6 +774,11 @@
                 width: 100%;
                 justify-content: center;
             }
+            
+            .activity-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
 
         @media (max-width: 480px) {
@@ -606,15 +802,24 @@
             }
         }
     </style>
-</head>
-<body>
+    </style>
+    </head>
+    <body>
+        <!-- Botón de regreso mejorado -->
+        <div class="back-btn-wrapper">
+            <button class="back-btn-enhanced" onclick="history.back()" aria-label="Regresar">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Regresar
+            </button>
+        </div>
+
     <div class="profile-container">
         <!-- Header del Perfil -->
         <div class="profile-header">
             <div class="profile-header-content">
                 <div class="profile-avatar-section">
                     <div class="profile-avatar" id="profileAvatar">
-                        J
+                        <?php echo htmlspecialchars($iniciales); ?>
                     </div>
                     <button class="avatar-edit-btn" id="editAvatarBtn">
                         <i class="fas fa-camera"></i>
@@ -622,21 +827,56 @@
                 </div>
                 
                 <div class="profile-info">
-                    <h1 class="profile-name">Juan Andrés Pérez</h1>
-                    <span class="profile-role">Administrador</span>
+                    <h1 class="profile-name">
+                        <?php echo $user ? htmlspecialchars($user['nombre_completo']) : 'Juan Andrés Pérez'; ?>
+                    </h1>
+                    <span class="profile-role">
+                        <?php echo $user && $user['rol_nombre'] ? htmlspecialchars($user['rol_nombre']) : 'Administrador'; ?>
+                    </span>
                     <p class="profile-email">
                         <i class="fas fa-envelope"></i>
-                        juan.perez@inversionesrojas.com
+                        <?php echo $user ? htmlspecialchars($user['email']) : 'juan.perez@inversionesrojas.com'; ?>
                     </p>
                     <p class="profile-member-since">
                         <i class="fas fa-calendar-alt"></i>
-                        Miembro desde: 15 de Marzo, 2023
+                        Miembro desde: <?php echo $user ? date('d/m/Y', strtotime($user['created_at'])) : '15 de Marzo, 2023'; ?>
                     </p>
                 </div>
             </div>
             
-            <!-- Estadísticas del Usuario -->
-        
+            <!-- Estadísticas del Usuario (solo para roles internos, no para clientes) -->
+            <?php if (!empty($display_rol) && strtolower(trim($display_rol)) !== 'cliente'): ?>
+            <div class="profile-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-number"><?php echo $estadisticas ? $estadisticas['total_ventas'] : 0; ?></div>
+                    <div class="stat-label">Total Ventas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number"><?php echo $estadisticas ? $estadisticas['clientes_registrados'] : 0; ?></div>
+                    <div class="stat-label">Clientes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-number">$<?php echo $estadisticas ? number_format($estadisticas['ventas_monto_total'], 0) : '0'; ?></div>
+                    <div class="stat-label">Monto Ventas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="stat-number"><?php echo $estadisticas ? $estadisticas['actividades_total'] : 0; ?></div>
+                    <div class="stat-label">Actividades</div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
 
         <!-- Tabs del Perfil -->
@@ -650,13 +890,12 @@
                     <i class="fas fa-shield-alt"></i>
                     Seguridad
                 </button>
-           
-              
-                </button>
+                <?php if (!empty($display_rol) && strtolower(trim($display_rol)) !== 'cliente'): ?>
                 <button class="tab-btn" data-tab="activity">
                     <i class="fas fa-history"></i>
                     Actividad
                 </button>
+                <?php endif; ?>
             </div>
 
             <!-- Tab: Información Personal -->
@@ -668,53 +907,45 @@
                     
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="firstName">
-                                <i class="fas fa-user"></i> Nombre
+                            <label for="username">
+                                <i class="fas fa-user-circle"></i> Username
                             </label>
-                            <input type="text" id="firstName" class="form-control" value="Juan Andrés">
-                            <div class="form-hint">Tu nombre legal</div>
+                            <input type="text" id="username" class="form-control" value="<?php echo htmlspecialchars($display_username); ?>" readonly>
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="lastName">
-                                <i class="fas fa-user"></i> Apellido
+                            <label for="nombre_completo">
+                                <i class="fas fa-user"></i> Nombre Completo
                             </label>
-                            <input type="text" id="lastName" class="form-control" value="Pérez Rodríguez">
+                            <input type="text" id="nombre_completo" class="form-control" value="<?php echo htmlspecialchars($display_nombre); ?>">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="email">
                                 <i class="fas fa-envelope"></i> Correo Electrónico
                             </label>
-                            <input type="email" id="email" class="form-control" value="juan.perez@inversionesrojas.com">
-                            <div class="form-hint">Tu email corporativo</div>
+                            <input type="email" id="email" class="form-control" value="<?php echo htmlspecialchars($display_email); ?>">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="phone">
                                 <i class="fas fa-phone"></i> Teléfono
                             </label>
-                            <input type="tel" id="phone" class="form-control" value="+58 424 123 4567">
-                            <div class="form-hint">Número de contacto personal</div>
+                            <input type="tel" id="phone" class="form-control" value="<?php echo htmlspecialchars($display_telefono ?: ''); ?>">
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="department">
-                                <i class="fas fa-building"></i> Departamento
+                            <label for="rol">
+                                <i class="fas fa-user-tag"></i> Rol
                             </label>
-                            <select id="department" class="form-control">
-                                <option value="sales" selected>Ventas</option>
-                                <option value="inventory">Inventario</option>
-                                <option value="finance">Finanzas</option>
-                                <option value="management">Gerencia</option>
-                            </select>
+                            <input type="text" id="rol" class="form-control" value="<?php echo htmlspecialchars($display_rol); ?>" readonly>
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="position">
-                                <i class="fas fa-briefcase"></i> Cargo
+                            <label for="cedula">
+                                <i class="fas fa-id-card"></i> Cédula / RIF
                             </label>
-                            <input type="text" id="position" class="form-control" value="Jefe de Ventas">
+                            <input type="text" id="cedula" class="form-control" value="<?php echo htmlspecialchars($display_cedula ?: ''); ?>">
                         </div>
                     </div>
                 </div>
@@ -724,7 +955,7 @@
                         <i class="fas fa-save"></i>
                         Guardar Cambios
                     </button>
-                    <button class="btn btn-outline">
+                    <button class="btn btn-outline" id="resetProfileBtn">
                         <i class="fas fa-redo"></i>
                         Restablecer
                     </button>
@@ -764,7 +995,6 @@
                     </div>
                 </div>
                 
-                
                 <div class="action-buttons">
                     <button class="btn btn-primary" id="updatePasswordBtn">
                         <i class="fas fa-key"></i>
@@ -777,90 +1007,61 @@
                 </div>
             </div>
 
-            <!-- Tab: Actividad -->
+            <!-- Tab: Actividad (Estilo como en ventas.php) -->
+            <?php if (!empty($display_rol) && strtolower(trim($display_rol)) !== 'cliente'): ?>
             <div class="tab-content" id="tab-activity">
-                <div class="config-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-history"></i> Historial Reciente</h2>
-                        <button class="btn btn-outline btn-sm" id="exportActivityBtn">
-                            <i class="fas fa-download"></i>
-                            Exportar
-                        </button>
-                    </div>
-                    
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <div class="activity-title">
-                                <i class="fas fa-shopping-cart"></i> Venta Realizada
+                <div class="activity-section">
+                    <h3><i class="fas fa-history"></i> Actividad Reciente</h3>
+                    <div class="activity-list">
+                        <?php if (empty($actividades)): ?>
+                            <div class="activity-item">
+                                <div class="activity-icon info">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>No hay actividades registradas</p>
+                                    <span>Realiza alguna acción en el sistema para ver tu historial</span>
+                                </div>
                             </div>
-                            <div class="activity-time">Hace 15 minutos</div>
-                        </div>
-                        <div class="activity-content">
-                            <strong>Cliente:</strong> María González<br>
-                            <strong>Total:</strong> $2,450.00<br>
-                            <strong>Productos:</strong> 3 items<br>
-                            <strong>Referencia:</strong> VENTA-2024-0158
-                        </div>
-                    </div>
-                    
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <div class="activity-title">
-                                <i class="fas fa-user-plus"></i> Nuevo Cliente Registrado
-                            </div>
-                            <div class="activity-time">Hace 2 horas</div>
-                        </div>
-                        <div class="activity-content">
-                            <strong>Cliente:</strong> Carlos Rojas<br>
-                            <strong>Email:</strong> carlos.rojas@email.com<br>
-                            <strong>Teléfono:</strong> +58 414 987 6543<br>
-                            <strong>ID:</strong> CLI-0458
-                        </div>
-                    </div>
-                    
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <div class="activity-title">
-                                <i class="fas fa-chart-line"></i> Reporte Generado
-                            </div>
-                            <div class="activity-time">Hoy, 10:00 AM</div>
-                        </div>
-                        <div class="activity-content">
-                            <strong>Reporte:</strong> Ventas del Mes de Marzo<br>
-                            <strong>Período:</strong> 01/03/2024 - 15/03/2024<br>
-                            <strong>Total Ventas:</strong> $45,820.00<br>
-                            <strong>Archivo:</strong> reporte_ventas_marzo.pdf
-                        </div>
-                    </div>
-                    
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <div class="activity-title">
-                                <i class="fas fa-box"></i> Producto Actualizado
-                            </div>
-                            <div class="activity-time">Ayer, 4:30 PM</div>
-                        </div>
-                        <div class="activity-content">
-                            <strong>Producto:</strong> Casco Integral LS2<br>
-                            <strong>Código:</strong> PROD-0012<br>
-                            <strong>Cambios:</strong> Precio actualizado y stock<br>
-                            <strong>Usuario:</strong> Juan Pérez
-                        </div>
-                    </div>
-                    
-                    <div class="activity-card">
-                        <div class="activity-header">
-                            <div class="activity-title">
-                                <i class="fas fa-sign-in-alt"></i> Inicio de Sesión
-                            </div>
-                            <div class="activity-time">Ayer, 8:00 AM</div>
-                        </div>
-                        <div class="activity-content">
-                            <strong>Ubicación:</strong> Maracay, Aragua<br>
-                            <strong>Dispositivo:</strong> Chrome en Windows 10<br>
-                            <strong>IP:</strong> 192.168.1.100<br>
-                            <strong>Duración:</strong> 9 horas 30 minutos
-                        </div>
+                        <?php else: ?>
+                            <?php foreach ($actividades as $actividad): ?>
+                                <?php 
+                                // Determinar icono y color basado en la acción (como en ventas.php)
+                                $icon = 'fas fa-cog';
+                                $color = 'info';
+                                $accion = htmlspecialchars($actividad['accion']);
+                                
+                                if (stripos($accion, 'venta') !== false) {
+                                    $icon = 'fas fa-shopping-cart';
+                                    $color = 'sales';
+                                } elseif (stripos($accion, 'pago') !== false) {
+                                    $icon = 'fas fa-credit-card';
+                                    $color = 'payment';
+                                } elseif (stripos($accion, 'cliente') !== false) {
+                                    $icon = 'fas fa-user-plus';
+                                    $color = 'client';
+                                } elseif (stripos($accion, 'producto') !== false) {
+                                    $icon = 'fas fa-box';
+                                    $color = 'info';
+                                } elseif (stripos($accion, 'login') !== false || stripos($accion, 'sesión') !== false) {
+                                    $icon = 'fas fa-sign-in-alt';
+                                    $color = 'payment';
+                                }
+                                ?>
+                                <div class="activity-item">
+                                    <div class="activity-icon <?php echo $color; ?>">
+                                        <i class="<?php echo $icon; ?>"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p><?php echo $accion; ?></p>
+                                        <span>
+                                            <?php echo htmlspecialchars($actividad['usuario'] ?? 'Sistema'); ?> • 
+                                            <?php echo date('H:i', strtotime($actividad['created_at'])); ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
@@ -869,8 +1070,13 @@
                         <i class="fas fa-sync-alt"></i>
                         Cargar Más Actividad
                     </button>
+                    <button class="btn btn-primary" id="exportActivityBtn">
+                        <i class="fas fa-download"></i>
+                        Exportar Actividad
+                    </button>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -885,14 +1091,15 @@
                 <div class="form-group">
                     <label>Selecciona tu avatar</label>
                     <div class="avatar-options" id="avatarOptions">
-                        <div class="avatar-option" data-avatar="J">J</div>
-                        <div class="avatar-option" data-avatar="A">A</div>
-                        <div class="avatar-option" data-avatar="M">M</div>
-                        <div class="avatar-option" data-avatar="C">C</div>
-                        <div class="avatar-option" data-avatar="R">R</div>
-                        <div class="avatar-option" data-avatar="P">P</div>
-                        <div class="avatar-option" data-avatar="S">S</div>
-                        <div class="avatar-option" data-avatar="D">D</div>
+                        <?php 
+                        $opciones = ['J', 'A', 'M', 'C', 'R', 'P', 'S', 'D'];
+                        foreach ($opciones as $opcion): 
+                        ?>
+                            <div class="avatar-option <?php echo $opcion == $iniciales ? 'selected' : ''; ?>" 
+                                 data-avatar="<?php echo $opcion; ?>">
+                                <?php echo $opcion; ?>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
                 
@@ -912,52 +1119,19 @@
     </div>
 
     <script>
-        // Switch Toggle (si no está definido en otro lugar)
-        const switchStyle = document.createElement('style');
-        switchStyle.textContent = `
-            .switch {
-                position: relative;
-                display: inline-block;
-                width: 60px;
-                height: 30px;
-            }
-            .switch input {
-                opacity: 0;
-                width: 0;
-                height: 0;
-            }
-            .slider {
-                position: absolute;
-                cursor: pointer;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background-color: #ccc;
-                transition: .4s;
-                border-radius: 34px;
-            }
-            .slider:before {
-                position: absolute;
-                content: "";
-                height: 22px;
-                width: 22px;
-                left: 4px;
-                bottom: 4px;
-                background-color: white;
-                transition: .4s;
-                border-radius: 50%;
-            }
-            input:checked + .slider {
-                background-color: #1F9166;
-            }
-            input:checked + .slider:before {
-                transform: translateX(30px);
-            }
-        `;
-        document.head.appendChild(switchStyle);
-
         document.addEventListener('DOMContentLoaded', function() {
+            console.info('Perfil.js cargado');
+
+            const baseUrl = (typeof BASE_URL !== 'undefined' && BASE_URL) ? String(BASE_URL).replace(/\/+$/, '') : (window.location.origin + '/inversiones-rojas');
+            console.info('BASE_URL usado en perfil:', baseUrl);
+
+            window.addEventListener('error', function(event) {
+                console.error('Error global en perfil.js:', event.message, 'en', event.filename + ':' + event.lineno);
+            });
+
+            try {
+
+
             // Control de tabs
             const tabBtns = document.querySelectorAll('.tab-btn');
             const tabContents = document.querySelectorAll('.tab-content');
@@ -973,24 +1147,8 @@
                     // Agregar active al seleccionado
                     this.classList.add('active');
                     document.getElementById(`tab-${tabId}`).classList.add('active');
-                    
-                    // Guardar en localStorage
-                    localStorage.setItem('lastProfileTab', tabId);
                 });
             });
-            
-            // Restaurar última pestaña
-            const lastTab = localStorage.getItem('lastProfileTab');
-            if (lastTab) {
-                const tabBtn = document.querySelector(`[data-tab="${lastTab}"]`);
-                const tabContent = document.getElementById(`tab-${lastTab}`);
-                if (tabBtn && tabContent) {
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    tabContents.forEach(c => c.classList.remove('active'));
-                    tabBtn.classList.add('active');
-                    tabContent.classList.add('active');
-                }
-            }
             
             // Control del modal de avatar
             const editAvatarBtn = document.getElementById('editAvatarBtn');
@@ -1000,7 +1158,7 @@
             const saveAvatarBtn = document.getElementById('saveAvatarBtn');
             const avatarOptions = document.querySelectorAll('.avatar-option');
             const profileAvatar = document.getElementById('profileAvatar');
-            let selectedAvatar = 'J';
+            let selectedAvatar = '<?php echo $iniciales; ?>';
             
             if (editAvatarBtn && avatarModal) {
                 editAvatarBtn.addEventListener('click', () => {
@@ -1068,54 +1226,109 @@
             // Guardar perfil
             const saveProfileBtn = document.getElementById('saveProfileBtn');
             if (saveProfileBtn) {
-                saveProfileBtn.addEventListener('click', function() {
+                saveProfileBtn.addEventListener('click', async function() {
                     const originalText = this.innerHTML;
                     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
                     this.disabled = true;
-                    
-                    setTimeout(() => {
+
+                    const payload = {
+                        username: document.getElementById('username').value,
+                        nombre_completo: document.getElementById('nombre_completo').value,
+                        email: document.getElementById('email').value,
+                        telefono: document.getElementById('phone').value,
+                        cedula: document.getElementById('cedula').value
+                    };
+
+                    try {
+                        const resp = await fetch(baseUrl + '/api/update_profile.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        const data = await resp.json();
+                        if (!resp.ok || !data.success) {
+                            throw new Error(data.message || 'Error al actualizar el perfil');
+                        }
+
+                        alert(data.message || 'Perfil actualizado exitosamente');
+
+                        // Recargar la página para reflejar los cambios
+                        window.location.reload();
+
+                    } catch (err) {
+                        alert('No se pudo actualizar el perfil: ' + err.message);
+                    } finally {
                         this.innerHTML = originalText;
                         this.disabled = false;
-                        alert('Perfil actualizado exitosamente');
-                    }, 1500);
+                    }
+                });
+            }
+            
+            // Restablecer perfil
+            const resetProfileBtn = document.getElementById('resetProfileBtn');
+            if (resetProfileBtn) {
+                resetProfileBtn.addEventListener('click', function() {
+                    if (confirm('¿Restablecer todos los cambios?')) {
+                        location.reload();
+                    }
                 });
             }
             
             // Actualizar contraseña
             const updatePasswordBtn = document.getElementById('updatePasswordBtn');
             if (updatePasswordBtn) {
-                updatePasswordBtn.addEventListener('click', function() {
+                updatePasswordBtn.addEventListener('click', async function() {
                     const currentPass = document.getElementById('currentPassword').value;
                     const newPass = document.getElementById('newPassword').value;
                     const confirmPass = document.getElementById('confirmPassword').value;
-                    
+
                     if (!currentPass || !newPass || !confirmPass) {
                         alert('Por favor complete todos los campos de contraseña');
                         return;
                     }
-                    
+
                     if (newPass !== confirmPass) {
                         alert('Las contraseñas no coinciden');
                         return;
                     }
-                    
+
                     if (newPass.length < 8) {
                         alert('La contraseña debe tener al menos 8 caracteres');
                         return;
                     }
-                    
+
                     const originalText = this.innerHTML;
                     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Actualizando...';
                     this.disabled = true;
-                    
-                    setTimeout(() => {
-                        this.innerHTML = originalText;
-                        this.disabled = false;
-                        alert('Contraseña actualizada exitosamente');
+
+                    try {
+                        const resp = await fetch(baseUrl + '/api/update_profile.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                current_password: currentPass,
+                                new_password: newPass,
+                                confirm_password: confirmPass
+                            })
+                        });
+
+                        const data = await resp.json();
+                        if (!resp.ok || !data.success) {
+                            throw new Error(data.message || 'Error al actualizar la contraseña');
+                        }
+
+                        alert(data.message || 'Contraseña actualizada exitosamente');
                         document.getElementById('currentPassword').value = '';
                         document.getElementById('newPassword').value = '';
                         document.getElementById('confirmPassword').value = '';
-                    }, 1500);
+
+                    } catch (err) {
+                        alert('No se pudo actualizar la contraseña: ' + err.message);
+                    } finally {
+                        this.innerHTML = originalText;
+                        this.disabled = false;
+                    }
                 });
             }
             
@@ -1133,22 +1346,6 @@
                             window.location.href = '/logout.php';
                         }, 1000);
                     }
-                });
-            }
-            
-            // Guardar preferencias
-            const savePreferencesBtn = document.getElementById('savePreferencesBtn');
-            if (savePreferencesBtn) {
-                savePreferencesBtn.addEventListener('click', function() {
-                    const originalText = this.innerHTML;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-                    this.disabled = true;
-                    
-                    setTimeout(() => {
-                        this.innerHTML = originalText;
-                        this.disabled = false;
-                        alert('Preferencias guardadas exitosamente');
-                    }, 1500);
                 });
             }
             
@@ -1183,6 +1380,11 @@
                     }, 1500);
                 });
             }
+
+        } catch (err) {
+            console.error('Error en perfil.js:', err);
+            alert('Error en el perfil: ' + (err.message || err));
+        }
         });
     </script>
 </body>

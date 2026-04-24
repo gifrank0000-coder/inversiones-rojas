@@ -8,11 +8,19 @@
         body {
             background-color: #f8f9fa;
             color: #333;
+            min-height: 100vh;
         }
 
         .admin-container {
             display: flex;
             min-height: 100vh;
+        }
+
+        /* Cuando se carga dentro de un iframe, el body necesita ocupartodo el espacio */
+        body.iframe-mode {
+            margin: 0;
+            padding: 0;
+            background: #f8f9fa;
         }
 
         /* Sidebar */
@@ -488,6 +496,130 @@
             margin-top: 20px;
         }
 
+        /* =============== UNIFIED TABLE STYLES =============== */
+        .data-table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .data-table-header {
+            display: grid;
+            padding: 16px 20px;
+            background: #f7f7f7;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 1px solid #e6e6e6;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table-row {
+            display: grid;
+            padding: 14px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+            transition: background 0.2s ease;
+        }
+
+        .data-table-row:hover {
+            background: #fafafa;
+        }
+
+        .data-status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .data-status-badge.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .data-status-badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .data-status-badge.danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .data-status-badge.info {
+            background: #cce7ff;
+            color: #004085;
+        }
+
+        .data-status-badge.primary {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .table-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .table-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .table-action-btn i {
+            font-size: 13px;
+        }
+
+        .table-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        .table-action-btn.view {
+            background: #3498db;
+            color: white;
+        }
+
+        .table-action-btn.edit {
+            background: #f39c12;
+            color: white;
+        }
+
+        .table-action-btn.delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .table-action-btn.disabled {
+            background: #95a5a6;
+            color: white;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .table-action-btn.disabled:hover {
+            transform: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* =============== END UNIFIED TABLE STYLES =============== */
+
         /* Productos en Promoción */
         .productos-section {
             background: white;
@@ -615,3 +747,39 @@
                 flex-direction: column;
             }
         }
+
+/* =============================================
+   ESTILOS UNIFICADOS PARA MONEDA DUAL
+   ============================================= */
+
+.stat-card .moneda-usd {
+    display: block;
+    font-size: 1.6rem;
+    color: #2c3e50;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-card .moneda-bs {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.table-cell-currency .moneda-usd,
+td .moneda-usd {
+    display: block;
+    color: #1F9166;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table-cell-currency .moneda-bs,
+td .moneda-bs {
+    display: block;
+    color: #6c757d;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}

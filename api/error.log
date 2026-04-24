@@ -1,0 +1,26 @@
+2026-02-02 20:35:21 - Datos recibidos: Array
+(
+    [cliente_facturacion_id] => 2
+    [metodo_pago_id] => 3
+    [subtotal] => 20
+    [iva] => 3.2
+    [total] => 23.2
+    [productos] => Array
+        (
+            [0] => Array
+                (
+                    [id] => 26
+                    [code] => MOTO-001
+                    [name] => SBR
+                    [price] => 20
+                    [quantity] => 1
+                    [stock] => 6
+                )
+
+        )
+
+    [efectivo_recibido] => 
+    [pagos_multiples] => 
+)
+
+2026-02-02 20:35:21 - Intentando insertar venta: cliente_id=, metodo_pago_id=3

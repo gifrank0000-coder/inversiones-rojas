@@ -340,6 +340,12 @@
             flex-wrap: wrap;
         }
 
+        /* Asegura que el rango de fechas personalizado quede debajo de los filtros principales */
+        #customDateRange {
+            flex: 1 1 100%;
+            min-width: 0;
+        }
+
         .search-box {
             flex: 1;
             min-width: 300px;
@@ -378,56 +384,6 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             overflow: hidden;
             margin-bottom: 30px;
-        }
-
-        .table-header {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-            padding: 20px;
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .table-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-            padding: 20px;
-            border-bottom: 1px solid #e9ecef;
-            align-items: center;
-        }
-
-        .table-row:hover {
-            background: #f8f9fa;
-        }
-
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .status-approved {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-received {
-            background: #cce7ff;
-            color: #004085;
-        }
-
-        .status-cancelled {
-            background: #f8d7da;
-            color: #721c24;
         }
 
         /* Pending Orders */
@@ -524,3 +480,182 @@
                 min-width: auto;
             }
         }
+
+/* =============================================
+   ESTILOS UNIFICADOS PARA TABLAS (heredados de inventario.css)
+   ============================================= */
+
+.compras-table, .pedidos-table, .devoluciones-table, .promociones-table {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+        /* Compras Table Styles - responsive con unidades flexibles */
+        .compras-table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            -webkit-overflow-scrolling: touch; /* Smooth scroll en iOS */
+        }
+
+        .compras-table {
+            width: 100%;
+        }
+
+        .table-header {
+            display: grid;
+            grid-template-columns: 1.4fr 2fr 1fr 0.6fr 0.6fr 1.1fr 1.2fr 1.1fr 1fr;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            color: #2c3e50;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .table-row {
+            display: grid;
+            grid-template-columns: 1.4fr 2fr 1fr 0.6fr 0.6fr 1.1fr 1.2fr 1.1fr 1fr;
+            padding: 14px 20px;
+            border-bottom: 1px solid #e9ecef;
+            align-items: center;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .table-row:hover {
+            background: linear-gradient(90deg, rgba(31,145,102,0.05) 0%, transparent 100%);
+        }
+
+        .table-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Status badges for compras */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pendiente {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-completada, .status-aprobada {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-recepcion, .status-recibida {
+            background: #cce7ff;
+            color: #004085;
+        }
+
+        .status-cancelada, .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-incompleta {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+.table-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Action buttons unificados */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.action-btn.view { 
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.action-btn.status { 
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.action-btn.delete, .action-btn.disable { 
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.action-btn.enable, .action-btn.edit { 
+    background: linear-gradient(135deg, #1F9166 0%, #16a34a 100%);
+}
+
+.action-btn.disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.action-btn:disabled {
+    cursor: not-allowed;
+}
+
+/* =============================================
+   ESTILOS UNIFICADOS PARA MONEDA DUAL
+   ============================================= */
+
+.stat-card .moneda-usd {
+    display: block;
+    font-size: 1.6rem;
+    color: #2c3e50;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-card .moneda-bs {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+.table-cell-currency .moneda-usd,
+td .moneda-usd {
+    display: block;
+    color: #1F9166;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.table-cell-currency .moneda-bs,
+td .moneda-bs {
+    display: block;
+    color: #6c757d;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}

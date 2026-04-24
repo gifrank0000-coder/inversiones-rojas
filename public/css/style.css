@@ -504,7 +504,7 @@ nav ul li a:hover {
 .main-promo-slider {
     flex: 2;
     position: relative;
-    height: 400px;
+    height: 600px;
     overflow: hidden;
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -555,8 +555,7 @@ nav ul li a:hover {
 .promo-slide-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
+    transition: transform 10s ease;
 }
 
 .promo-slide:hover .promo-slide-image img {
