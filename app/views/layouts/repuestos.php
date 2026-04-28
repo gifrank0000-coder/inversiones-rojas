@@ -665,7 +665,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
                                    class="btn-view">
                                     <i class="fas fa-eye"></i> Ver Detalles
                                 </a>
-                                <button class="btn-cart" onclick="agregarAlCarrito(<?php echo $repuesto['id']; ?>)">
+                                <button class="btn-cart" onclick="agregarAlCarrito(<?php echo $repuesto['id']; ?>, event)">
                                     <i class="fas fa-cart-plus"></i>
                                 </button>
                             </div>
@@ -729,8 +729,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
     <script src="<?php echo BASE_URL; ?>/public/js/main.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/components/user-panel.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/script.js"></script>
-    <script src="<?php echo BASE_URL; ?>/public/js/inv-notifications.js"></script>
-    <script src="/inversiones-rojas/public/js/toast.js"></script>
     <script>
         var APP_BASE = '<?php echo BASE_URL; ?>';
         
@@ -905,7 +903,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
                             <div class="product-stock">${repuesto.stock > 0 ? '✓ En stock: ' + repuesto.stock + ' unidades' : 'Agotado'}</div>
                             <div class="product-actions">
                                 <a href="<?php echo BASE_URL; ?>/app/views/layouts/product_detail.php?id=${repuesto.id}" class="btn-view">Ver Detalles</a>
-                                <button class="btn-cart" onclick="agregarAlCarrito(${repuesto.id})">
+                                <button class="btn-cart" onclick="agregarAlCarrito(${repuesto.id}, event)">
                                     <i class="fas fa-cart-plus"></i>
                                 </button>
                             </div>
@@ -928,10 +926,10 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
             });
             
             // Restaurar contador
-            const contador = document.querySelector('.products-count strong');
+            const contador = document.querySelector('.products-count');
             const totalProductos = document.querySelectorAll('.product-card').length;
             if (contador) {
-                contador.textContent = totalProductos + ' repuestos';
+                contador.innerHTML = `Mostrando <strong>${totalProductos} repuestos</strong> disponibles`;
             }
             
             // Resetear paginación
@@ -941,23 +939,18 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
         }
         
         // Función para agregar al carrito
-        async function agregarAlCarrito(productoId) {
-            const productoCard = event.target.closest('.product-card');
-            const productoNombre = productoCard.querySelector('.product-title').textContent;
-            const productoPrecio = productoCard.querySelector('.product-price').textContent;
-            const productoImagen = productoCard.querySelector('img.product-image')?.src || '';
-
-            const confirmed = typeof showConfirm === 'function'
-                ? await showConfirm({
-                    title: '¿Agregar al carrito?',
-                    message: `¿Agregar "${productoNombre}" al carrito?\nPrecio: ${productoPrecio}`,
-                    confirmText: 'Aceptar',
-                    cancelText: 'Cancelar',
-                    type: 'info'
-                })
-                : confirm(`¿Agregar "${productoNombre}" al carrito?\nPrecio: ${productoPrecio}`);
-
-            if (!confirmed) return;
+async function agregarAlCarrito(productoId, event) {
+            if (!<?php echo isset($_SESSION['user_id']) && !empty($_SESSION['user_id']) ? 'true' : 'false'; ?>) {
+                if (window.Toast && typeof Toast.warning === 'function') {
+                    Toast.warning('Debes iniciar sesión para usar el carrito', 'Acceso restringido', 5000);
+                }
+                return;
+            }
+            
+            const productoCard = event?.target?.closest('.product-card');
+            const productoNombre = productoCard?.querySelector('.product-title')?.textContent || '';
+            const productoPrecio = productoCard?.querySelector('.product-price')?.textContent || '';
+            const productoImagen = productoCard?.querySelector('img.product-image')?.src || '';
 
             try {
                 const response = await fetch((window.APP_BASE || '') + '/api/add_to_cart.php', {
@@ -1055,9 +1048,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
             const totalProductosVisibles = document.querySelectorAll('.product-card[style="display: block"]').length;
             const totalProductos = Array.from(productos).filter(p => p.style.display !== 'none').length;
             
-            const contadorElement = document.querySelector('.products-count strong');
+            const contadorElement = document.querySelector('.products-count');
             if (contadorElement) {
-                contadorElement.textContent = `${totalProductosVisibles} de ${totalProductos} repuestos`;
+                contadorElement.innerHTML = `Mostrando <strong>${totalProductosVisibles} repuestos</strong> disponibles`;
             }
         }
         

@@ -5,11 +5,14 @@ error_reporting(0);
 ini_set('display_errors', 0);
 
 session_start();
-require_once __DIR__ . '/../config/config.php';
-require_once __DIR__ . '/../app/models/database.php';
-require_once __DIR__ . '/../app/helpers/promocion_helper.php';
+
+// En la carpeta /api, la raíz del proyecto es dirname(__DIR__)
+$projectRoot = dirname(__DIR__);
 
 header('Content-Type: application/json; charset=utf-8');
+require_once $projectRoot . '/config/config.php';
+require_once $projectRoot . '/app/models/database.php';
+require_once $projectRoot . '/app/helpers/promocion_helper.php';
 
 // Capturar errores fatales que puedan imprimir HTML y convertirlos a JSON
 register_shutdown_function(function() {
@@ -117,16 +120,24 @@ try {
     // Calcular total de items en carrito
     $total_items = array_sum(array_column($_SESSION['carrito'], 'quantity'));
     $producto_qty = $_SESSION['carrito'][$product_id]['quantity'] ?? $quantity;
+    
+    // Stock restante = stock disponible en BD menos lo que ya está en el carrito
+    // Esto muestra al usuario cuánto más puede agregar
+    $stock_remaining = intval($producto['stock_actual']) - intval($producto_qty);
+    if ($stock_remaining < 0) $stock_remaining = 0;
 
     if (ob_get_length()) { ob_clean(); }
     echo json_encode([
         'success' => true,
+        'ok' => true,
         'message' => 'Producto agregado al carrito',
         'total_items' => $total_items,
+        'cart_count' => $total_items,
         'producto_qty' => $producto_qty,
         'producto_nombre' => $producto['nombre'],
         'producto_precio' => $precioUnitario,
-        'producto_imagen' => $producto['imagen_url'] ?? ''
+        'producto_imagen' => $producto['imagen_url'] ?? '',
+        'stock_remaining' => $stock_remaining
     ]);
 
 } catch (Exception $e) {

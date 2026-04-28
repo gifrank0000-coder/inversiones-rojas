@@ -6,7 +6,9 @@ if (!isset($base_url)) {
 }
 require_once __DIR__ . '/../../../models/database.php';
 require_once __DIR__ . '/../../../helpers/moneda_helper.php';
+$user_logged_in = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 ?>
+<script src="<?php echo $base_url; ?>/public/js/inv-notifications.js"></script>
 <script>
     var APP_BASE = '<?php echo $base_url; ?>';
     // INJECT: cart snapshot from PHP session to render mini-drawer without extra fetch
@@ -108,8 +110,24 @@ if ($foundId) {
         </div>
 
 <div class="top-actions">
+            <?php $user_logged_in = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']); ?>
             <!-- Carrito: botón que abre drawer lateral -->
-            <button id="cartToggle" type="button" class="icon-btn cart-link mobile-cart" aria-label="Abrir carrito" onclick="(function(){const d=document.getElementById('cartDrawer'),b=document.getElementById('cartBackdrop'); if(d){ d.classList.toggle('open'); d.setAttribute('aria-hidden', d.classList.contains('open') ? 'false' : 'true'); } if(b){ b.classList.toggle('open'); b.setAttribute('aria-hidden', b.classList.contains('open') ? 'false' : 'true'); } })()">
+            <button id="cartToggle" type="button" class="icon-btn cart-link mobile-cart" aria-label="Abrir carrito" 
+                data-requires-login="<?php echo $user_logged_in ? 'false' : 'true'; ?>"
+                onclick="(function(){
+                    const btn = document.getElementById('cartToggle');
+                    if (btn && btn.dataset.requiresLogin === 'true') {
+                        if (typeof Toast !== 'undefined') {
+                            Toast.warning('Debes iniciar sesión para usar el carrito', 'Acceso restringido', 5000);
+                        } else {
+                            alert('Debes iniciar sesión para usar el carrito');
+                        }
+                        return;
+                    }
+                    const d=document.getElementById('cartDrawer'),b=document.getElementById('cartBackdrop'); 
+                    if(d){ d.classList.toggle('open'); d.setAttribute('aria-hidden', d.classList.contains('open') ? 'false' : 'true'); } 
+                    if(b){ b.classList.toggle('open'); b.setAttribute('aria-hidden', b.classList.contains('open') ? 'false' : 'true'); } 
+                })()">
                 <i class="fas fa-shopping-cart"></i>
                 <?php
                 $cart_count = 0;
@@ -202,7 +220,11 @@ if ($foundId) {
                 <?php endif; ?>
             </div>
                 <div class="cart-drawer-footer">
-                    <button id="checkoutBtn" class="btn btn-primary btn-block">Comprar</button>
+                    <?php if ($user_logged_in): ?>
+                    <button id="checkoutBtn" class="btn btn-primary btn-block" onclick="window.location.href = (window.APP_BASE||'') + '/app/views/layouts/carrito.php';">Comprar</button>
+                    <?php else: ?>
+                    <button id="checkoutBtn" class="btn btn-primary btn-block" onclick="if(typeof Toast !== 'undefined'){ Toast.warning('Debes iniciar sesión para completar tu compra', 'Acceso restringido', 5000); }">Comprar</button>
+                    <?php endif; ?>
                 </div>
             </div>
             <div id="cartBackdrop" class="cart-backdrop" aria-hidden="true"></div>
@@ -384,7 +406,6 @@ if ($foundId) {
                                 if(window.Toast){
                                     Toast.success('Producto eliminado del carrito', 'Eliminado', 2000);
                                 }
-                                
                                 setTimeout(() => {
                                     if(!cartItems.querySelector('.cart-drawer-item')){
                                         cartItems.innerHTML = '<div class="cart-empty"><i class="fas fa-shopping-cart"></i><p>Tu carrito está vacío</p></div>';

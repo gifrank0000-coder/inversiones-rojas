@@ -1,0 +1,355 @@
+    function openUpdateModal(product) {
+        // Cerrar modal de detalles
+        document.getElementById('productDetailsModal')?.classList.remove('active');
+
+        // Crear o reutilizar modal de edición
+        let modal = document.getElementById('updateProductModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'updateProductModal';
+            modal.className = 'modal-overlay';
+            modal.style.zIndex = '99998';
+            document.body.appendChild(modal);
+        }
+
+        const rawEsp = product.especifico || {};
+        // Normalizar el objeto de especificaciones (puede venir en rawEsp.datos o directamente en rawEsp)
+        const esp = (rawEsp && rawEsp.datos) ? rawEsp.datos : rawEsp;
+        // Priorizar el tipo real del detalle específico (vehículo/repuesto/accesorio)
+        const tipoNombre = ('' + (rawEsp.tipo || product.tipo_nombre || '')).toLowerCase();
+
+        // Campos específicos según tipo
+        let especHtml = '';
+        if (tipoNombre.includes('veh')) {
+            especHtml = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+                    <div><label style="font-size:12px;font-weight:600;">Marca</label>
+                    <input id="upd_marca" value="${esp.marca||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Modelo</label>
+                    <input id="upd_modelo" value="${esp.modelo||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Año</label>
+                    <input id="upd_anio" value="${esp.anio||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Cilindrada</label>
+                    <input id="upd_cilindrada" value="${esp.cilindrada||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Color</label>
+                    <input id="upd_color" value="${esp.color||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Kilometraje</label>
+                    <input id="upd_kilometraje" type="number" min="0" value="${esp.kilometraje||0}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                </div>`;
+        } else if (tipoNombre.includes('repuest')) {
+            especHtml = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+                    <div><label style="font-size:12px;font-weight:600;">Categoría Técnica</label>
+                    <input id="upd_categoria_tecnica" value="${esp.categoria_tecnica||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Marca Compatible</label>
+                    <input id="upd_marca_compatible" value="${esp.marca_compatible||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Modelo Compatible</label>
+                    <input id="upd_modelo_compatible" value="${esp.modelo_compatible||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Año Compatible</label>
+                    <input id="upd_anio_compatible" value="${esp.anio_compatible||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                </div>`;
+        } else if (tipoNombre.includes('acces')) {
+            especHtml = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;">
+                    <div><label style="font-size:12px;font-weight:600;">Subtipo</label>
+                    <input id="upd_subtipo" value="${esp.subtipo_accesorio||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Marca</label>
+                    <input id="upd_marca_acc" value="${esp.marca||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Talla</label>
+                    <input id="upd_talla" value="${esp.talla||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Color</label>
+                    <input id="upd_color_acc" value="${esp.color||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Material</label>
+                    <input id="upd_material" value="${esp.material||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                    <div><label style="font-size:12px;font-weight:600;">Certificación</label>
+                    <input id="upd_certificacion" value="${esp.certificacion||''}" class="form-control" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;"></div>
+                </div>`;
+        }
+
+        modal.innerHTML = `
+        <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto;">
+            <div class="modal-header" style="background:#1F9166;color:white;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="margin:0;font-size:16px;"><i class="fas fa-pen" style="margin-right:8px;"></i>Actualizar Producto</h3>
+                <button id="closeUpdateModal" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;">&times;</button>
+            </div>
+            <div style="padding:20px;">
+                <div style="background:#f0f9f4;border-left:4px solid #1F9166;padding:10px 14px;border-radius:6px;margin-bottom:16px;font-size:13px;">
+                    <strong>${product.nombre}</strong> &nbsp;|&nbsp; Código: <code>${product.codigo_interno}</code> &nbsp;|&nbsp; ${product.tipo_nombre || ''}
+                </div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Categoría <span style="color:#e74c3c;">*</span></label>
+                        <select id="upd_categoria" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                            <option value="">Seleccionar...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Proveedor</label>
+                        <select id="upd_proveedor" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                            <option value="">Seleccionar...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Precio Compra <span style="color:#e74c3c;">*</span></label>
+                        <input id="upd_precio_compra" type="number" step="0.01" min="0" value="${product.precio_compra_usd || product.precio_compra || 0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        <small class="moneda-usd" style="font-size:11px;">≈ Bs ${product.precio_compra_bs ? parseFloat(product.precio_compra_bs).toFixed(0) : (parseFloat(product.precio_compra || 0) * window.TASA_CAMBIO).toFixed(0)}</small>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Precio Venta <span style="color:#e74c3c;">*</span></label>
+                        <input id="upd_precio_venta" type="number" step="0.01" min="0" value="${product.precio_venta_usd || product.precio_venta || 0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        <small class="moneda-usd" style="font-size:11px;">≈ Bs ${(product.precio_venta_bs ? parseFloat(product.precio_venta_bs) : parseFloat(product.precio_venta || 0) * window.TASA_CAMBIO).toFixed(0)}</small>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Actual</label>
+                        <input id="upd_stock_actual" type="number" min="0" value="${product.stock_actual||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Mínimo</label>
+                        <input id="upd_stock_minimo" type="number" min="0" value="${product.stock_minimo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Máximo</label>
+                        <input id="upd_stock_maximo" type="number" min="0" value="${product.stock_maximo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Proveedor</label>
+                        <select id="upd_proveedor" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                            <option value="">Seleccionar...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Precio Compra <span style="color:#e74c3c;">*</span></label>
+                        <input id="upd_precio_compra" type="number" step="0.01" min="0" value="${product.precio_compra_usd || product.precio_compra || 0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        <small class="moneda-usd" style="font-size:11px;">≈ Bs ${product.precio_compra_bs ? parseFloat(product.precio_compra_bs).toFixed(0) : (parseFloat(product.precio_compra || 0) * window.TASA_CAMBIO).toFixed(0)}</small>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Precio Venta <span style="color:#e74c3c;">*</span></label>
+                        <input id="upd_precio_venta" type="number" step="0.01" min="0" value="${product.precio_venta_usd || product.precio_venta || 0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        <small class="moneda-usd" style="font-size:11px;">≈ Bs ${(product.precio_venta_bs ? parseFloat(product.precio_venta_bs) : parseFloat(product.precio_venta || 0) * window.TASA_CAMBIO).toFixed(0)}</small>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Actual</label>
+                        <input id="upd_stock_actual" type="number" min="0" value="${product.stock_actual||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Mínimo</label>
+                        <input id="upd_stock_minimo" type="number" min="0" value="${product.stock_minimo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Máximo</label>
+                        <input id="upd_stock_maximo" type="number" min="0" value="${product.stock_maximo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Descripción</label>
+                        <textarea id="upd_descripcion" rows="2" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;resize:vertical;">${product.descripcion||''}</textarea>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Precio Compra <span style="color:#e74c3c;">*</span></label>
+                        <input id="upd_precio_compra" type="number" step="0.01" min="0" value="${product.precio_compra_usd || product.precio_compra || 0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        <small class="moneda-usd" style="font-size:11px;">≈ Bs ${((product.precio_compra_bs ? parseFloat(product.precio_compra_bs) : parseFloat(product.precio_compra || 0) * window.TASA_CAMBIO)).toFixed(0)}</small>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Precio Venta <span style="color:#e74c3c;">*</span></label>
+                        <input id="upd_precio_venta" type="number" step="0.01" min="0" value="${product.precio_venta_usd || product.precio_venta || 0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                        <small class="moneda-usd" style="font-size:11px;">≈ Bs ${product.precio_venta_bs ? parseFloat(product.precio_venta_bs).toFixed(0) : (parseFloat(product.precio_venta || 0) * window.TASA_CAMBIO).toFixed(0)}</small>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Actual</label>
+                        <input id="upd_stock_actual" type="number" min="0" value="${product.stock_actual||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Mínimo</label>
+                        <input id="upd_stock_minimo" type="number" min="0" value="${product.stock_minimo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Máximo</label>
+                        <input id="upd_stock_maximo" type="number" min="0" value="${product.stock_maximo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                    </div>
+                </div>
+
+                ${especHtml ? `
+                <div style="margin-top:16px;border-top:1px solid #f0f0f0;padding-top:14px;">
+                    <h5 style="color:#1F9166;font-size:13px;margin-bottom:6px;"><i class="fas fa-cogs"></i> Especificaciones</h5>
+                    ${especHtml}
+                </div>` : ''}
+
+                <div id="upd_error" style="display:none;margin-top:12px;background:#fdeaea;color:#e74c3c;padding:10px;border-radius:6px;font-size:13px;"></div>
+            </div>
+            <div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;">
+                <button id="cancelUpdateBtn" style="padding:9px 20px;background:#f0f0f0;color:#555;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+                <button id="saveUpdateBtn" style="padding:9px 20px;background:#1F9166;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+                    <i class="fas fa-save"></i> Guardar cambios
+                </button>
+            </div>
+        </div>`;
+
+        modal.classList.add('active');
+        
+        // Poblar selects de categoría y proveedor
+        const catSelect = document.getElementById('upd_categoria');
+        const provSelect = document.getElementById('upd_proveedor');
+        
+        if (catSelect && typeof CATEGORIAS !== 'undefined') {
+            CATEGORIAS.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.nombre;
+                if (product.categoria_id == cat.id) opt.selected = true;
+                catSelect.appendChild(opt);
+            });
+        }
+        
+        if (provSelect && typeof PROVEEDORES !== 'undefined') {
+            PROVEEDORES.forEach(prov => {
+                const opt = document.createElement('option');
+                opt.value = prov.id;
+                opt.textContent = prov.razon_social;
+                if (product.proveedor_id == prov.id) opt.selected = true;
+                provSelect.appendChild(opt);
+            });
+        }
+
+        // Validación en tiempo real
+        const pcInp = document.getElementById('upd_precio_compra');
+        const pvInp = document.getElementById('upd_precio_venta');
+        const saInp = document.getElementById('upd_stock_actual');
+        const smInp = document.getElementById('upd_stock_minimo');
+        const sxInp = document.getElementById('upd_stock_maximo');
+
+        pvInp?.addEventListener('blur', () => InvValidate.precioVenta(pcInp, pvInp));
+        pcInp?.addEventListener('blur', () => InvValidate.positiveNumber(pcInp, 'El precio de compra'));
+        
+        // Auto-calculate dual prices for update modal
+        pcInp?.addEventListener('input', function() {
+            const usd = parseFloat(this.value) || 0;
+            const tasa = window.TASA_CAMBIO || 35.50;
+            // Update the small label showing Bs equivalent
+            const label = this.parentElement?.querySelector('small');
+            if (label) {
+                label.textContent = '≈ Bs ' + (usd * tasa).toFixed(0);
+            }
+        });
+        
+        pvInp?.addEventListener('input', function() {
+            const usd = parseFloat(this.value) || 0;
+            const tasa = window.TASA_CAMBIO || 35.50;
+            const label = this.parentElement?.querySelector('small');
+            if (label) {
+                label.textContent = '≈ Bs ' + (usd * tasa).toFixed(0);
+            }
+        });
+        [saInp, smInp, sxInp].forEach(inp => {
+            inp?.addEventListener('blur', () => InvValidate.stockConsistency(saInp, smInp, sxInp));
+        });
+
+        // Cerrar
+        document.getElementById('closeUpdateModal')?.addEventListener('click', () => modal.classList.remove('active'));
+        document.getElementById('cancelUpdateBtn')?.addEventListener('click', async () => {
+            const c = await showConfirm({ title: '¿Descartar cambios?', message: 'Los cambios no guardados se perderán.', confirmText: 'Sí, descartar', type: 'warning' });
+            if (c) { modal.classList.remove('active'); Toast.canceled('Edición cancelada'); }
+        });
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
+
+        // Guardar
+        document.getElementById('saveUpdateBtn')?.addEventListener('click', async function() {
+            const errDiv = document.getElementById('upd_error');
+            errDiv.style.display = 'none';
+
+            // Validar
+            let ok = true;
+            if (!InvValidate.required(document.getElementById('upd_nombre'), 'El nombre')) ok = false;
+            if (!InvValidate.positiveNumber(pcInp, 'El precio de compra')) ok = false;
+            if (!InvValidate.precioVenta(pcInp, pvInp)) ok = false;
+            if (saInp && smInp && sxInp && !InvValidate.stockConsistency(saInp, smInp, sxInp)) ok = false;
+
+            // Validaciones extras
+            const precioCompraUpd = parseFloat(pcInp.value) || 0;
+            const precioVentaUpd = parseFloat(pvInp.value) || 0;
+            if (precioCompraUpd <= 0) {
+                showFieldError('upd_precio_compra', 'El precio de compra debe ser mayor a 0.');
+                ok = false;
+            }
+            if (precioVentaUpd <= 0) {
+                showFieldError('upd_precio_venta', 'El precio de venta debe ser mayor a 0.');
+                ok = false;
+            }
+            if (saInp && smInp) {
+                const stockActualUpd = parseFloat(saInp.value) || 0;
+                const stockMinUpd = parseFloat(smInp.value) || 0;
+                if (stockActualUpd < stockMinUpd) {
+                    showFieldError('upd_stock_actual', 'El stock actual no puede ser menor al stock mínimo.');
+                    ok = false;
+                }
+            }
+
+            if (!ok) {
+                Toast.error('Corrige los campos marcados antes de guardar', 'Formulario inválido');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+            // Construir especificaciones actualizadas
+            let updEsp = null;
+            if (tipoNombre.includes('veh')) {
+                updEsp = { tipo: 'vehiculo', marca: document.getElementById('upd_marca')?.value, modelo: document.getElementById('upd_modelo')?.value, anio: document.getElementById('upd_anio')?.value, cilindrada: document.getElementById('upd_cilindrada')?.value, color: document.getElementById('upd_color')?.value, kilometraje: parseInt(document.getElementById('upd_kilometraje')?.value||0) };
+            } else if (tipoNombre.includes('repuest')) {
+                updEsp = { tipo: 'repuesto', categoria_tecnica: document.getElementById('upd_categoria_tecnica')?.value, marca_compatible: document.getElementById('upd_marca_compatible')?.value, modelo_compatible: document.getElementById('upd_modelo_compatible')?.value, anio_compatible: document.getElementById('upd_anio_compatible')?.value };
+            } else if (tipoNombre.includes('acces')) {
+                updEsp = { tipo: 'accesorio', subtipo_accesorio: document.getElementById('upd_subtipo')?.value, marca: document.getElementById('upd_marca_acc')?.value, talla: document.getElementById('upd_talla')?.value, color: document.getElementById('upd_color_acc')?.value, material: document.getElementById('upd_material')?.value, certificacion: document.getElementById('upd_certificacion')?.value };
+            }
+
+            try {
+                const tasa = window.TASA_CAMBIO || 35.50;
+                const payload = {
+                    id:            product.id,
+                    nombre:        document.getElementById('upd_nombre').value.trim(),
+                    descripcion:   document.getElementById('upd_descripcion')?.value.trim() || '',
+                    precio_compra: parseFloat(pcInp?.value || 0),
+                    precio_compra_usd: parseFloat(pcInp?.value || 0),
+                    precio_compra_bs: (parseFloat(pcInp?.value || 0) * tasa).toFixed(2),
+                    precio_venta:  parseFloat(pvInp?.value || 0),
+                    precio_venta_usd: parseFloat(pvInp?.value || 0),
+                    precio_venta_bs: (parseFloat(pvInp?.value || 0) * tasa).toFixed(2),
+                    stock_actual:  parseInt(saInp?.value || 0),
+                    stock_minimo:  parseInt(smInp?.value || 0),
+                    stock_maximo:  parseInt(sxInp?.value || 0),
+                };
+                if (updEsp) payload.especificaciones = JSON.stringify(updEsp);
+
+                const apiUrl = (window.APP_BASE || '') + '/api/update_product.php';
+                const r = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin',
+                });
+                const d = await r.json();
+
+                if (d.ok || d.success) {
+                    modal.classList.remove('active');
+                    Toast.edited(`"${payload.nombre}" actualizado correctamente`, '¡Producto actualizado!');
+                    fetchInventory();
+                } else {
+                    errDiv.textContent = d.error || 'No se pudo actualizar el producto';
+                    errDiv.style.display = 'block';
+                    Toast.error(d.error || 'Error al actualizar', 'Error');
+                }
+            } catch(err) {
+                errDiv.textContent = 'Error de conexión: ' + err.message;
+                errDiv.style.display = 'block';
+                Toast.error('No se pudo conectar con el servidor', 'Error de conexión');
+            }
+
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-save"></i> Guardar cambios';
+        });
+    }
+

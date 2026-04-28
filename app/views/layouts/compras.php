@@ -3826,6 +3826,282 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
+// ========== FUNCIONES PARA MODAL DE PROVEEDOR ==========
+function showSuppliersModal() {
+    const modal = document.getElementById('suppliersListModal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('active'), 10);
+    loadSuppliersList();
+}
+
+function closeSuppliersModal() {
+    const modal = document.getElementById('suppliersListModal');
+    modal.classList.remove('active');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+async function loadSuppliersList(search = '', status = '', dateFrom = '', dateTo = '') {
+    const tbody = document.getElementById('suppliersTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" style="padding: 30px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+    
+    try {
+        let url = '/inversiones-rojas/api/get_proveedores.php?';
+        if (search) url += 'search=' + encodeURIComponent(search) + '&';
+        if (status) url += 'estado=' + status + '&';
+        if (dateFrom) url += 'fecha_from=' + dateFrom + '&';
+        if (dateTo) url += 'fecha_to=' + dateTo + '&';
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.ok && data.proveedores.length > 0) {
+            tbody.innerHTML = data.proveedores.map(p => `
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 12px;">${p.rif || '-'}</td>
+                    <td style="padding: 12px;">${p.razon_social || '-'}</td>
+                    <td style="padding: 12px;">${p.persona_contacto || '-'}</td>
+                    <td style="padding: 12px;">${p.telefono_principal || '-'}</td>
+                    <td style="padding: 12px;">${p.email || '-'}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <span style="padding: 4px 10px; border-radius: 12px; font-size: 12px; background: ${p.estado ? '#d4edda' : '#f8d7da'}; color: ${p.estado ? '#155724' : '#721c24'};">
+                            ${p.estado ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </td>
+                    <td style="padding: 12px; text-align: center; white-space: nowrap;">
+                        <div style="display: inline-flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: nowrap;">
+                            <button type="button" onclick="editSupplier(${p.id})" style="background: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" onclick="toggleSupplierStatus(${p.id}, ${!p.estado})" style="background: ${p.estado ? '#dc3545' : '#28a745'}; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" title="${p.estado ? 'Inhabilitar' : 'Activar'}">
+                                <i class="fas fa-${p.estado ? 'ban' : 'check'}"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 30px; text-align: center; color: #666;">No se encontraron proveedores</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 30px; text-align: center; color: #dc3545;">Error al cargar proveedores</td></tr>';
+    }
+}
+
+function editSupplier(supplierId) {
+    fetch('/inversiones-rojas/api/get_proveedores.php?id=' + supplierId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok && data.proveedores.length > 0) {
+                const supplier = data.proveedores[0];
+                const rif = supplier.rif || '';
+                const [rifType, rifNum] = rif.includes('-') ? rif.split('-') : ['', rif];
+                
+                document.getElementById('supplierFormId').value = supplier.id;
+                document.getElementById('supplierFormRifType').value = rifType || 'J';
+                document.getElementById('supplierFormRif').value = rifNum;
+                document.getElementById('supplierFormRazonSocial').value = supplier.razon_social || '';
+                document.getElementById('supplierFormPersonaContacto').value = supplier.persona_contacto || '';
+                document.getElementById('supplierFormTelefono').value = supplier.telefono_principal || '';
+                document.getElementById('supplierFormTelefonoAlt').value = supplier.telefono_alternativo || '';
+                document.getElementById('supplierFormEmail').value = supplier.email || '';
+                document.getElementById('supplierFormDireccion').value = supplier.direccion || '';
+                document.getElementById('supplierFormTitle').innerHTML = '<i class="fas fa-edit"></i> Editar Proveedor';
+                showSupplierFormModal();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Toast.error('Error al cargar proveedor');
+        });
+}
+
+function showAddSupplierModal() {
+    document.getElementById('supplierFormId').value = '';
+    document.getElementById('supplierFormRifType').value = 'J';
+    document.getElementById('supplierFormRif').value = '';
+    document.getElementById('supplierFormRazonSocial').value = '';
+    document.getElementById('supplierFormPersonaContacto').value = '';
+    document.getElementById('supplierFormTelefono').value = '';
+    document.getElementById('supplierFormTelefonoAlt').value = '';
+    document.getElementById('supplierFormEmail').value = '';
+    document.getElementById('supplierFormDireccion').value = '';
+    document.getElementById('supplierFormTitle').innerHTML = '<i class="fas fa-truck"></i> Nuevo Proveedor';
+    showSupplierFormModal();
+}
+
+function showSupplierFormModal() {
+    const modal = document.getElementById('supplierFormModal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function closeSupplierFormModal() {
+    const modal = document.getElementById('supplierFormModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
+}
+
+async function saveSupplierForm() {
+    const id = document.getElementById('supplierFormId')?.value || '';
+    const rifType = document.getElementById('supplierFormRifType').value;
+    const rifInput = document.getElementById('supplierFormRif');
+    const razonInput = document.getElementById('supplierFormRazonSocial');
+    const contactoInput = document.getElementById('supplierFormPersonaContacto');
+    const telefonoInput = document.getElementById('supplierFormTelefono');
+    const emailInput = document.getElementById('supplierFormEmail');
+    const direccionInput = document.getElementById('supplierFormDireccion');
+
+    const rifValue = rifInput.value.replace(/\D/g, '');
+    rifInput.value = `${rifType}-${rifValue}`;
+
+    let ok = true;
+    if (!InvValidate.required(razonInput, 'La razón social')) ok = false;
+    if (!InvValidate.rif(rifInput, true)) ok = false;
+    if (!InvValidate.telefono(telefonoInput, false)) ok = false;
+    if (!InvValidate.telefono(document.getElementById('supplierFormTelefonoAlt'), false)) ok = false;
+    if (!InvValidate.email(emailInput, false)) ok = false;
+
+    if (!ok) {
+        Toast.error('Por favor corrige los campos marcados', 'Datos incompletos');
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        if (id) formData.append('id', id);
+        formData.append('rif', rifInput.value.trim());
+        formData.append('razon_social', razonInput.value.trim());
+        formData.append('persona_contacto', contactoInput.value.trim());
+        formData.append('telefono_principal', telefonoInput.value.trim());
+        formData.append('telefono_alternativo', document.getElementById('supplierFormTelefonoAlt').value.trim());
+        formData.append('email', emailInput.value.trim());
+        formData.append('direccion', direccionInput.value.trim());
+
+        const response = await fetch('/inversiones-rojas/api/add_proveedor.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.ok) {
+            Toast.success(data.message || 'Proveedor guardado correctamente');
+            closeSupplierFormModal();
+            loadSuppliersList(
+                document.getElementById('supplierSearchInput').value,
+                document.getElementById('supplierStatusFilter').value,
+                document.getElementById('supplierDateFrom').value,
+                document.getElementById('supplierDateTo').value
+            );
+        } else {
+            Toast.error(data.error || 'Error al guardar proveedor');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Toast.error('Error de conexión');
+    }
+}
+
+async function toggleSupplierStatus(supplierId, newStatus) {
+    const action = newStatus ? 'activar' : 'inhabilitar';
+    if (!confirm(`¿Está seguro de ${action} este proveedor?`)) return;
+    
+    try {
+        const formData = new FormData();
+        formData.append('id', supplierId);
+        formData.append('estado', newStatus ? '1' : '0');
+        
+        const response = await fetch('/inversiones-rojas/api/update_proveedor_estado.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        
+        if (data.ok) {
+            Toast.success(data.message || `Proveedor ${newStatus ? 'activado' : 'inhabilitado'} correctamente`);
+            loadSuppliersList(
+                document.getElementById('supplierSearchInput').value,
+                document.getElementById('supplierStatusFilter').value,
+                document.getElementById('supplierDateFrom').value,
+                document.getElementById('supplierDateTo').value
+            );
+        } else {
+            Toast.error(data.error || 'Error al actualizar estado');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Toast.error('Error de conexión');
+    }
+}
+
+// Event listeners para filtros de proveedores
+document.addEventListener('DOMContentLoaded', function() {
+    const supplierSearchInput = document.getElementById('supplierSearchInput');
+    const supplierStatusFilter = document.getElementById('supplierStatusFilter');
+    const supplierDateFrom = document.getElementById('supplierDateFrom');
+    const supplierDateTo = document.getElementById('supplierDateTo');
+    
+    if (supplierSearchInput) {
+        supplierSearchInput.addEventListener('input', function(e) {
+            const status = supplierStatusFilter?.value || '';
+            const dateFrom = supplierDateFrom?.value || '';
+            const dateTo = supplierDateTo?.value || '';
+            loadSuppliersList(e.target.value, status, dateFrom, dateTo);
+        });
+    }
+    
+    if (supplierStatusFilter) {
+        supplierStatusFilter.addEventListener('change', function(e) {
+            const search = supplierSearchInput?.value || '';
+            const dateFrom = supplierDateFrom?.value || '';
+            const dateTo = supplierDateTo?.value || '';
+            loadSuppliersList(search, e.target.value, dateFrom, dateTo);
+        });
+    }
+    
+    if (supplierDateFrom) {
+        supplierDateFrom.addEventListener('change', function(e) {
+            const search = supplierSearchInput?.value || '';
+            const status = supplierStatusFilter?.value || '';
+            const dateTo = supplierDateTo?.value || '';
+            loadSuppliersList(search, status, e.target.value, dateTo);
+        });
+    }
+    
+    if (supplierDateTo) {
+        supplierDateTo.addEventListener('change', function(e) {
+            const search = supplierSearchInput?.value || '';
+            const status = supplierStatusFilter?.value || '';
+            const dateFrom = supplierDateFrom?.value || '';
+            loadSuppliersList(search, status, dateFrom, e.target.value);
+        });
+    }
+    
+    // Inicializar modales de proveedores
+    const viewSuppliersBtn = document.getElementById('viewSuppliersBtn');
+    if (viewSuppliersBtn) {
+        viewSuppliersBtn.addEventListener('click', function() {
+            showSuppliersModal();
+        });
+    }
+    
+    const suppliersModalEl = document.getElementById('suppliersListModal');
+    if (suppliersModalEl) {
+        suppliersModalEl.addEventListener('click', function(e) {
+            if (e.target === this) closeSuppliersModal();
+        });
+    }
+    
+    const supplierFormModalEl = document.getElementById('supplierFormModal');
+    if (supplierFormModalEl) {
+        supplierFormModalEl.addEventListener('click', function(e) {
+            if (e.target === this) closeSupplierFormModal();
+        });
+    }
+});
+
         // Exponer funciones globalmente
         window.editarCompra = editarCompra;
         window.verDetalleCompra = verDetalleCompra;
@@ -3845,6 +4121,14 @@ document.addEventListener('DOMContentLoaded', function() {
         window.actualizarResumenRecepcion = actualizarResumenRecepcion;
         window.editarDesdeDetalle = editarDesdeDetalle;
         window.imprimirOrdenCompra = imprimirOrdenCompra;
+        window.showSuppliersModal = showSuppliersModal;
+        window.closeSuppliersModal = closeSuppliersModal;
+        window.editSupplier = editSupplier;
+        window.showAddSupplierModal = showAddSupplierModal;
+        window.showSupplierFormModal = showSupplierFormModal;
+        window.closeSupplierFormModal = closeSupplierFormModal;
+        window.saveSupplierForm = saveSupplierForm;
+        window.toggleSupplierStatus = toggleSupplierStatus;
     </script>
 
     <script>
@@ -4150,144 +4434,73 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<script>
-document.getElementById('viewSuppliersBtn').addEventListener('click', function() {
-    showSuppliersModal();
-});
-
-function showSuppliersModal() {
-    const modal = document.getElementById('suppliersListModal');
-    modal.style.display = 'block';
-    setTimeout(() => modal.classList.add('active'), 10);
-    loadSuppliersList();
-}
-
-function closeSuppliersModal() {
-    const modal = document.getElementById('suppliersListModal');
-    modal.classList.remove('active');
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300);
-}
-
-const suppliersModalEl = document.getElementById('suppliersListModal');
-if (suppliersModalEl) {
-    suppliersModalEl.addEventListener('click', function(e) {
-        if (e.target === this) closeSuppliersModal();
-    });
-}
-
-async function loadSuppliersList(search = '', status = '', dateFrom = '', dateTo = '') {
-    const tbody = document.getElementById('suppliersTableBody');
-    tbody.innerHTML = '<tr><td colspan="7" style="padding: 30px; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
-    
-    try {
-        let url = '/inversiones-rojas/api/get_proveedores.php?';
-        if (search) url += 'search=' + encodeURIComponent(search) + '&';
-        if (status) url += 'estado=' + status + '&';
-        if (dateFrom) url += 'fecha_from=' + dateFrom + '&';
-        if (dateTo) url += 'fecha_to=' + dateTo + '&';
+<!-- Modal: Formulario Proveedor -->
+<div class="modal-overlay registro-modal" id="supplierFormModal" style="display: none;">
+    <div class="modal registro-modal" style="width: 600px; max-width: 95%; max-height: 90vh;">
+        <div class="modal-header">
+            <h2 id="supplierFormTitle"><i class="fas fa-truck"></i> Nuevo Proveedor</h2>
+            <button type="button" class="modal-close" onclick="closeSupplierFormModal()">&times;</button>
+        </div>
         
-        const response = await fetch(url);
-        const data = await response.json();
+        <div class="modal-body">
+            <form id="supplierForm">
+                <input type="hidden" id="supplierFormId" name="id">
+                
+                <div class="form-group">
+                    <label for="supplierFormRif">RIF / Cédula *</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="supplierFormRifType" class="form-control" style="width: 80px; flex-shrink: 0;">
+                            <option value="J">J</option>
+                            <option value="V">V</option>
+                        </select>
+                        <input type="text" id="supplierFormRif" name="rif" class="form-control" placeholder="123456789" style="flex: 1;" />
+                    </div>
+                    <small style="color: #666; font-size: 0.9em;">J para RIF (9 dígitos), V para Cédula (7-8 dígitos)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="supplierFormRazonSocial">Razón Social *</label>
+                    <input type="text" id="supplierFormRazonSocial" name="razon_social" class="form-control" placeholder="Ej: Distribuidora XYZ C.A." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="supplierFormPersonaContacto">Persona de Contacto</label>
+                    <input type="text" id="supplierFormPersonaContacto" name="persona_contacto" class="form-control" placeholder="Ej: Juan Pérez">
+                </div>
+                
+                <div class="form-group">
+                    <label for="supplierFormTelefono">Teléfono Principal</label>
+                    <input type="text" id="supplierFormTelefono" name="telefono_principal" class="form-control" placeholder="Ej: 0414-1234567">
+                </div>
+                
+                <div class="form-group">
+                    <label for="supplierFormTelefonoAlt">Teléfono Alternativo</label>
+                    <input type="text" id="supplierFormTelefonoAlt" name="telefono_alternativo" class="form-control" placeholder="Ej: 0212-1234567">
+                </div>
+                
+                <div class="form-group">
+                    <label for="supplierFormEmail">Email</label>
+                    <input type="email" id="supplierFormEmail" name="email" class="form-control" placeholder="Ej: contacto@empresa.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="supplierFormDireccion">Dirección</label>
+                    <textarea id="supplierFormDireccion" name="direccion" class="form-control" rows="3" placeholder="Ej: Calle Principal, Ciudad, Estado"></textarea>
+                </div>
+            </form>
+        </div>
         
-        if (data.ok && data.proveedores.length > 0) {
-            tbody.innerHTML = data.proveedores.map(p => `
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 12px;">${p.rif || '-'}</td>
-                    <td style="padding: 12px;">${p.razon_social || '-'}</td>
-                    <td style="padding: 12px;">${p.persona_contacto || '-'}</td>
-                    <td style="padding: 12px;">${p.telefono_principal || '-'}</td>
-                    <td style="padding: 12px;">${p.email || '-'}</td>
-                    <td style="padding: 12px; text-align: center;">
-                        <span style="padding: 4px 10px; border-radius: 12px; font-size: 12px; background: ${p.estado ? '#d4edda' : '#f8d7da'}; color: ${p.estado ? '#155724' : '#721c24'};">
-                            ${p.estado ? 'Activo' : 'Inactivo'}
-                        </span>
-                    </td>
-                    <td style="padding: 12px; text-align: center; white-space: nowrap;">
-                        <div style="display: inline-flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: nowrap;">
-                            <button type="button" onclick="editSupplier(${p.id})" style="background: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" onclick="toggleSupplierStatus(${p.id}, ${!p.estado})" style="background: ${p.estado ? '#dc3545' : '#28a745'}; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;" title="${p.estado ? 'Inhabilitar' : 'Activar'}">
-                                <i class="fas fa-${p.estado ? 'ban' : 'check'}"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="padding: 30px; text-align: center; color: #666;">No se encontraron proveedores</td></tr>';
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        tbody.innerHTML = '<tr><td colspan="7" style="padding: 30px; text-align: center; color: #dc3545;">Error al cargar proveedores</td></tr>';
-    }
-}
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" onclick="closeSupplierFormModal()">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="saveSupplierForm()">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
 
-document.getElementById('supplierSearchInput').addEventListener('input', function(e) {
-    const status = document.getElementById('supplierStatusFilter').value;
-    const dateFrom = document.getElementById('supplierDateFrom').value;
-    const dateTo = document.getElementById('supplierDateTo').value;
-    loadSuppliersList(e.target.value, status, dateFrom, dateTo);
-});
-
-document.getElementById('supplierStatusFilter').addEventListener('change', function(e) {
-    const search = document.getElementById('supplierSearchInput').value;
-    const dateFrom = document.getElementById('supplierDateFrom').value;
-    const dateTo = document.getElementById('supplierDateTo').value;
-    loadSuppliersList(search, e.target.value, dateFrom, dateTo);
-});
-
-document.getElementById('supplierDateFrom').addEventListener('change', function(e) {
-    const search = document.getElementById('supplierSearchInput').value;
-    const status = document.getElementById('supplierStatusFilter').value;
-    const dateTo = document.getElementById('supplierDateTo').value;
-    loadSuppliersList(search, status, e.target.value, dateTo);
-});
-
-document.getElementById('supplierDateTo').addEventListener('change', function(e) {
-    const search = document.getElementById('supplierSearchInput').value;
-    const status = document.getElementById('supplierStatusFilter').value;
-    const dateFrom = document.getElementById('supplierDateFrom').value;
-    loadSuppliersList(search, status, dateFrom, e.target.value);
-});
-
-function editSupplier(supplierId) {
-    Toast.info('Función de edición en desarrollo', 'Editar Proveedor');
-}
-
-async function toggleSupplierStatus(supplierId, newStatus) {
-    const action = newStatus ? 'activar' : 'inhabilitar';
-    if (!confirm(`¿Está seguro de ${action} este proveedor?`)) return;
-    
-    try {
-        const formData = new FormData();
-        formData.append('id', supplierId);
-        formData.append('estado', newStatus ? '1' : '0');
-        
-        const response = await fetch('/inversiones-rojas/api/update_proveedor_estado.php', {
-            method: 'POST',
-            body: formData
-        });
-        const data = await response.json();
-        
-        if (data.ok) {
-            Toast.success(data.message || `Proveedor ${newStatus ? 'activado' : 'inhabilitado'} correctamente`);
-            loadSuppliersList(
-                document.getElementById('supplierSearchInput').value,
-                document.getElementById('supplierStatusFilter').value,
-                document.getElementById('supplierDateFrom').value,
-                document.getElementById('supplierDateTo').value
-            );
-        } else {
-            Toast.error(data.error || 'Error al actualizar estado');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        Toast.error('Error de conexión');
-    }
-}
-</script>
 </body>
 </html>
+   

@@ -8,6 +8,8 @@
 // ═══════════════════════════════════════════════════════════════
 //  ESTILOS INYECTADOS
 // ═══════════════════════════════════════════════════════════════
+//  ESTILOS INYECTADOS
+// ═══════════════════════════════════════════════════════════════
 (function injectStyles() {
     if (document.getElementById('inv-notif-styles')) return;
     const style = document.createElement('style');
@@ -335,8 +337,8 @@ function dismissToast(toast) {
     toast.addEventListener('animationend', () => toast.remove(), { once: true });
 }
 
-// Atajos semánticos
-const Toast = {
+// Atajos semánticos - solo declarar si no existe
+var Toast = window.Toast || {
     success:  (msg, title, duration) => showNotification(msg, 'success',  title, duration),
     error:    (msg, title, duration) => showNotification(msg, 'error',    title, duration),
     warning:  (msg, title, duration) => showNotification(msg, 'warning',  title, duration),
@@ -345,6 +347,8 @@ const Toast = {
     deleted:  (msg, title, duration) => showNotification(msg, 'deleted',  title, duration),
     canceled: (msg, title, duration) => showNotification(msg, 'canceled', title, duration),
 };
+
+window.Toast = Toast;
 
 // Compatibilidad: algunos scripts usan showNotification.error/success/etc.
 if (typeof showNotification === 'function') {
@@ -419,7 +423,7 @@ function showConfirm(opts = {}) {
 //  VALIDACIONES CENTRALIZADAS
 // ═══════════════════════════════════════════════════════════════
 
-const InvValidate = {
+var InvValidate = {
 
     // ── Quitar errores de un campo ─────────────────────────────
     clearField(input) {
@@ -697,8 +701,6 @@ const InvValidate = {
 
     // ── Validar todos los campos de un formulario ─────────────
     validateAll(rules) {
-        // rules: array de { fn, args } o resultados directos
-        // Retorna true solo si todos pasan
         return rules.every(r => r === true);
     },
 };
@@ -707,4 +709,3 @@ const InvValidate = {
 window.showNotification = showNotification;
 window.showConfirm      = showConfirm;
 window.Toast            = Toast;
-window.InvValidate      = InvValidate;

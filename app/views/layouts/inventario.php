@@ -23,7 +23,11 @@ $categorias = $stmt->fetchAll();
     <script>
         var APP_BASE = '<?php echo $base_url; ?>';
         var TASA_CAMBIO = <?php echo getTasaCambio(); ?>;
+        var CATEGORIAS = <?php echo json_encode($categorias, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE); ?>;
+        var PROVEEDORES = <?php echo json_encode($proveedores, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE); ?>;
         console.log('Tasa de cambio cargada:', TASA_CAMBIO);
+        console.log('CATEGORIAS disponibles:', CATEGORIAS.length);
+        console.log('PROVEEDORES disponibles:', PROVEEDORES.length);
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -102,6 +106,11 @@ $categorias = $stmt->fetchAll();
         /* ========== ESTILOS PARA EL MODAL DE REGISTRO DE PROVEEDOR ========== */
         .modal-overlay.registro-modal {
             z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            inset: 0;
         }
 
         .modal.registro-modal {
@@ -109,6 +118,7 @@ $categorias = $stmt->fetchAll();
             max-width: 95%;
             max-height: 85vh;
             overflow-y: auto;
+            margin: auto;
         }
 
         .modal.registro-modal .modal-header {
@@ -152,7 +162,7 @@ $categorias = $stmt->fetchAll();
             display: flex;
             align-items: center;
             gap: 10px;
-            color: white;
+            color: #666;
             font-size: 18px;
         }
 
@@ -182,11 +192,13 @@ $categorias = $stmt->fetchAll();
         }
 
         .modal-body {
-            padding: 25px;
+             min-height: auto; 
+     padding: 10px 20px;
+     display: block;
         }
 
         .modal-footer {
-            padding: 20px 25px;
+            padding: 10px 25px;
             border-top: 1px solid #eaeaea;
             background: #f8f9fa;
             border-radius: 0 0 12px 12px;
@@ -530,12 +542,13 @@ $categorias = $stmt->fetchAll();
         }
         
         .btn-secondary {
-            background: #6c757d;
-            color: white;
+         background: #f8f9fa;
+         color: #333;
+         border: 1px solid #e0e0e0;
         }
         
         .btn-secondary:hover {
-            background: #5a6268;
+            background: #e9ecef;
         }
         
         /* botón de reportes gris */
@@ -891,6 +904,32 @@ $categorias = $stmt->fetchAll();
             border-radius: 4px;
             font-size: 12px;
         }
+
+/* AL FINAL DEL <style>, REEMPLAZA el CSS que agregaste con esto: */
+
+/* Asegurar que los modales secundarios estén por encima */
+#addCategoryModal,
+#addSupplierModalInv,
+#addSupplierModalProd {
+    z-index: 100200 !important;
+}
+
+#updateProductModal {
+    z-index: 100100;
+}
+
+#productDetailsModal {
+    z-index: 99999;
+}
+
+/* Asegurar que el modal de categoría se muestre correctamente */
+#addCategoryModal .modal {
+    max-width: 500px;
+    width: 90%;
+    margin: auto;
+
+}
+
     </style>
 </head>
 <body>
@@ -1043,6 +1082,16 @@ $categorias = $stmt->fetchAll();
                 <button class="btn btn-report" id="openReportsModalBtn">
                     <i class="fas fa-chart-bar"></i>
                     Reportes
+                </button>
+
+                <button class="btn btn-secondary" id="viewPaymentMethodsBtn" onclick="showPaymentMethodsModal()">
+                    <i class="fas fa-credit-card"></i>
+                    Métodos de Pago
+                </button>
+
+                <button class="btn btn-secondary" id="viewCategoriesBtn" onclick="showCategoriesModal()">
+                    <i class="fas fa-tags"></i>
+                    Categorías
                 </button>
             </div>
         </div>
@@ -1588,9 +1637,68 @@ $categorias = $stmt->fetchAll();
         </div>
     </div>
 
+    <!-- Modal: Nuevo Proveedor (para inventario) -->
+    <div class="modal-overlay registro-modal" id="addSupplierModalInv">
+        <div class="modal registro-modal">
+            <form id="addSupplierFormInv">
+                <div class="modal-header">
+                    <h3><i class="fas fa-truck-fast"></i> Nuevo Proveedor</h3>
+                    <button class="modal-close" id="closeAddSupplierModalInv" type="button">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="provRazonInv">Razón Social *</label>
+                        <input id="provRazonInv" name="razon_social" class="form-control" placeholder="Ej: Distribuidora XYZ C.A." />
+                        <div class="field-error" id="err_provRazonInv"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="provRifInv">RIF / Cédula *</label>
+                        <div style="display: flex; gap: 10px;">
+                            <select id="provRifTypeInv" class="form-control" style="width: 80px; flex-shrink: 0;">
+                                <option value="J">J</option>
+                                <option value="V">V</option>
+                            </select>
+                            <input id="provRifInv" name="rif" class="form-control" placeholder="123456789" style="flex: 1;" />
+                        </div>
+                        <small style="color: #666; font-size: 0.9em;">J para RIF (9 dígitos), V para Cédula (7-8 dígitos)</small>
+                        <div class="field-error" id="err_provRifInv"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="provContactoInv">Persona Contacto</label>
+                        <input id="provContactoInv" name="persona_contacto" class="form-control" placeholder="Ej: Juan Pérez" />
+                    </div>
+                    <div class="form-group">
+                        <label for="provTelefonoInv">Teléfono Principal</label>
+                        <input id="provTelefonoInv" name="telefono_principal" class="form-control" placeholder="Ej: 0414-1234567" />
+                        <div class="field-error" id="err_provTelefonoInv"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="provTelefonoAltInv">Teléfono Alternativo</label>
+                        <input id="provTelefonoAltInv" name="telefono_alternativo" class="form-control" placeholder="Ej: 0212-1234567" />
+                        <div class="field-error" id="err_provTelefonoAltInv"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="provEmailInv">Email</label>
+                        <input id="provEmailInv" name="email" type="email" class="form-control" placeholder="Ej: contacto@empresa.com" />
+                        <div class="field-error" id="err_provEmailInv"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="provDireccionInv">Dirección</label>
+                        <textarea id="provDireccionInv" name="direccion" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div id="addSupplierMsgInv" style="margin-top:8px; display:none; padding:10px; border-radius:6px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline" type="button" id="cancelAddSupplierInv">Cancelar</button>
+                    <button class="btn btn-primary" type="submit" id="saveAddSupplierInv">Guardar Proveedor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal: Detalles del Producto -->
     <div class="modal-overlay" id="productDetailsModal">
-        <div class="modal" style="max-width: 700px;">
+        <div class="modal" style="max-width: 800px;">
             <div class="modal-header">
                 <h3><i class="fas fa-info-circle"></i> Detalles del Producto</h3>
                 <button class="modal-close" id="closeDetailsModal" type="button">&times;</button>
@@ -1766,23 +1874,28 @@ $categorias = $stmt->fetchAll();
                 InvValidate.setValid(rifNumEl);
             }
             
-            // Validar RIF único en el sistema
-            if (ok && rifNumEl?.value?.trim()) {
-                try {
-                    const rifCompleto = rifType + '-' + rifNumEl.value.trim();
-                    const checkUrl = (window.APP_BASE || '') + '/api/check_rif.php?rif=' + encodeURIComponent(rifCompleto);
-                    const checkResp = await fetch(checkUrl);
-                    const checkData = await checkResp.json();
-                    
-                    if (!checkData.available) {
-                        InvValidate.setError(rifNumEl, 'Este RIF/Cédula ya está registrado');
-                        ok = false;
-                    }
-                } catch (error) {
-                    console.error('Error al verificar RIF:', error);
-                }
+        if (ok && rifNumEl?.value?.trim()) {
+    try {
+        const rifCompleto = rifType + '-' + rifNumEl.value.trim();
+        const checkUrl = (window.APP_BASE || '') + '/api/check_rif.php?rif=' + encodeURIComponent(rifCompleto);
+        const checkResp = await fetch(checkUrl);
+        
+        // Verificar primero si la respuesta es OK
+        if (!checkResp.ok) {
+            console.warn('check_rif.php no disponible, omitiendo validación');
+        } else {
+            const checkData = await checkResp.json();
+            // Solo mostrar error si checkData.available === false explícitamente
+            if (checkData.available === false) {
+                InvValidate.setError(rifNumEl, 'Este RIF/Cédula ya está registrado');
+                ok = false;
             }
-
+        }
+    } catch (error) {
+        console.error('Error al verificar RIF:', error);
+      
+    }
+}
             if (!InvValidate.telefono(telefonoEl, false)) ok = false;
             if (!InvValidate.telefono(telAltEl, false))   ok = false;
             if (!InvValidate.email(emailEl, false))        ok = false;
@@ -1816,25 +1929,72 @@ $categorias = $stmt->fetchAll();
                     } else {
                         addSupplierMsgEl.style.display='block'; addSupplierMsgEl.style.background='#f8d7da'; addSupplierMsgEl.style.color='#721c24'; addSupplierMsgEl.textContent = js.message || 'Error al guardar proveedor';
                     }
-                } else {
-                    const newId = js.id; const newName = js.razon_social || razon;
-                    // agregar al select del producto y a todos los selects dentro de proveedores-container
-                    try {
-                        const container = document.getElementById('proveedores-container');
-                        if (container) {
-                            const selects = container.querySelectorAll('select');
-                            selects.forEach(sel => {
-                                let exists = false;
-                                for (let i=0;i<sel.options.length;i++) { if (sel.options[i].value == newId) { exists=true; sel.selectedIndex = i; break; } }
-                                if (!exists) {
-                                    const opt = document.createElement('option');
-                                    opt.value = newId;
-                                    opt.text = newName + (js.rif ? ' ('+js.rif+')' : '');
-                                    sel.appendChild(opt);
-                                }
-                            });
-                        }
-                    } catch(e) { console.error('No se pudo agregar provider selects', e); }
+              } else {
+    const newId = js.id; 
+    const newName = js.razon_social || razon.value.trim();
+    const newRif = js.rif || (rifType + rifNumEl?.value?.trim());
+    
+    // 1. Agregar a window.PROVEEDORES para que esté disponible globalmente
+    if (window.PROVEEDORES) {
+        window.PROVEEDORES.push({
+            id: newId,
+            razon_social: newName,
+            rif: newRif
+        });
+    }
+    
+    // 2. Agregar al select del modal de creación de producto (proveedores-container)
+    try {
+        const container = document.getElementById('proveedores-container');
+        if (container) {
+            const selects = container.querySelectorAll('select');
+            selects.forEach(sel => {
+                let exists = false;
+                for (let i = 0; i < sel.options.length; i++) { 
+                    if (sel.options[i].value == newId) { 
+                        exists = true; 
+                        sel.selectedIndex = i; 
+                        break; 
+                    } 
+                }
+                if (!exists) {
+                    const opt = document.createElement('option');
+                    opt.value = newId;
+                    opt.text = newName + (newRif ? ' (' + newRif + ')' : '');
+                    sel.appendChild(opt);
+                }
+            });
+        }
+    } catch(e) { console.error('No se pudo agregar al contenedor de proveedores', e); }
+    
+    // 3. Agregar al select del modal de edición de producto (si existe)
+    try {
+        const updateSelect = document.getElementById('upd_proveedor');
+        if (updateSelect) {
+            let exists = false;
+            for (let i = 0; i < updateSelect.options.length; i++) {
+                if (updateSelect.options[i].value == newId) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                const opt = document.createElement('option');
+                opt.value = newId;
+                opt.text = newName + (newRif ? ' (' + newRif + ')' : '');
+                updateSelect.appendChild(opt);
+            }
+        }
+    } catch(e) { console.error('No se pudo agregar al select de edición', e); }
+
+    // 4. notificar a otras pestañas/páginas
+    try { 
+        localStorage.setItem('last_added_provider', JSON.stringify({ id: newId, razon_social: newName, rif: newRif })); 
+    } catch(e){ /* ignore */ }
+
+    hideAddSupplierModalProd();
+    Toast.success('Proveedor creado y agregado a la lista', '¡Proveedor agregado!');
+
 
                     // notificar a otras pestañas/páginas (compras) que hay nuevo proveedor
                     try { localStorage.setItem('last_added_provider', JSON.stringify({ id: newId, razon_social: newName, rif: js.rif || rif })); } catch(e){ /* ignore */ }
@@ -2443,7 +2603,9 @@ $categorias = $stmt->fetchAll();
                             codigo_interno: detalles.general.codigo_interno,
                             nombre: detalles.general.nombre,
                             descripcion: detalles.general.descripcion,
+                            categoria_id: detalles.general.categoria_id,
                             categoria_nombre: detalles.general.categoria_nombre,
+                            proveedor_id: detalles.general.proveedor_id,
                             proveedor_nombre: detalles.general.proveedor_nombre,
                             tipo_nombre: detalles.general.tipo_nombre,
                             stock_actual: detalles.general.stock_actual,
@@ -2579,44 +2741,43 @@ $categorias = $stmt->fetchAll();
                     <h5 style="color: #1F9166; border-bottom: 2px solid #1F9166; padding-bottom: 8px; margin-bottom: 15px;">
                         <i class="fas fa-info-circle"></i> INFORMACIÓN GENERAL
                     </h5>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <div style="color: #666; font-size: 13px; margin-bottom: 4px;">Descripción:</div>
-                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px; min-height: 60px;">
-                                ${product.descripcion || 'Sin descripción'}
-                            </div>
-                        </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; align-items: start;">
                         <div>
                             <div style="color: #666; font-size: 13px; margin-bottom: 4px;">Categoría:</div>
-                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px; ">
                                 ${product.categoria_nombre || 'Sin categoría'}
                             </div>
                         </div>
                         <div>
                             <div style="color: #666; font-size: 13px; margin-bottom: 4px;">Proveedor:</div>
-                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px; ">
                                 ${product.proveedor_nombre || 'No especificado'}
                             </div>
                         </div>
                         <div>
                             <div style="color: #666; font-size: 13px; margin-bottom: 4px;">Estado:</div>
-                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                            <div style="color: #333; font-size: 14px; background: #f8f9fa; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
                                 <span class="${product.estado ? 'status-active' : 'status-inactive'}">
                                     ${product.estado ? 'Activo' : 'Inactivo'}
                                 </span>
                             </div>
                         </div>
                     </div>
+                    <div style="margin-top: 18px;">
+                        <div style="color: #666; font-size: 13px; margin-bottom: 6px;">Descripción:</div>
+                        <div style="background: #f8f9fa; padding: 18px; border-radius: 10px; font-size: 14px; line-height: 1.7; color: #333;">
+                            ${product.descripcion || 'Sin descripción disponible'}
+                        </div>
+                    </div>
                 </div>
-            `;
-            
-            // 2. ESPECIFICACIONES
-            html += `
+                <br />
+                <!-- 2. ESPECIFICACIONES -->
                 <div class="detail-section">
                     <h5 style="color: #1F9166; border-bottom: 2px solid #1F9166; padding-bottom: 8px; margin-bottom: 15px;">
                         <i class="fas fa-cogs"></i> ESPECIFICACIONES
                     </h5>
                     <div class="specs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    
             `;
 
             if (especificaciones) {
@@ -2710,7 +2871,7 @@ $categorias = $stmt->fetchAll();
                 html += `<div style="color:#666; grid-column: 1/-1;">No hay especificaciones disponibles para este producto.</div>`;
             }
 
-            html += `</div></div>`;
+            html += `</div></div> <br />`;
             
             // 3. FECHAS
             html += `
@@ -2729,6 +2890,7 @@ $categorias = $stmt->fetchAll();
                         </div>
                     </div>
                 </div>
+                <br />
             `;
             
             // 4. IMÁGENES
@@ -2789,6 +2951,12 @@ $categorias = $stmt->fetchAll();
 
     // ── Modal de actualización de producto ────────────────────
     function openUpdateModal(product) {
+        console.log('🔧 Abriendo modal de edición para:', product);
+        console.log('  categoria_id:', product.categoria_id, 'tipo:', typeof product.categoria_id);
+        console.log('  proveedor_id:', product.proveedor_id, 'tipo:', typeof product.proveedor_id);
+        console.log('  CATEGORIAS disponibles:', window.CATEGORIAS?.length || 0);
+        console.log('  PROVEEDORES disponibles:', window.PROVEEDORES?.length || 0);
+        
         // Cerrar modal de detalles
         document.getElementById('productDetailsModal')?.classList.remove('active');
 
@@ -2859,7 +3027,7 @@ $categorias = $stmt->fetchAll();
         modal.innerHTML = `
         <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto;">
             <div class="modal-header" style="background:#1F9166;color:white;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;font-size:16px;"><i class="fas fa-pen" style="margin-right:8px;"></i>Actualizar Producto</h3>
+                <h3 style="margin:0;font-size:16px; color:white;"><i class="fas fa-pen" style="margin-right:8px;color:white"></i>Actualizar Producto</h3>
                 <button id="closeUpdateModal" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;">&times;</button>
             </div>
             <div style="padding:20px;">
@@ -2872,9 +3040,40 @@ $categorias = $stmt->fetchAll();
                         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Nombre <span style="color:#e74c3c;">*</span></label>
                         <input id="upd_nombre" value="${product.nombre||''}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
                     </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
                     <div>
-                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Descripción</label>
-                        <textarea id="upd_descripcion" rows="2" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;resize:vertical;">${product.descripcion||''}</textarea>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Categoría <span style="color:#e74c3c;">*</span></label>
+                        <div style="display:flex;gap:6px;align-items:stretch;">
+                            <select id="upd_categoria" class="form-control" style="flex:1;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                                <option value="">Seleccionar...</option>
+                                ${((window.CATEGORIAS || [])).map(cat => {
+                                    const catId = parseInt(cat.id);
+                                    const prodCatId = product.categoria_id ? parseInt(product.categoria_id) : null;
+                                    const isSelected = catId === prodCatId;
+                                    console.log(`Comparando categoría: cat.id=${cat.id} (${typeof cat.id}) vs product.categoria_id=${product.categoria_id} (${typeof product.categoria_id}) => ${isSelected}`);
+                                    return `<option value="${cat.id}" ${isSelected ? 'selected' : ''}>${cat.nombre}</option>`;
+                                }).join('')}
+                            </select>
+                            <button type="button" id="addCategoryBtnUpdate" style="background:#1F9166;color:white;border:none;border-radius:6px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;" title="Crear nueva categoría"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Proveedor</label>
+                        <div style="display:flex;gap:6px;align-items:stretch;">
+                            <select id="upd_proveedor" class="form-control" style="flex:1;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
+                                <option value="">Seleccionar...</option>
+                                ${((window.PROVEEDORES || [])).map(prov => {
+                                    const provId = parseInt(prov.id);
+                                    const prodProvId = product.proveedor_id ? parseInt(product.proveedor_id) : null;
+                                    const isSelected = provId === prodProvId;
+                                    console.log(`Comparando proveedor: prov.id=${prov.id} (${typeof prov.id}) vs product.proveedor_id=${product.proveedor_id} (${typeof product.proveedor_id}) => ${isSelected}`);
+                                    return `<option value="${prov.id}" ${isSelected ? 'selected' : ''}>${prov.razon_social}</option>`;
+                                }).join('')}
+                            </select>
+                            <button type="button" id="addSupplierBtnUpdate" style="background:#1F9166;color:white;border:none;border-radius:6px;padding:9px 14px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;" title="Crear nuevo proveedor"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                 </div>
 
@@ -2901,6 +3100,11 @@ $categorias = $stmt->fetchAll();
                         <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Stock Máximo</label>
                         <input id="upd_stock_maximo" type="number" min="0" value="${product.stock_maximo||0}" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;">
                     </div>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Descripción</label>
+                    <textarea id="upd_descripcion" rows="5" class="form-control" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;box-sizing:border-box;resize:vertical;min-height:140px;">${product.descripcion||''}</textarea>
                 </div>
 
                 ${especHtml ? `
@@ -2954,6 +3158,21 @@ $categorias = $stmt->fetchAll();
             inp?.addEventListener('blur', () => InvValidate.stockConsistency(saInp, smInp, sxInp));
         });
 
+        // ========== Botones para crear nueva categoría y proveedor ==========
+        // Botón para crear nueva categoría desde el modal de edición
+        document.getElementById('addCategoryBtnUpdate')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showAddCategoryModalFromUpdate('general');
+        });
+
+        // Botón para crear nuevo proveedor desde el modal de edición
+        document.getElementById('addSupplierBtnUpdate')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            showAddSupplierModalFromUpdate();
+        });
+
         // Cerrar
         document.getElementById('closeUpdateModal')?.addEventListener('click', () => modal.classList.remove('active'));
         document.getElementById('cancelUpdateBtn')?.addEventListener('click', async () => {
@@ -2969,7 +3188,14 @@ $categorias = $stmt->fetchAll();
 
             // Validar
             let ok = true;
+            const categoriaSel = document.getElementById('upd_categoria');
+            const proveedorSel = document.getElementById('upd_proveedor');
+
             if (!InvValidate.required(document.getElementById('upd_nombre'), 'El nombre')) ok = false;
+            if (!categoriaSel || !categoriaSel.value) {
+                showFieldError('upd_categoria', 'La categoría es obligatoria.');
+                ok = false;
+            }
             if (!InvValidate.positiveNumber(pcInp, 'El precio de compra')) ok = false;
             if (!InvValidate.precioVenta(pcInp, pvInp)) ok = false;
             if (saInp && smInp && sxInp && !InvValidate.stockConsistency(saInp, smInp, sxInp)) ok = false;
@@ -3014,19 +3240,23 @@ $categorias = $stmt->fetchAll();
 
             try {
                 const tasa = window.TASA_CAMBIO || 35.50;
+                const categoriaId = categoriaSel?.value ? parseInt(categoriaSel.value, 10) : null;
+                const proveedorId = proveedorSel?.value ? parseInt(proveedorSel.value, 10) : null;
                 const payload = {
-                    id:            product.id,
-                    nombre:        document.getElementById('upd_nombre').value.trim(),
-                    descripcion:   document.getElementById('upd_descripcion')?.value.trim() || '',
-                    precio_compra: parseFloat(pcInp?.value || 0),
+                    id:              product.id,
+                    nombre:          document.getElementById('upd_nombre').value.trim(),
+                    descripcion:     document.getElementById('upd_descripcion')?.value.trim() || '',
+                    categoria_id:    categoriaId,
+                    proveedor_id:    proveedorId,
+                    precio_compra:   parseFloat(pcInp?.value || 0),
                     precio_compra_usd: parseFloat(pcInp?.value || 0),
                     precio_compra_bs: (parseFloat(pcInp?.value || 0) * tasa).toFixed(2),
-                    precio_venta:  parseFloat(pvInp?.value || 0),
+                    precio_venta:    parseFloat(pvInp?.value || 0),
                     precio_venta_usd: parseFloat(pvInp?.value || 0),
                     precio_venta_bs: (parseFloat(pvInp?.value || 0) * tasa).toFixed(2),
-                    stock_actual:  parseInt(saInp?.value || 0),
-                    stock_minimo:  parseInt(smInp?.value || 0),
-                    stock_maximo:  parseInt(sxInp?.value || 0),
+                    stock_actual:    parseInt(saInp?.value || 0),
+                    stock_minimo:    parseInt(smInp?.value || 0),
+                    stock_maximo:    parseInt(sxInp?.value || 0),
                 };
                 if (updEsp) payload.especificaciones = JSON.stringify(updEsp);
 
@@ -3497,7 +3727,7 @@ $categorias = $stmt->fetchAll();
         if (selectedType === 'vehiculo') {
             // Validar campos específicos de vehículo
             const requiredFields = ['vehiculoMarca','vehiculoModelo','vehiculoAnio','vehiculoCilindrada','vehiculoColor'];
-            required.forEach(id => {
+            requiredFields.forEach(id => {
                 const el = document.getElementById(id);
                 if (el && !el.value.trim()) { 
                     showFieldError(id, 'Campo requerido'); 
@@ -3896,6 +4126,79 @@ $categorias = $stmt->fetchAll();
             btnSubmitEl.innerHTML = '<i class="fas fa-save"></i> Guardar Producto';
         }
     }
+
+    // =================== MANEJO DE MODALES DESDE EDICIÓN DE PRODUCTO ===================
+
+    // Función para abrir modal de crear categoría desde el modal de edición de producto
+    function showAddCategoryModalFromUpdate(source = 'update') {
+        const modal = document.getElementById('addCategoryModal');
+        const form = document.getElementById('addCategoryForm');
+        const targetSelectField = document.getElementById('catTargetSelect');
+        
+        if (!modal || !form) return;
+        
+        // Limpiar formulario
+        form.reset();
+        showCategoryMessage('', '');
+        const msgDiv = document.getElementById('addCategoryMsg');
+        if (msgDiv) {
+            msgDiv.style.display = 'none';
+        }
+        
+        // Guardar que viene desde el modal de edición
+        if (targetSelectField) {
+            targetSelectField.value = 'upd_categoria';  // Select donde guardar la nueva categoría
+        }
+        
+        // Mostrar modal
+        modal.classList.add('active');
+        
+        // Enfocar el campo de nombre
+        setTimeout(() => {
+            const nombreInput = document.getElementById('catNombre');
+            if (nombreInput) nombreInput.focus();
+        }, 100);
+    }
+
+// Función para abrir modal de crear proveedor desde el modal de edición de producto
+function showAddSupplierModalFromUpdate() {
+    // CORREGIDO: usar addSupplierModalProd en lugar de addSupplierModal
+    const modal = document.getElementById('addSupplierModalProd');
+    const form = document.getElementById('addSupplierFormProd');
+    
+    if (!modal || !form) {
+        console.error('Modal de proveedor no encontrado');
+        return;
+    }
+    
+    // Limpiar formulario
+    form.reset();
+    
+    // Limpiar mensajes
+    const msgDiv = document.getElementById('addSupplierMsgProd');
+    if (msgDiv) {
+        msgDiv.style.display = 'none';
+        msgDiv.textContent = '';
+    }
+    
+    // Limpiar errores
+    document.querySelectorAll('#addSupplierFormProd .field-error').forEach(el => {
+        el.style.display = 'none';
+        el.textContent = '';
+    });
+    
+    // Guardar que viene desde el modal de edición
+    window._supplierModalSource = 'updateProduct';
+    
+    // Mostrar modal
+    modal.classList.add('active');
+    
+    // Enfocar el campo de razón social
+    setTimeout(() => {
+        const razonInput = document.getElementById('provRazonProd');
+        if (razonInput) razonInput.focus();
+    }, 100);
+}
 
     // =================== MANEJO DE IMÁGENES ===================
 
@@ -4317,18 +4620,39 @@ $categorias = $stmt->fetchAll();
                         
                         // Recargar categorías después de un breve retraso
                         setTimeout(async () => {
-                            // Recargar inventario para actualizar categorías
-                            await fetchInventory();
+                            try {
+                                // Recargar inventario para actualizar categorías
+                                await fetchInventory();
+                            } catch (err) {
+                                console.error('Error al recargar inventario:', err);
+                            }
                             
                             // Cerrar modal después de éxito
                             setTimeout(() => {
                                 addCategoryModal.classList.remove('active');
                                 
-                                // Seleccionar la nueva categoría en el select correspondiente
+                                // Actualizar el select del modal de edición si existe
                                 const targetSelectId = document.getElementById('catTargetSelect')?.value;
-                                if (targetSelectId && result.id) {
+                                if (targetSelectId && result.id && result.nombre) {
                                     const selectElement = document.getElementById(targetSelectId);
                                     if (selectElement) {
+                                        // Agregar la nueva categoría a window.CATEGORIAS si no existe
+                                        const catExists = (window.CATEGORIAS || []).some(c => c.id == result.id);
+                                        if (!catExists && window.CATEGORIAS) {
+                                            window.CATEGORIAS.push({
+                                                id: result.id,
+                                                nombre: result.nombre
+                                            });
+                                        }
+                                        
+                                        // Reconstruir el select con las categorías actualizadas
+                                        selectElement.innerHTML = '<option value="">Seleccionar...</option>';
+                                        (window.CATEGORIAS || []).forEach(cat => {
+                                            const option = document.createElement('option');
+                                            option.value = cat.id;
+                                            option.textContent = cat.nombre;
+                                            selectElement.appendChild(option);
+                                        });
                                         selectElement.value = result.id;
                                     }
                                 }
@@ -4524,5 +4848,526 @@ $categorias = $stmt->fetchAll();
             </div>
         </div>
     </div>
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL: GESTIÓN DE MÉTODOS DE PAGO
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay registro-modal" id="paymentMethodsModal" style="display:none;">
+    <div class="modal registro-modal" style="width:750px;max-width:98%;max-height:90vh;">
+        <div class="modal-header">
+            <h2><i class="fas fa-credit-card"></i> Gestión de Métodos de Pago</h2>
+            <button type="button" class="modal-close" onclick="closePaymentMethodsModal()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Filtros -->
+            <div style="background:#f8f9fa;padding:14px;border-radius:8px;margin-bottom:18px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <div style="flex:1;min-width:180px;">
+                        <input type="text" id="pmSearchInput" class="form-control" placeholder="Buscar por nombre...">
+                    </div>
+                    <div style="min-width:130px;">
+                        <select id="pmStatusFilter" class="form-control">
+                            <option value="">Todos</option>
+                            <option value="true">Activos</option>
+                            <option value="false">Inactivos</option>
+                        </select>
+                    </div>
+                    <div style="min-width:130px;">
+                        <select id="pmMonedaFilter" class="form-control">
+                            <option value="">Todas las monedas</option>
+                            <option value="BS">Bs</option>
+                            <option value="USD">USD</option>
+                            <option value="AMBOS">Ambos</option>
+                        </select>
+                    </div>
+                    <div style="min-width:140px;">
+                        <input type="date" id="pmDateFrom" class="form-control" title="Desde">
+                    </div>
+                    <div style="min-width:140px;">
+                        <input type="date" id="pmDateTo" class="form-control" title="Hasta">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div style="max-height:430px;overflow-y:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead style="position:sticky;top:0;background:#f8f9fa;">
+                        <tr style="border-bottom:2px solid #dee2e6;">
+                            <th style="padding:11px;text-align:left;font-weight:600;">Nombre</th>
+                            <th style="padding:11px;text-align:left;font-weight:600;">Descripción</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;">Moneda</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;">Creado</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;">Estado</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;min-width:120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pmTableBody">
+                        <tr><td colspan="6" style="padding:28px;text-align:center;color:#666;">
+                            <i class="fas fa-spinner fa-spin"></i> Cargando...
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" onclick="closePaymentMethodsModal()">
+                <i class="fas fa-times"></i> Cerrar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="showAddPaymentMethodForm()">
+                <i class="fas fa-plus"></i> Nuevo Método
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Sub-modal: Agregar / Editar Método de Pago -->
+<div class="modal-overlay registro-modal" id="pmFormModal" style="display:none;z-index:31000;">
+    <div class="modal registro-modal" style="width:460px;max-width:96%;">
+        <div class="modal-header">
+            <h2 id="pmFormTitle"><i class="fas fa-credit-card"></i> Nuevo Método de Pago</h2>
+            <button type="button" class="modal-close" onclick="closePmFormModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:24px;display:block;">
+            <input type="hidden" id="pmFormId">
+            <div class="form-group">
+                <label>Nombre <span style="color:#e74c3c;">*</span></label>
+                <input type="text" id="pmFormNombre" class="form-control" placeholder="Ej: Pago Móvil, Efectivo...">
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="pmFormDescripcion" class="form-control" rows="3" placeholder="Descripción opcional"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Moneda aceptada <span style="color:#e74c3c;">*</span></label>
+                <select id="pmFormMoneda" class="form-control">
+                    <option value="AMBOS">Ambas (Bs y USD)</option>
+                    <option value="BS">Solo Bolívares (Bs)</option>
+                    <option value="USD">Solo Dólares (USD)</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-cancel" onclick="closePmFormModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="savePmForm()">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL: GESTIÓN DE CATEGORÍAS
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay registro-modal" id="categoriesModal" style="display:none;">
+    <div class="modal registro-modal" style="width:750px;max-width:98%;max-height:90vh;">
+        <div class="modal-header">
+            <h2><i class="fas fa-tags"></i> Gestión de Categorías</h2>
+            <button type="button" class="modal-close" onclick="closeCategoriesModal()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Filtros -->
+            <div style="background:#f8f9fa;padding:14px;border-radius:8px;margin-bottom:18px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                    <div style="flex:1;min-width:200px;">
+                        <input type="text" id="catSearchInput" class="form-control" placeholder="Buscar categoría...">
+                    </div>
+                    <div style="min-width:130px;">
+                        <select id="catStatusFilter" class="form-control">
+                            <option value="">Todos</option>
+                            <option value="true">Activas</option>
+                            <option value="false">Inactivas</option>
+                        </select>
+                    </div>
+                    <div style="min-width:140px;">
+                        <input type="date" id="catDateFrom" class="form-control" title="Desde">
+                    </div>
+                    <div style="min-width:140px;">
+                        <input type="date" id="catDateTo" class="form-control" title="Hasta">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <div style="max-height:430px;overflow-y:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:14px;">
+                    <thead style="position:sticky;top:0;background:#f8f9fa;">
+                        <tr style="border-bottom:2px solid #dee2e6;">
+                            <th style="padding:11px;text-align:left;font-weight:600;">Nombre</th>
+                            <th style="padding:11px;text-align:left;font-weight:600;">Descripción</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;">Productos</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;">Creado</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;">Estado</th>
+                            <th style="padding:11px;text-align:center;font-weight:600;min-width:120px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catTableBody">
+                        <tr><td colspan="6" style="padding:28px;text-align:center;color:#666;">
+                            <i class="fas fa-spinner fa-spin"></i> Cargando...
+                        </td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" onclick="closeCategoriesModal()">
+                <i class="fas fa-times"></i> Cerrar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="showAddCategoryForm()">
+                <i class="fas fa-plus"></i> Nueva Categoría
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Sub-modal: Agregar / Editar Categoría -->
+<div class="modal-overlay registro-modal" id="catFormModal" style="display:none;z-index:31000;">
+    <div class="modal registro-modal" style="width:460px;max-width:96%;">
+        <div class="modal-header">
+            <h2 id="catFormTitle"><i class="fas fa-tag"></i> Nueva Categoría</h2>
+            <button type="button" class="modal-close" onclick="closeCatFormModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:24px;display:block;">
+            <input type="hidden" id="catFormId">
+            <div class="form-group">
+                <label>Nombre <span style="color:#e74c3c;">*</span></label>
+                <input type="text" id="catFormNombre" class="form-control" placeholder="Ej: Motos, Repuestos...">
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="catFormDescripcion" class="form-control" rows="3" placeholder="Descripción opcional"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:flex-end;gap:10px;">
+            <button type="button" class="btn btn-cancel" onclick="closeCatFormModal()">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="saveCatForm()">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  HELPER GENÉRICO
+// ════════════════════════════════════════════════════════════════
+function openGestionModal(id) {
+    const m = document.getElementById(id);
+    m.style.display = 'block';
+    setTimeout(() => m.classList.add('active'), 10);
+}
+function closeGestionModal(id) {
+    const m = document.getElementById(id);
+    m.classList.remove('active');
+    setTimeout(() => m.style.display = 'none', 280);
+}
+// Cerrar al click fuera
+['paymentMethodsModal','pmFormModal','categoriesModal','catFormModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', e => { if (e.target === el) closeGestionModal(id); });
+});
+
+// ════════════════════════════════════════════════════════════════
+//  MÉTODOS DE PAGO
+// ════════════════════════════════════════════════════════════════
+function showPaymentMethodsModal() {
+    openGestionModal('paymentMethodsModal');
+    loadPaymentMethods();
+}
+function closePaymentMethodsModal() { closeGestionModal('paymentMethodsModal'); }
+
+function _pmFilters() {
+    return {
+        search:  document.getElementById('pmSearchInput').value,
+        status:  document.getElementById('pmStatusFilter').value,
+        moneda:  document.getElementById('pmMonedaFilter').value,
+        dateFrom:document.getElementById('pmDateFrom').value,
+        dateTo:  document.getElementById('pmDateTo').value,
+    };
+}
+
+async function loadPaymentMethods() {
+    const f = _pmFilters();
+    const tbody = document.getElementById('pmTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+
+    let url = APP_BASE + '/api/get_metodos_pago_admin.php?';
+    if (f.search)   url += 'search='   + encodeURIComponent(f.search)   + '&';
+    if (f.status)   url += 'estado='   + f.status   + '&';
+    if (f.moneda)   url += 'moneda='   + f.moneda   + '&';
+    if (f.dateFrom) url += 'fecha_from='+ f.dateFrom + '&';
+    if (f.dateTo)   url += 'fecha_to='  + f.dateTo   + '&';
+
+    try {
+        const res  = await fetch(url);
+        const data = await res.json();
+
+        if (data.ok && data.metodos && data.metodos.length > 0) {
+            tbody.innerHTML = data.metodos.map(m => `
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:11px;font-weight:600;">${m.nombre}</td>
+                    <td style="padding:11px;color:#555;">${m.descripcion || '<span style="color:#aaa;">—</span>'}</td>
+                    <td style="padding:11px;text-align:center;">
+                        <span style="padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;
+                            background:${m.moneda==='USD'?'#d4edda':m.moneda==='BS'?'#cce5ff':'#e2e3e5'};
+                            color:${m.moneda==='USD'?'#155724':m.moneda==='BS'?'#004085':'#383d41'};">
+                            ${m.moneda || 'AMBOS'}
+                        </span>
+                    </td>
+                    <td style="padding:11px;text-align:center;font-size:12px;color:#666;">
+                        ${m.created_at ? new Date(m.created_at).toLocaleDateString('es-VE') : '—'}
+                    </td>
+                    <td style="padding:11px;text-align:center;">
+                        <span style="padding:4px 10px;border-radius:12px;font-size:12px;
+                            background:${m.estado?'#d4edda':'#f8d7da'};
+                            color:${m.estado?'#155724':'#721c24'};">
+                            ${m.estado ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </td>
+                    <td style="padding:11px;text-align:center;white-space:nowrap;">
+                        <div style="display:inline-flex;gap:7px;justify-content:center;">
+                            <button onclick="editPaymentMethod(${m.id},'${escHtml(m.nombre)}','${escHtml(m.descripcion||'')}','${m.moneda||'AMBOS'}')"
+                                    style="background:#3498db;color:white;border:none;padding:6px 11px;border-radius:4px;cursor:pointer;" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="togglePaymentMethod(${m.id},${!m.estado})"
+                                    style="background:${m.estado?'#dc3545':'#28a745'};color:white;border:none;padding:6px 11px;border-radius:4px;cursor:pointer;"
+                                    title="${m.estado?'Inhabilitar':'Activar'}">
+                                <i class="fas fa-${m.estado?'ban':'check'}"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:#666;">No se encontraron métodos de pago</td></tr>';
+        }
+    } catch(e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:#dc3545;">Error al cargar métodos de pago</td></tr>';
+    }
+}
+
+['pmSearchInput','pmStatusFilter','pmMonedaFilter','pmDateFrom','pmDateTo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', loadPaymentMethods), el.addEventListener('change', loadPaymentMethods);
+});
+
+async function togglePaymentMethod(id, newStatus) {
+    const action = newStatus ? 'activar' : 'inhabilitar';
+    if (!await showConfirm({ title: `${newStatus?'Activar':'Inhabilitar'} método`, message: `¿Confirmas ${action} este método de pago?`, confirmText: 'Sí', cancelText: 'No', type: newStatus?'info':'warning' })) return;
+    try {
+        const fd = new FormData();
+        fd.append('id', id);
+        fd.append('estado', newStatus ? '1' : '0');
+        const res  = await fetch(APP_BASE + '/api/toggle_metodo_pago.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.ok) { Toast.success(data.message || 'Estado actualizado'); loadPaymentMethods(); }
+        else Toast.error(data.error || 'Error al actualizar');
+    } catch(e) { Toast.error('Error de conexión'); }
+}
+
+function showAddPaymentMethodForm() {
+    document.getElementById('pmFormId').value       = '';
+    document.getElementById('pmFormNombre').value   = '';
+    document.getElementById('pmFormDescripcion').value = '';
+    document.getElementById('pmFormMoneda').value   = 'AMBOS';
+    document.getElementById('pmFormTitle').innerHTML = '<i class="fas fa-credit-card"></i> Nuevo Método de Pago';
+    openGestionModal('pmFormModal');
+}
+
+function editPaymentMethod(id, nombre, descripcion, moneda) {
+    document.getElementById('pmFormId').value          = id;
+    document.getElementById('pmFormNombre').value      = nombre;
+    document.getElementById('pmFormDescripcion').value = descripcion;
+    document.getElementById('pmFormMoneda').value      = moneda;
+    document.getElementById('pmFormTitle').innerHTML   = '<i class="fas fa-edit"></i> Editar Método de Pago';
+    openGestionModal('pmFormModal');
+}
+
+function closePmFormModal() { closeGestionModal('pmFormModal'); }
+
+async function savePmForm() {
+    const id          = document.getElementById('pmFormId').value;
+    const nombre      = document.getElementById('pmFormNombre').value.trim();
+    const descripcion = document.getElementById('pmFormDescripcion').value.trim();
+    const moneda      = document.getElementById('pmFormMoneda').value;
+
+    if (!nombre) { Toast.error('El nombre es obligatorio'); return; }
+
+    try {
+        const fd = new FormData();
+        if (id) fd.append('id', id);
+        fd.append('nombre', nombre);
+        fd.append('descripcion', descripcion);
+        fd.append('moneda', moneda);
+
+        const endpoint = id
+            ? APP_BASE + '/api/update_metodo_pago.php'
+            : APP_BASE + '/api/create_metodo_pago.php';
+
+        const res  = await fetch(endpoint, { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.ok) {
+            Toast.success(data.message || (id ? 'Método actualizado' : 'Método creado'));
+            closePmFormModal();
+            loadPaymentMethods();
+        } else {
+            Toast.error(data.error || 'Error al guardar');
+        }
+    } catch(e) { Toast.error('Error de conexión'); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CATEGORÍAS
+// ════════════════════════════════════════════════════════════════
+function showCategoriesModal() {
+    openGestionModal('categoriesModal');
+    loadCategories();
+}
+function closeCategoriesModal() { closeGestionModal('categoriesModal'); }
+
+function _catFilters() {
+    return {
+        search:  document.getElementById('catSearchInput').value,
+        status:  document.getElementById('catStatusFilter').value,
+        dateFrom:document.getElementById('catDateFrom').value,
+        dateTo:  document.getElementById('catDateTo').value,
+    };
+}
+
+async function loadCategories() {
+    const f = _catFilters();
+    const tbody = document.getElementById('catTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+
+    let url = APP_BASE + '/api/get_categorias_admin.php?';
+    if (f.search)   url += 'search='   + encodeURIComponent(f.search)   + '&';
+    if (f.status)   url += 'estado='   + f.status   + '&';
+    if (f.dateFrom) url += 'fecha_from='+ f.dateFrom + '&';
+    if (f.dateTo)   url += 'fecha_to='  + f.dateTo   + '&';
+
+    try {
+        const res  = await fetch(url);
+        const data = await res.json();
+
+        if (data.ok && data.categorias && data.categorias.length > 0) {
+            tbody.innerHTML = data.categorias.map(c => `
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:11px;font-weight:600;">${c.nombre}</td>
+                    <td style="padding:11px;color:#555;">${c.descripcion || '<span style="color:#aaa;">—</span>'}</td>
+                    <td style="padding:11px;text-align:center;">
+                        <span style="padding:3px 10px;border-radius:12px;font-size:12px;background:#e8f4fd;color:#1a5276;font-weight:600;">
+                            ${c.total_productos || 0}
+                        </span>
+                    </td>
+                    <td style="padding:11px;text-align:center;font-size:12px;color:#666;">
+                        ${c.created_at ? new Date(c.created_at).toLocaleDateString('es-VE') : '—'}
+                    </td>
+                    <td style="padding:11px;text-align:center;">
+                        <span style="padding:4px 10px;border-radius:12px;font-size:12px;
+                            background:${c.estado?'#d4edda':'#f8d7da'};
+                            color:${c.estado?'#155724':'#721c24'};">
+                            ${c.estado ? 'Activa' : 'Inactiva'}
+                        </span>
+                    </td>
+                    <td style="padding:11px;text-align:center;white-space:nowrap;">
+                        <div style="display:inline-flex;gap:7px;justify-content:center;">
+                            <button onclick="editCategory(${c.id},'${escHtml(c.nombre)}','${escHtml(c.descripcion||'')}')"
+                                    style="background:#3498db;color:white;border:none;padding:6px 11px;border-radius:4px;cursor:pointer;" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="toggleCategory(${c.id},${!c.estado})"
+                                    style="background:${c.estado?'#dc3545':'#28a745'};color:white;border:none;padding:6px 11px;border-radius:4px;cursor:pointer;"
+                                    title="${c.estado?'Inhabilitar':'Activar'}">
+                                <i class="fas fa-${c.estado?'ban':'check'}"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:#666;">No se encontraron categorías</td></tr>';
+        }
+    } catch(e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="6" style="padding:28px;text-align:center;color:#dc3545;">Error al cargar categorías</td></tr>';
+    }
+}
+
+['catSearchInput','catStatusFilter','catDateFrom','catDateTo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', loadCategories), el.addEventListener('change', loadCategories);
+});
+
+async function toggleCategory(id, newStatus) {
+    if (!await showConfirm({ title: `${newStatus?'Activar':'Inhabilitar'} categoría`, message: `¿Confirmas ${newStatus?'activar':'inhabilitar'} esta categoría?`, confirmText: 'Sí', cancelText: 'No', type: newStatus?'info':'warning' })) return;
+    try {
+        const fd = new FormData();
+        fd.append('id', id);
+        fd.append('estado', newStatus ? '1' : '0');
+        const res  = await fetch(APP_BASE + '/api/toggle_categoria.php', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.ok) { Toast.success(data.message || 'Estado actualizado'); loadCategories(); }
+        else Toast.error(data.error || 'Error al actualizar');
+    } catch(e) { Toast.error('Error de conexión'); }
+}
+
+function showAddCategoryForm() {
+    document.getElementById('catFormId').value          = '';
+    document.getElementById('catFormNombre').value      = '';
+    document.getElementById('catFormDescripcion').value = '';
+    document.getElementById('catFormTitle').innerHTML   = '<i class="fas fa-tag"></i> Nueva Categoría';
+    openGestionModal('catFormModal');
+}
+
+function editCategory(id, nombre, descripcion) {
+    document.getElementById('catFormId').value          = id;
+    document.getElementById('catFormNombre').value      = nombre;
+    document.getElementById('catFormDescripcion').value = descripcion;
+    document.getElementById('catFormTitle').innerHTML   = '<i class="fas fa-edit"></i> Editar Categoría';
+    openGestionModal('catFormModal');
+}
+
+function closeCatFormModal() { closeGestionModal('catFormModal'); }
+
+async function saveCatForm() {
+    const id          = document.getElementById('catFormId').value;
+    const nombre      = document.getElementById('catFormNombre').value.trim();
+    const descripcion = document.getElementById('catFormDescripcion').value.trim();
+
+    if (!nombre) { Toast.error('El nombre es obligatorio'); return; }
+
+    try {
+        const fd = new FormData();
+        if (id) fd.append('id', id);
+        fd.append('nombre', nombre);
+        fd.append('descripcion', descripcion);
+
+        const endpoint = id
+            ? APP_BASE + '/api/update_categoria.php'
+            : APP_BASE + '/api/create_categoria.php';
+
+        const res  = await fetch(endpoint, { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.ok) {
+            Toast.success(data.message || (id ? 'Categoría actualizada' : 'Categoría creada'));
+            closeCatFormModal();
+            loadCategories();
+        } else {
+            Toast.error(data.error || 'Error al guardar');
+        }
+    } catch(e) { Toast.error('Error de conexión'); }
+}
+
+// Utilidad: escapar HTML para atributos inline
+function escHtml(str) {
+    return String(str).replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+}
+</script>
+
 </body>
 </html>

@@ -1,0 +1,116 @@
+<!-- Modal de Actualización de Producto -->
+<div id="updateProductModal" class="modal-overlay" style="display:none;z-index:99998;">
+    <div class="modal" style="max-width:600px;">
+        <div class="modal-header" style="background:#1F9166;color:white;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:16px;"><i class="fas fa-pen" style="margin-right:8px;"></i>Actualizar Producto</h3>
+            <button onclick="document.getElementById('updateProductModal').style.display='none'" style="background:none;border:none;color:white;font-size:22px;cursor:pointer;">&times;</button>
+        </div>
+        <div style="padding:20px;max-height:70vh;overflow-y:auto;">
+            <div id="upd_error" style="display:none;margin-bottom:12px;background:#fdeaea;color:#e74c3c;padding:10px;border-radius:6px;font-size:13px;"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                <div>
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Categoría <span style="color:#e74c3c;">*</span></label>
+                    <select id="upd_categoria" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;position:relative;z-index:10;">
+                        <option value="">Seleccionar...</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Proveedor</label>
+                    <select id="upd_proveedor" class="form-control" style="width:100%;padding:9px;border:1px solid #ddd;border-radius:6px;font-size:13px;box-sizing:border-box;position:relative;z-index:10;">
+                        <option value="">Seleccionar...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="document.getElementById('updateProductModal').style.display='none'" style="padding:9px 20px;background:#f0f0f0;color:#555;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+            <button id="saveUpdateBtn" style="padding:9px 20px;background:#1F9166;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">
+                <i class="fas fa-save"></i> Guardar cambios
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Poblar selects en modal de edición
+function poblarSelectsEdicion(product) {
+    const catSel = document.getElementById('upd_categoria');
+    const provSel = document.getElementById('upd_proveedor');
+    
+    if (catSel && typeof CATEGORIAS !== 'undefined') {
+        CATEGORIAS.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.id;
+            opt.textContent = cat.nombre;
+            if (product.categoria_id == cat.id) opt.selected = true;
+            catSel.appendChild(opt);
+        });
+    }
+    
+    if (provSel && typeof PROVEEDORES !== 'undefined') {
+        PROVEEDORES.forEach(prov => {
+            const opt = document.createElement('option');
+            opt.value = prov.id;
+            opt.textContent = prov.razon_social;
+            if (product.proveedor_id == prov.id) opt.selected = true;
+            provSel.appendChild(opt);
+        });
+    }
+}
+
+// Botón guardar en modal de edición
+document.getElementById('saveUpdateBtn')?.addEventListener('click', async function() {
+    const modal = document.getElementById('updateProductModal');
+    const productId = modal?.dataset?.productId;
+    if (!productId) {
+        if (typeof Toast !== 'undefined') Toast.error('ID de producto no encontrado', 'Error');
+        return;
+    }
+    
+    const payload = {
+        id: productId,
+        categoria_id: document.getElementById('upd_categoria')?.value || null,
+        proveedor_id: document.getElementById('upd_proveedor')?.value || null
+    };
+    
+    try {
+        const response = await fetch((window.APP_BASE || '') + '/api/update_product.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (data.ok) {
+            modal.style.display = 'none';
+            if (typeof Toast !== 'undefined') {
+                Toast.edited('Producto actualizado correctamente', '¡Éxito!');
+            }
+            if (typeof fetchInventory === 'function') fetchInventory();
+        } else {
+            throw new Error(data.error || 'Error al actualizar');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        if (typeof Toast !== 'undefined') {
+            Toast.error(error.message, 'Error');
+        }
+    }
+});
+
+// Modificar openUpdateModal para usar el nuevo modal
+const origOpenUpdateModal = window.openUpdateModal;
+window.openUpdateModal = function(product) {
+    if (origOpenUpdateModal) origOpenUpdateModal(product);
+    
+    const modal = document.getElementById('updateProductModal');
+    if (modal) {
+        modal.style.display = 'block';
+        modal.dataset.productId = product.id;
+        setTimeout(() => {
+            if (typeof poblarSelectsEdicion === 'function') {
+                poblarSelectsEdicion(product);
+            }
+        }, 100);
+    }
+};
+</script>

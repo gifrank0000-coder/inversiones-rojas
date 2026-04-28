@@ -1,11 +1,5 @@
 <?php
-// ============================================================
-// update_product.php  →  /api/update_product.php
-// Actualiza un producto existente: datos generales + especificaciones
-// POST JSON: id, nombre, descripcion, precio_compra, precio_venta,
-//            stock_actual, stock_minimo, stock_maximo, categoria_id,
-//            proveedor_id, especificaciones (JSON string)
-// ============================================================
+
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(0);
@@ -125,6 +119,28 @@ try {
     $conn->prepare("UPDATE productos SET " . implode(', ', $sets) . " WHERE id = ?")
          ->execute($params);
 
+    // ── Actualizar proveedor principal en producto_proveedor si cambia
+    if ($proveedor_id !== null) {
+        // Marcar todos los proveedores asociados como no principales
+        $stmt = $conn->prepare("UPDATE producto_proveedor SET es_principal = false WHERE producto_id = ?");
+        $stmt->execute([$id]);
+
+        // Intentar activar o actualizar el proveedor existente
+        $precioCompraParaProveedor = $precio_compra !== null ? $precio_compra : (float)$producto['precio_compra'];
+        $stmt = $conn->prepare(
+            "UPDATE producto_proveedor SET es_principal = true, activo = true, precio_compra = ? WHERE producto_id = ? AND proveedor_id = ?"
+        );
+        $stmt->execute([$precioCompraParaProveedor, $id, $proveedor_id]);
+
+        if ($stmt->rowCount() === 0) {
+            $stmt = $conn->prepare(
+                "INSERT INTO producto_proveedor (producto_id, proveedor_id, precio_compra, es_principal, activo, created_at, updated_at)
+                 VALUES (?, ?, ?, true, true, NOW(), NOW())"
+            );
+            $stmt->execute([$id, $proveedor_id, $precioCompraParaProveedor]);
+        }
+    }
+
     // ── Actualizar especificaciones según tipo ────────────────
     if ($especificaciones_raw) {
         $esp = is_string($especificaciones_raw)
@@ -193,6 +209,86 @@ try {
         }
     }
 
+    // ── Procesar imágenes adicionales si existen ─────────────────
+    $imagenes_subidas = [];
+    $file_processing_errors = [];
+    
+    if (!empty($_FILES['images']) && is_array($_FILES['images']['name'])) {
+        error_log('Procesando ' . count($_FILES['images']['name']) . ' imágenes adicionales para producto ' . $id);
+        
+        $upload_dir = dirname(__DIR__) . '/public/img/products/';
+        
+        if (!is_dir($upload_dir)) {
+            if (!mkdir($upload_dir, 0755, true)) {
+                $file_processing_errors[] = 'No se pudo crear directorio de destino';
+            }
+        }
+        
+        if (is_dir($upload_dir) && is_writable($upload_dir)) {
+            // Obtener el orden máximo actual para este producto
+            $stmt_max_orden = $conn->prepare("SELECT COALESCE(MAX(orden), 0) as max_orden FROM producto_imagenes WHERE producto_id = ?");
+            $stmt_max_orden->execute([$id]);
+            $max_orden = $stmt_max_orden->fetch(PDO::FETCH_ASSOC)['max_orden'];
+            
+            for ($i = 0; $i < count($_FILES['images']['name']); $i++) {
+                if ($_FILES['images']['error'][$i] !== UPLOAD_ERR_OK) continue;
+                
+                $tmp_name = $_FILES['images']['tmp_name'][$i];
+                $origName = $_FILES['images']['name'][$i];
+                
+                // Validar tipo de archivo
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime_type = finfo_file($finfo, $tmp_name);
+                finfo_close($finfo);
+                
+                $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                
+                if (!in_array($mime_type, $allowed_mimes)) {
+                    $file_processing_errors[] = "Tipo no permitido para $origName";
+                    continue;
+                }
+                
+                // Validar tamaño (5MB máximo)
+                if ($_FILES['images']['size'][$i] > 5 * 1024 * 1024) {
+                    $file_processing_errors[] = "Archivo $origName excede 5MB";
+                    continue;
+                }
+                
+                // Generar nombre único
+                $extension = pathinfo($origName, PATHINFO_EXTENSION);
+                $filename = "prod_{$id}_" . time() . "_{$i}." . $extension;
+                $filepath = $upload_dir . $filename;
+                
+                if (move_uploaded_file($tmp_name, $filepath)) {
+                    // Determinar si es principal (solo si no hay imágenes existentes)
+                    $stmt_count_imgs = $conn->prepare("SELECT COUNT(*) as total FROM producto_imagenes WHERE producto_id = ?");
+                    $stmt_count_imgs->execute([$id]);
+                    $total_imgs = $stmt_count_imgs->fetch(PDO::FETCH_ASSOC)['total'];
+                    
+                    $es_principal = ($total_imgs == 0 && $i === 0) ? 'true' : 'false';
+                    $orden = $max_orden + $i + 1;
+                    
+                    // Insertar en base de datos
+                    $sqlImg = "INSERT INTO producto_imagenes (
+                        producto_id, imagen_url, es_principal, orden, created_at
+                    ) VALUES (?, ?, ?::boolean, ?, NOW())";
+                    
+                    $stmtImg = $conn->prepare($sqlImg);
+                    $url = '/inversiones-rojas/public/img/products/' . $filename;
+                    
+                    $stmtImg->execute([$id, $url, $es_principal, $orden]);
+                    
+                    $imagenes_subidas[] = $url;
+                    error_log("Imagen adicional guardada: $filename");
+                } else {
+                    $file_processing_errors[] = "No se pudo guardar $origName";
+                }
+            }
+        } else {
+            $file_processing_errors[] = 'Directorio de destino no escribible';
+        }
+    }
+
     // ── Bitácora ──────────────────────────────────────────────
     try {
         $conn->prepare(
@@ -224,6 +320,8 @@ try {
         'success' => true,
         'message' => "Producto \"{$nombre}\" actualizado correctamente",
         'producto' => $updated,
+        'imagenes_subidas' => $imagenes_subidas,
+        'file_warnings' => $file_processing_errors
     ]);
 
 } catch (Exception $e) {

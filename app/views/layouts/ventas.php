@@ -3461,6 +3461,74 @@ function inhabilitarVenta(ventaId, codigoVenta, btn) {
     </div>
 </div>
 
+<!-- Modal: Formulario Cliente -->
+<div class="modal-overlay registro-modal" id="clientFormModal" style="display: none;">
+    <div class="modal registro-modal" style="width: 600px; max-width: 95%; max-height: 90vh;">
+        <div class="modal-header">
+            <h2 id="clientFormTitle"><i class="fas fa-user-plus"></i> Nuevo Cliente</h2>
+            <button type="button" class="modal-close" onclick="closeClientFormModal()">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <form id="clientForm">
+                <input type="hidden" id="clientFormId" name="id">
+                
+                <div class="form-row" style="align-items:flex-end; gap:10px;">
+                    <div class="form-group" style="flex:0 0 90px;">
+                        <label for="clientFormDocType">Tipo</label>
+                        <select id="clientFormDocType" class="form-control">
+                            <option value="">---</option>
+                            <option value="V">V</option>
+                            <option value="J">J</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <label for="clientFormCedula">Cédula/RIF *</label>
+                        <input type="text" id="clientFormCedula" name="cedula_rif" class="form-control" placeholder="12345678">
+                        <div class="form-hint" style="font-size:12px; color:#666;">
+                            J para RIF (9 dígitos), V para Cédula (7-8 dígitos)
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientFormNombre">Nombre Completo *</label>
+                    <input type="text" id="clientFormNombre" name="nombre_completo" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientFormTelefono">Teléfono *</label>
+                    <input type="text" id="clientFormTelefono" name="telefono" class="form-control" placeholder="Ej: 0412-1234567">
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientFormTelefonoAlt">Teléfono Alternativo</label>
+                    <input type="text" id="clientFormTelefonoAlt" name="telefono_alternativo" class="form-control" placeholder="Ej: 0424-7654321">
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientFormEmail">Email</label>
+                    <input type="email" id="clientFormEmail" name="email" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientFormDireccion">Dirección</label>
+                    <textarea id="clientFormDireccion" name="direccion" class="form-control" rows="3"></textarea>
+                </div>
+            </form>
+        </div>
+        
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" onclick="closeClientFormModal()">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="saveClientForm()">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
 function showClientsModal() {
     const modal = document.getElementById('clientsListModal');
@@ -3562,7 +3630,129 @@ document.getElementById('clientDateTo').addEventListener('change', function(e) {
 
 // Editar cliente
 function editClient(clientId) {
-    Toast.info('Función de edición en desarrollo', 'Editar Cliente');
+    fetch('/inversiones-rojas/api/get_clientes.php?id=' + clientId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.ok && data.clientes && data.clientes.length > 0) {
+                const client = data.clientes[0];
+                const cedulaRif = client.cedula_rif || '';
+                const [docType, cedulaNum] = cedulaRif.includes('-') ? cedulaRif.split('-') : ['', cedulaRif];
+                
+                document.getElementById('clientFormId').value = client.id;
+                document.getElementById('clientFormDocType').value = docType;
+                document.getElementById('clientFormCedula').value = cedulaNum;
+                document.getElementById('clientFormNombre').value = client.nombre_completo || '';
+                document.getElementById('clientFormTelefono').value = client.telefono_principal || '';
+                document.getElementById('clientFormTelefonoAlt').value = client.telefono_alternativo || '';
+                document.getElementById('clientFormEmail').value = client.email || '';
+                document.getElementById('clientFormDireccion').value = client.direccion || '';
+                document.getElementById('clientFormTitle').innerHTML = '<i class="fas fa-edit"></i> Editar Cliente';
+                showClientFormModal();
+            } else {
+                Toast.error('No se encontró el cliente');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Toast.error('Error al cargar cliente');
+        });
+}
+
+function showAddClientModal() {
+    document.getElementById('clientFormId').value = '';
+    document.getElementById('clientFormDocType').value = '';
+    document.getElementById('clientFormCedula').value = '';
+    document.getElementById('clientFormNombre').value = '';
+    document.getElementById('clientFormTelefono').value = '';
+    document.getElementById('clientFormTelefonoAlt').value = '';
+    document.getElementById('clientFormEmail').value = '';
+    document.getElementById('clientFormDireccion').value = '';
+    document.getElementById('clientFormTitle').innerHTML = '<i class="fas fa-user-plus"></i> Nuevo Cliente';
+    showClientFormModal();
+}
+
+function showClientFormModal() {
+    const modal = document.getElementById('clientFormModal');
+    modal.style.display = 'block';
+    setTimeout(() => modal.classList.add('active'), 10);
+}
+
+function closeClientFormModal() {
+    const modal = document.getElementById('clientFormModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
+}
+
+const clientFormModalEl = document.getElementById('clientFormModal');
+if (clientFormModalEl) {
+    clientFormModalEl.addEventListener('click', function(e) {
+        if (e.target === this) closeClientFormModal();
+    });
+}
+
+async function saveClientForm() {
+    const id = document.getElementById('clientFormId').value;
+    const docType = document.getElementById('clientFormDocType').value;
+    const cedulaInput = document.getElementById('clientFormCedula');
+    const nombreInput = document.getElementById('clientFormNombre');
+    const telefonoInput = document.getElementById('clientFormTelefono');
+    const emailInput = document.getElementById('clientFormEmail');
+    const direccionInput = document.getElementById('clientFormDireccion');
+
+    // Validar tipo de documento
+    if (!InvValidate.required(document.getElementById('clientFormDocType'), 'Tipo de documento')) return;
+
+    // Validar cédula/RIF
+    const cleanCedula = cedulaInput.value.trim().replace(/[^\d]/g, '');
+    cedulaInput.value = `${docType}-${cleanCedula}`;
+    if (!InvValidate.rif(cedulaInput, true)) {
+        cedulaInput.focus();
+        return;
+    }
+
+    let ok = true;
+    if (!InvValidate.required(nombreInput, 'Nombre completo')) ok = false;
+    if (!InvValidate.telefono(telefonoInput, true)) ok = false;
+    if (!InvValidate.telefono(document.getElementById('clientFormTelefonoAlt'), false)) ok = false;
+    if (!InvValidate.email(emailInput, false)) ok = false;
+
+    if (!ok) {
+        Toast.error('Por favor corrige los campos marcados', 'Datos incompletos');
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        if (id) formData.append('id', id);
+        formData.append('cedula_rif', cedulaInput.value.trim());
+        formData.append('nombre_completo', nombreInput.value.trim());
+        formData.append('telefono_principal', telefonoInput.value.trim());
+        formData.append('telefono_alternativo', document.getElementById('clientFormTelefonoAlt').value.trim());
+        formData.append('email', emailInput.value.trim());
+        formData.append('direccion', direccionInput.value.trim());
+
+        const response = await fetch('/inversiones-rojas/api/add_cliente.php', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.ok) {
+            Toast.success(data.message || 'Cliente guardado correctamente');
+            closeClientFormModal();
+            loadClientsList(
+                document.getElementById('clientSearchInput').value,
+                document.getElementById('clientStatusFilter').value,
+                document.getElementById('clientDateFrom').value,
+                document.getElementById('clientDateTo').value
+            );
+        } else {
+            Toast.error(data.error || 'Error al guardar cliente');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Toast.error('Error de conexión');
+    }
 }
 
 // Cambiar estado del cliente
