@@ -140,10 +140,12 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const tabId = this.getAttribute('data-tab');
             
-            // Actualizar URL sin recargar
+            // FIX: replaceState en lugar de pushState — los tabs NO deben crear
+            // entradas de historial. El usuario espera que "Atrás" lo lleve
+            // a la página anterior, no al tab anterior.
             const url = new URL(window.location);
             url.searchParams.set('tab', tabId);
-            window.history.pushState({}, '', url);
+            window.history.replaceState({tab: tabId}, '', url);
             
             // Remover active de todos
             tabBtns.forEach(b => b.classList.remove('active'));
@@ -371,6 +373,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', async function(e) {
         // Editar usuario
         if (e.target.closest('.btn-edit-user')) {
+            e.preventDefault();
+            e.stopPropagation();
             const btn = e.target.closest('.btn-edit-user');
             const userId = btn.getAttribute('data-id');
             if (!userId) return;
@@ -552,17 +556,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     
-    // 6. Buscador en tiempo real
-    const searchInput = document.querySelector('input[name="q"]');
-    if (searchInput) {
-        let searchTimeout;
-        
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            
-            searchTimeout = setTimeout(() => {
-                document.getElementById('usersFilterForm').submit();
-            }, 500);
+    // FIX: el buscador ya NO filtra en tiempo real.
+    // Razón 1: form.submit() hace una navegación completa → envenena el historial
+    //          igual que pushState.
+    // Razón 2: el usuario tiene un botón "Buscar" explícito — activar ambas
+    //          rutas al mismo tiempo es redundante y confuso.
+    // El formulario ahora solo se envía cuando el usuario hace clic en "Buscar"
+    // o presiona Enter dentro de un campo.
+    const usersForm = document.getElementById('usersFilterForm');
+    if (usersForm) {
+        // Usar replaceState al enviar el formulario (si el navegador lo soporta
+        // antes de la navegación) — la redirección GET usará replaceState en la
+        // carga siguiente activando el historial correcto.
+        // La solución definitiva: el form envía normalmente (GET) pero aseguramos
+        // que el usuario llegó aquí "desde afuera", no desde múltiples entradas.
+        usersForm.addEventListener('submit', function(e) {
+            // No interceptar: el form hace GET normal, que es 1 sola entrada.
+            // El problema del historial venía del submit() repetido en cada tecla.
         });
     }
 });
@@ -800,7 +810,7 @@ async function testIntegrations() {
             let message = 'Pruebas completadas:\n';
             if (data.results) {
                 Object.entries(data.results).forEach(([integration, result]) => {
-                    message += `${integration}: ${result ? '✅ OK' : '❌ Falló'}\n`;
+                    message += `${integration}: ${result ? 'OK' : 'Falló'}\n`;
                 });
             }
             showNotification(message, 'success');
@@ -841,7 +851,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Actualizar URL con el parámetro tab
             const url = new URL(window.location);
             url.searchParams.set('tab', tabName);
-            window.history.pushState({}, '', url);
+            window.history.replaceState({}, '', url);
         });
     });
     

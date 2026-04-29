@@ -131,14 +131,14 @@ if ($__RECAPTCHA_SECRET_KEY) {
 }
     // Validaciones básicas
     if (empty($email) || empty($password)) {
-        echo json_encode(['success' => false, 'message' => 'Email y contraseña son requeridos']);
+        echo json_encode(['success' => false, 'message' => 'Usuario y contraseña son requeridos']);
         exit;
     }
     
     try {
-        // Buscar usuario usando el modelo Usuario
+        // Buscar usuario usando el modelo Usuario (por email o username)
         $usuarioModel = new Usuario($db);
-        $user = $usuarioModel->obtenerPorEmail($email);
+        $user = $usuarioModel->obtenerPorEmailOUsername($email);
 
         if (!$user) {
             echo json_encode(['success' => false, 'message' => 'Usuario no encontrado o cuenta desactivada']);

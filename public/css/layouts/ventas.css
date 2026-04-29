@@ -1091,9 +1091,9 @@ body.modal-open { overflow: hidden; }
 .cash-section {
     margin-top: 8px;
     padding: 10px;
-    background: #f8f9fa;
+
     border-radius: 6px;
-    border: 1px solid #e9ecef;
+
 }
 .cash-input-group {
     display: flex;

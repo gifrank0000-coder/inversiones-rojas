@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modal Nueva Venta — Corregido</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+/* ── Reset base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; }
+
+/* ── Demo trigger ── */
+.demo-trigger {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh;
+}
+.btn-open-demo {
+  padding: 14px 32px; background: #1F9166; color: #fff;
+  border: none; border-radius: 8px; font-size: 16px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 4px 16px rgba(31,145,102,.35);
+  transition: background .2s, transform .15s;
+}
+.btn-open-demo:hover { background: #187a54; transform: translateY(-2px); }
+
+/* ══════════════════════════════════════
+   OVERLAY / MODAL
+══════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.65);
+  z-index: 30000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .25s, visibility .25s;
+}
+.modal-overlay.active { opacity: 1; visibility: visible; pointer-events: auto; }
+body.modal-open { overflow: hidden; }
+
+.modal {
+  background: #fff; border-radius: 14px;
+  width: min(1120px, 100%);
+  max-height: calc(100dvh - 32px);
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.22);
+  animation: slideUp .25s ease;
+  overflow: hidden;
+}
+@keyframes slideUp {
+  from { transform: translateY(36px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ── Header ── */
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 20px; background: #1F9166; color: #fff;
+  flex-shrink: 0; gap: 10px;
+}
+.modal-header h2 { margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(255,255,255,.2); border: none; color: #fff;
+  font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
+}
+.modal-close:hover { background: rgba(255,255,255,.35); }
+
+/* ── Body: dos columnas ── */
+.modal-body {
+  flex: 1; display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  min-height: 0; overflow: hidden;
+}
+
+/* ── Panel izquierdo ── */
+.left-panel {
+  display: flex; flex-direction: column;
+  overflow: hidden; border-right: 1px solid #e9ecef; background: #fff;
+}
+
+/* Búsqueda */
+.search-section {
+  padding: 12px 18px; background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef; flex-shrink: 0;
+}
+.search-box { display: flex; gap: 8px; align-items: center; }
+.search-box input {
+  flex: 1; padding: 9px 13px; border: 1px solid #ddd;
+  border-radius: 6px; font-size: 13.5px; transition: border-color .2s;
+}
+.search-box input:focus { outline: none; border-color: #1F9166; box-shadow: 0 0 0 2px rgba(31,145,102,.12); }
+.search-box button {
+  padding: 9px 14px; background: #1F9166; color: #fff; border: none;
+  border-radius: 6px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 5px;
+  transition: background .2s;
+}
+.search-box button:hover { background: #187c56; }
+
+/* Tabla productos */
+.products-table-container { flex: 1; overflow-y: auto; padding: 12px 18px; min-height: 0; }
+.products-table {
+  width: 100%; border-collapse: collapse; font-size: 12.5px;
+  background: #fff; border-radius: 6px; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.products-table thead { position: sticky; top: 0; z-index: 5; background: #f8f9fa; }
+.products-table th {
+  padding: 9px 8px; font-size: 11.5px; font-weight: 600; color: #555;
+  text-transform: uppercase; letter-spacing: .03em;
+  border-bottom: 2px solid #e9ecef; white-space: nowrap;
+}
+.products-table td { padding: 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+.products-table tbody tr:hover { background: #f8faf9; }
+
+/* Carrito — FIX #1: columna "Total" SOLAMENTE (sin precio unitario) */
+.cart-section {
+  border-top: 1px solid #e9ecef; background: #f8f9fa;
+  display: flex; flex-direction: column;
+  max-height: 230px; flex-shrink: 0;
+}
+.cart-section h3 {
+  padding: 10px 18px 6px; margin: 0; font-size: .88rem; color: #333;
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.cart-table-container { flex: 1; overflow-y: auto; padding: 0 18px 10px; }
+.cart-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+  background: #fff; border-radius: 6px; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.cart-table thead { position: sticky; top: 0; background: #f8f9fa; z-index: 5; }
+.cart-table th {
+  padding: 8px 7px; font-size: 11px; font-weight: 600; color: #555;
+  border-bottom: 2px solid #e9ecef; white-space: nowrap; text-align: left;
+}
+.cart-table th.text-right, .cart-table td.text-right { text-align: right; }
+.cart-table td { padding: 7px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+
+#emptyCart {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 80px; background: #fff; border-radius: 6px; margin: 4px 0; color: #aaa;
+}
+#emptyCart i { font-size: 28px; margin-bottom: 7px; color: #ddd; }
+#emptyCart p { font-size: 12.5px; margin: 0; }
+
+/* ── Panel derecho ── */
+.right-panel {
+  background: #f8f9fa; display: flex; flex-direction: column;
+  overflow-y: auto; padding: 14px; gap: 12px;
+  border-left: 1px solid #e9ecef;
+}
+.panel-card {
+  background: #fff; border-radius: 8px; padding: 12px 13px;
+  border: 1px solid #e9ecef; flex-shrink: 0;
+}
+.section-title {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px; font-size: .82rem; font-weight: 700; color: #2c3e50; gap: 6px;
+}
+.section-title-left { display: flex; align-items: center; gap: 6px; }
+.section-title button {
+  padding: 4px 9px; background: #3498db; color: #fff; border: none;
+  border-radius: 4px; font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; gap: 3px; transition: background .2s;
+}
+.section-title button:hover { background: #2980b9; }
+
+.form-group { margin-bottom: 8px; }
+.form-group label {
+  display: block; margin-bottom: 4px; font-size: 11px; font-weight: 600;
+  color: #777; text-transform: uppercase; letter-spacing: .03em;
+}
+.form-select, .form-input {
+  width: 100%; padding: 7px 9px; border: 1px solid #ddd;
+  border-radius: 5px; font-size: 12.5px; background: #fff;
+  transition: border-color .2s;
+}
+.form-select:focus, .form-input:focus { outline: none; border-color: #1F9166; }
+
+/* Info cliente */
+.client-info { margin-top: 8px; }
+.client-info-row {
+  display: flex; gap: 4px; margin-bottom: 3px;
+  font-size: 12px; line-height: 1.4;
+}
+.client-info-label { font-weight: 600; color: #555; min-width: 64px; flex-shrink: 0; }
+.client-info-value { color: #444; }
+
+/* ══════════════════════════════════════
+   SECCIÓN DE PAGO — FIX #2 y #3
+══════════════════════════════════════ */
+
+/* Tabs de modo de pago */
+.payment-tabs {
+  display: flex; gap: 4px; margin-bottom: 10px;
+  background: #f0f2f5; border-radius: 6px; padding: 3px;
+}
+.pay-tab {
+  flex: 1; padding: 6px 4px; border: none; border-radius: 4px;
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  background: transparent; color: #666; transition: all .2s;
+  white-space: nowrap;
+}
+.pay-tab.active { background: #fff; color: #1F9166; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.pay-tab:hover:not(.active) { background: rgba(255,255,255,.6); }
+
+/* Fila simple de pago (modo pago único) */
+.single-pay-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 8px;
+}
+.single-pay-row label {
+  min-width: 90px; font-size: 11px; font-weight: 600; color: #777;
+  text-transform: uppercase; flex-shrink: 0;
+}
+
+/* Panel de efectivo (FIX #2: separado por moneda) */
+.cash-panel {
+  display: none;
+  background: #f8fef9; border: 1px solid #c8e6c9;
+  border-radius: 6px; padding: 10px; margin-top: 6px;
+}
+.cash-panel.visible { display: block; }
+
+.cash-row {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 6px;
+}
+.cash-row label {
+  min-width: 105px; font-size: 11px; font-weight: 600;
+  color: #555; flex-shrink: 0;
+}
+.cash-row input {
+  flex: 1; padding: 6px 8px; border: 1px solid #ddd;
+  border-radius: 4px; font-size: 12.5px; text-align: right;
+  transition: border-color .2s;
+}
+.cash-row input:focus { outline: none; border-color: #1F9166; }
+
+.change-display {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 6px; padding: 7px 10px;
+  background: #fff; border-radius: 4px;
+  font-size: 12.5px; font-weight: 700;
+  border: 1px solid #e0e0e0;
+}
+.change-display .change-label { color: #555; font-weight: 600; }
+.change-display .change-value { color: #1F9166; }
+.change-display.negative .change-value { color: #e74c3c; }
+
+/* ──────────────────────────────────────
+   MODO MÚLTIPLE PAGO (FIX #3)
+────────────────────────────────────── */
+.multi-pay-section { display: none; }
+.multi-pay-section.visible { display: block; }
+
+.pay-method-row {
+  display: grid; grid-template-columns: 1fr 100px 28px;
+  gap: 5px; align-items: center; margin-bottom: 7px;
+  padding-bottom: 7px; border-bottom: 1px solid #f5f5f5;
+}
+.pay-method-select {
+  padding: 6px 7px; border: 1px solid #ddd; border-radius: 4px;
+  font-size: 12px; background: #fff;
+}
+.pay-amount-input {
+  padding: 6px 7px; border: 1px solid #ddd; border-radius: 4px;
+  font-size: 12px; text-align: right;
+}
+.pay-currency-tag {
+  font-size: 10px; font-weight: 700; color: #666;
+  white-space: nowrap;
+}
+.pay-method-row-inner { display: flex; flex-direction: column; gap: 3px; }
+.remove-pay-btn {
+  background: none; border: none; color: #e74c3c; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 4px; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.remove-pay-btn:hover { background: rgba(231,76,60,.1); }
+
+.add-pay-btn {
+  width: 100%; padding: 7px; background: #f8f9fa;
+  border: 1px dashed #ddd; border-radius: 4px; color: #666;
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  transition: all .2s; margin-bottom: 8px;
+}
+.add-pay-btn:hover { background: #e9ecef; border-color: #bbb; }
+
+/* Resumen de pagos múltiples */
+.multi-pay-summary {
+  background: #f8f9fa; border-radius: 6px; padding: 8px 10px;
+  font-size: 12px; border: 1px solid #e9ecef;
+}
+.multi-pay-summary-row {
+  display: flex; justify-content: space-between; margin-bottom: 3px;
+}
+.multi-pay-summary-row.total-row { font-weight: 700; color: #2c3e50; border-top: 1px solid #dee2e6; padding-top: 4px; margin-top: 4px; }
+.multi-pay-summary-row.diff-row.ok  { color: #1F9166; font-weight: 700; }
+.multi-pay-summary-row.diff-row.neg { color: #e74c3c; font-weight: 700; }
+.multi-pay-summary-row.diff-row.surplus { color: #f39c12; font-weight: 700; }
+
+/* Efectivo dentro de multi-pago — panel expandible */
+.cash-sub-panel {
+  background: #f8fef9; border: 1px solid #c8e6c9;
+  border-radius: 5px; padding: 8px; margin-top: 4px;
+  display: none;
+}
+.cash-sub-panel.visible { display: block; }
+.cash-sub-row {
+  display: flex; align-items: center; gap: 5px; margin-bottom: 5px;
+}
+.cash-sub-row:last-child { margin-bottom: 0; }
+.cash-sub-row label { min-width: 90px; font-size: 10.5px; font-weight: 600; color: #555; flex-shrink: 0; }
+.cash-sub-row input {
+  flex: 1; padding: 5px 7px; border: 1px solid #ddd;
+  border-radius: 4px; font-size: 11.5px; text-align: right;
+}
+
+/* Comprobante */
+.invoice-comprobante {
+  background: #fff; border-radius: 8px; border: 1px solid #e0e0e0;
+  overflow: hidden; font-family: 'Courier New', monospace;
+  font-size: 10.5px; line-height: 1.35; flex-shrink: 0;
+}
+.invoice-header-comprobante {
+  background: #f8f9fa; padding: 10px 12px;
+  text-align: center; border-bottom: 1px dashed #ccc;
+}
+.invoice-header-comprobante h3 { margin: 0 0 3px; font-size: 12.5px; font-weight: 700; color: #222; }
+.invoice-header-comprobante p { margin: 1px 0; font-size: 9.5px; color: #666; }
+.invoice-body-comprobante { padding: 10px 12px; }
+.inv-line {
+  display: flex; justify-content: space-between;
+  gap: 6px; margin-bottom: 3px; font-size: 10.5px;
+}
+.inv-line span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-line-title {
+  font-weight: 600; color: #333; margin: 5px 0 3px;
+  border-bottom: 1px solid #eee; padding-bottom: 2px; font-size: 10.5px;
+}
+.inv-dashed { border-bottom: 1px dashed #ccc; margin: 5px 0; }
+.inv-center { text-align: center; font-weight: 700; font-size: 11px; margin: 4px 0; letter-spacing: .05em; }
+.inv-items { margin: 4px 0; max-height: 100px; overflow-y: auto; }
+.inv-item { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 2px; font-size: 10px; }
+.inv-total { border-top: 1px dashed #ccc; margin-top: 5px; padding-top: 5px; font-weight: 700; font-size: 11px; }
+.invoice-footer-comprobante {
+  text-align: center; padding: 8px; border-top: 1px dashed #ccc;
+  background: #f8f9fa; font-style: italic; color: #666; font-size: 9.5px;
+}
+
+/* ── Footer ── */
+.modal-footer {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 10px; padding: 12px 20px;
+  background: #fff; border-top: 1px solid #e9ecef; flex-shrink: 0;
+}
+.btn {
+  padding: 9px 18px; border-radius: 6px; font-weight: 600;
+  font-size: 13.5px; cursor: pointer; border: none;
+  display: flex; align-items: center; gap: 6px;
+  transition: all .2s; white-space: nowrap;
+}
+.btn-cancel  { background: #f1f3f4; color: #555; border: 1px solid #ddd !important; }
+.btn-cancel:hover  { background: #e3e5e7; }
+.btn-print   { background: #3498db; color: #fff; }
+.btn-print:hover   { background: #2980b9; }
+.btn-complete { background: #1F9166; color: #fff; }
+.btn-complete:hover { background: #187c56; }
+
+/* ── Controles cantidad ── */
+.qty-controls { display: flex; align-items: center; gap: 4px; }
+.qty-btn {
+  width: 26px; height: 26px; border: 1px solid #ddd; border-radius: 4px;
+  background: #fff; cursor: pointer; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s; flex-shrink: 0;
+}
+.qty-btn:hover { background: #f0f0f0; }
+.qty-input {
+  width: 40px; padding: 3px; text-align: center;
+  border: 1px solid #ddd; border-radius: 4px; font-size: 13px; font-weight: 600;
+}
+.qty-input:focus { outline: none; border-color: #1F9166; }
+.remove-item {
+  background: none; border: none; color: #e74c3c; cursor: pointer;
+  width: 24px; height: 24px; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  transition: background .15s;
+}
+.remove-item:hover { background: rgba(231,76,60,.1); }
+
+/* Tags moneda */
+.price-usd { color: #1F9166; font-weight: 600; font-size: 12px; }
+.price-bs  { color: #777;    font-size: 10.5px; }
+
+/* Add btn */
+.add-product-btn {
+  padding: 5px 10px; background: #1F9166; color: #fff; border: none;
+  border-radius: 4px; font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 3px; white-space: nowrap;
+  transition: background .2s;
+}
+.add-product-btn:hover { background: #187c56; }
+.add-product-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+/* Scrollbar fino */
+.products-table-container::-webkit-scrollbar,
+.cart-table-container::-webkit-scrollbar,
+.right-panel::-webkit-scrollbar,
+.inv-items::-webkit-scrollbar { width: 5px; }
+.products-table-container::-webkit-scrollbar-thumb,
+.cart-table-container::-webkit-scrollbar-thumb,
+.right-panel::-webkit-scrollbar-thumb,
+.inv-items::-webkit-scrollbar-thumb { background: #c8c8c8; border-radius: 3px; }
+
+/* Responsive tablet */
+@media (max-width: 860px) {
+  .modal-body { grid-template-columns: 1fr; overflow-y: auto; max-height: calc(100dvh - 114px); }
+  .left-panel { border-right: none; border-bottom: 1px solid #e9ecef; }
+  .right-panel { border-left: none; }
+}
+@media (max-width: 640px) {
+  .modal-overlay { padding: 0; align-items: flex-end; }
+  .modal { width: 100vw; max-height: 100dvh; border-radius: 0; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1 1 calc(50% - 4px); justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="demo-trigger">
+  <button class="btn-open-demo" onclick="openModal()">
+    <i class="fa fa-cash-register"></i> Abrir Modal Nueva Venta
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL PRINCIPAL
+═══════════════════════════════════════════ -->
+<div class="modal-overlay" id="ventaModal">
+  <div class="modal">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <h2><i class="fa fa-cash-register"></i> Nueva Venta</h2>
+      <button class="modal-close" onclick="closeModal()" title="Cerrar">×</button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+
+      <!-- ════ PANEL IZQUIERDO ════ -->
+      <div class="left-panel">
+
+        <!-- Búsqueda -->
+        <div class="search-section">
+          <div class="search-box">
+            <input type="text" id="productSearch" placeholder="Buscar por nombre, código o categoría…" oninput="filterProducts()">
+            <button onclick="filterProducts()"><i class="fa fa-search"></i> Buscar</button>
+          </div>
+        </div>
+
+        <!-- Tabla productos -->
+        <div class="products-table-container">
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Producto</th>
+                <th>Stock</th>
+                <th>P. USD</th>
+                <th>P. Bs</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="productsBody"></tbody>
+          </table>
+        </div>
+
+        <!-- Carrito — FIX #1: solo columna "Total" (sin precio unitario) -->
+        <div class="cart-section">
+          <h3><i class="fa fa-shopping-cart"></i> Carrito <span id="cartCount" style="color:#1F9166;font-size:.8rem;">(0 ítems)</span></h3>
+          <div class="cart-table-container">
+            <div id="emptyCart">
+              <i class="fa fa-shopping-cart"></i>
+              <p>El carrito está vacío</p>
+            </div>
+            <table class="cart-table" id="cartTable" style="display:none;">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="text-right">Cant.</th>
+                  <th class="text-right">Total USD</th>
+                  <th class="text-right">Total Bs</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cartBody"></tbody>
+              <tfoot>
+                <tr style="background:#f8f9fa; font-weight:700;">
+                  <td colspan="2" style="padding:7px;font-size:11px;">SUBTOTAL</td>
+                  <td class="text-right" style="padding:7px;color:#1F9166;" id="cartTotalUSD">$0.00</td>
+                  <td class="text-right" style="padding:7px;color:#777;font-size:11px;" id="cartTotalBs">Bs 0.00</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div><!-- /left-panel -->
+
+      <!-- ════ PANEL DERECHO ════ -->
+      <div class="right-panel">
+
+        <!-- Config venta -->
+        <div class="panel-card">
+          <div class="section-title">
+            <span class="section-title-left"><i class="fa fa-cog" style="color:#1F9166;"></i> Configuración</span>
+          </div>
+          <div class="form-group">
+            <label>Moneda de factura</label>
+            <select class="form-select" id="monedaFactura" onchange="updatePrices()">
+              <option value="USD">Dólares (USD)</option>
+              <option value="BS">Bolívares (Bs)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tasa de cambio (Bs/USD)</label>
+            <input type="number" class="form-input" id="tasaCambio" value="36.50" step="0.01" oninput="updatePrices()">
+          </div>
+        </div>
+
+        <!-- Cliente -->
+        <div class="panel-card">
+          <div class="section-title">
+            <span class="section-title-left"><i class="fa fa-user" style="color:#3498db;"></i> Cliente</span>
+            <button onclick="alert('Abrir modal nuevo cliente')"><i class="fa fa-plus"></i> Nuevo</button>
+          </div>
+          <div class="form-group">
+            <label>Seleccionar cliente</label>
+            <select class="form-select" id="clienteSelect" onchange="showClientInfo()">
+              <option value="">— Consumidor Final —</option>
+              <option value="1" data-cedula="V-12345678" data-tel="0414-1234567" data-dir="Av. Principal, Caracas">Juan Pérez</option>
+              <option value="2" data-cedula="J-30456789" data-tel="0212-5551234" data-dir="C.C. Sambil, Caracas">Tienda Electro C.A.</option>
+              <option value="3" data-cedula="V-20987654" data-tel="0424-9876543" data-dir="Urb. La Trinidad">María González</option>
+            </select>
+          </div>
+          <div class="client-info" id="clientInfo" style="display:none;">
+            <div class="client-info-row">
+              <span class="client-info-label">Cédula/RIF:</span>
+              <span class="client-info-value" id="clientCedula"></span>
+            </div>
+            <div class="client-info-row">
+              <span class="client-info-label">Teléfono:</span>
+              <span class="client-info-value" id="clientTel"></span>
+            </div>
+            <div class="client-info-row">
+              <span class="client-info-label">Dirección:</span>
+              <span class="client-info-value" id="clientDir"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════ PAGO — FIX #2 + #3 ════ -->
+        <div class="panel-card">
+          <div class="section-title">
+            <span class="section-title-left"><i class="fa fa-credit-card" style="color:#e67e22;"></i> Pago</span>
+          </div>
+
+          <!-- Tabs modo pago -->
+          <div class="payment-tabs">
+            <button class="pay-tab active" onclick="setPayMode('single')" id="tab-single">Un método</button>
+            <button class="pay-tab"        onclick="setPayMode('multi')"  id="tab-multi">Múltiple</button>
+          </div>
+
+          <!-- ── MODO PAGO ÚNICO ── -->
+          <div id="single-pay-section">
+            <div class="form-group">
+              <label>Método de pago</label>
+              <select class="form-select" id="metodoPago" onchange="onSingleMethodChange()">
+                <option value="">— Seleccionar —</option>
+                <option value="efectivo_usd" data-moneda="USD" data-tipo="efectivo">Efectivo USD</option>
+                <option value="efectivo_bs"  data-moneda="BS"  data-tipo="efectivo">Efectivo Bs</option>
+                <option value="transferencia_bs" data-moneda="BS" data-tipo="transferencia">Transferencia Bs</option>
+                <option value="zelle"         data-moneda="USD" data-tipo="digital">Zelle (USD)</option>
+                <option value="pago_movil"    data-moneda="BS"  data-tipo="digital">Pago Móvil (Bs)</option>
+                <option value="tarjeta_usd"   data-moneda="USD" data-tipo="tarjeta">Tarjeta USD</option>
+                <option value="tarjeta_bs"    data-moneda="BS"  data-tipo="tarjeta">Tarjeta Bs</option>
+                <option value="credito"       data-moneda="USD" data-tipo="credito">Crédito/Fiado</option>
+              </select>
+            </div>
+
+            <!-- FIX #2: Panel efectivo separado por moneda, con vuelto correcto -->
+            <div class="cash-panel" id="cashPanel">
+              <div id="cashPanelUSD">
+                <div class="cash-row">
+                  <label><i class="fa fa-dollar-sign"></i> Monto recibido ($)</label>
+                  <input type="number" id="cashReceivedUSD" step="0.01" min="0" placeholder="0.00" oninput="calcChange()">
+                </div>
+                <div class="change-display" id="changeDisplayUSD">
+                  <span class="change-label">Vuelto USD:</span>
+                  <span class="change-value" id="changeValueUSD">$ 0.00</span>
+                </div>
+              </div>
+              <div id="cashPanelBS" style="display:none; margin-top:8px;">
+                <div class="cash-row">
+                  <label><i class="fa fa-money-bill"></i> Monto recibido (Bs)</label>
+                  <input type="number" id="cashReceivedBS" step="0.01" min="0" placeholder="0.00" oninput="calcChange()">
+                </div>
+                <div class="change-display" id="changeDisplayBS">
+                  <span class="change-label">Vuelto Bs:</span>
+                  <span class="change-value" id="changeValueBS">Bs 0.00</span>
+                </div>
+              </div>
+            </div>
+          </div><!-- /single-pay-section -->
+
+          <!-- ── MODO PAGO MÚLTIPLE (FIX #3) ── -->
+          <div class="multi-pay-section" id="multi-pay-section">
+            <div id="payMethodsList"></div>
+            <button class="add-pay-btn" onclick="addPaymentMethod()">
+              <i class="fa fa-plus"></i> Agregar método de pago
+            </button>
+            <!-- Resumen -->
+            <div class="multi-pay-summary">
+              <div class="multi-pay-summary-row">
+                <span>Total venta:</span>
+                <span id="multiTotalVenta">$ 0.00</span>
+              </div>
+              <div class="multi-pay-summary-row">
+                <span>Total pagado:</span>
+                <span id="multiTotalPagado">$ 0.00</span>
+              </div>
+              <div class="multi-pay-summary-row total-row diff-row" id="multiDiffRow">
+                <span id="multiDiffLabel">Pendiente:</span>
+                <span id="multiDiffValue">$ 0.00</span>
+              </div>
+            </div>
+          </div><!-- /multi-pay-section -->
+        </div>
+
+        <!-- Comprobante -->
+        <div class="invoice-comprobante" id="invoicePreview">
+          <div class="invoice-header-comprobante">
+            <h3>MI EMPRESA C.A.</h3>
+            <p>RIF: J-12345678-9</p>
+            <p>Av. Principal, Local 1</p>
+            <p id="invFecha"></p>
+          </div>
+          <div class="invoice-body-comprobante">
+            <div class="inv-center" id="invCodigo">FACTURA #----</div>
+            <div class="inv-dashed"></div>
+            <div class="inv-line-title">CLIENTE</div>
+            <div class="inv-line"><span id="invCliente">Consumidor Final</span></div>
+            <div class="inv-dashed"></div>
+            <div class="inv-line-title">PRODUCTOS</div>
+            <div class="inv-items" id="invItems"><span style="color:#aaa;font-size:10px;">Sin ítems</span></div>
+            <div class="inv-dashed"></div>
+            <div class="inv-total">
+              <div class="inv-line"><span>TOTAL USD:</span><span id="invTotalUSD">$ 0.00</span></div>
+              <div class="inv-line"><span>TOTAL Bs:</span><span id="invTotalBs">Bs 0.00</span></div>
+            </div>
+            <div class="inv-dashed"></div>
+            <div class="inv-line-title">PAGO</div>
+            <div id="invPago"><span style="color:#aaa;font-size:10px;">—</span></div>
+          </div>
+          <div class="invoice-footer-comprobante">¡Gracias por su compra!</div>
+        </div>
+
+      </div><!-- /right-panel -->
+    </div><!-- /modal-body -->
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="btn btn-cancel" onclick="closeModal()"><i class="fa fa-times"></i> Cancelar</button>
+      <button class="btn btn-print"  onclick="printInvoice()"><i class="fa fa-print"></i> Imprimir</button>
+      <button class="btn btn-complete" onclick="completeSale()"><i class="fa fa-check"></i> Completar Venta</button>
+    </div>
+
+  </div>
+</div><!-- /modal-overlay -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   DATOS DEMO
+═══════════════════════════════════════════════════════ */
+const TASA_DEFAULT = 36.50;
+let tasa = TASA_DEFAULT;
+
+const PRODUCTS_DEMO = [
+  { id:1, codigo:'ELEC-001', nombre:'Monitor LG 27"',       stock:8,  precio_usd:299.99 },
+  { id:2, codigo:'ELEC-002', nombre:'Teclado Mecánico RGB', stock:15, precio_usd:89.99  },
+  { id:3, codigo:'ELEC-003', nombre:'Mouse Inalámbrico',    stock:22, precio_usd:45.00  },
+  { id:4, codigo:'ELEC-004', nombre:'Auriculares Gaming',   stock:5,  precio_usd:120.00 },
+  { id:5, codigo:'ELEC-005', nombre:'Webcam Full HD',       stock:0,  precio_usd:75.50  },
+  { id:6, codigo:'ELEC-006', nombre:'SSD 1TB NVMe',         stock:10, precio_usd:115.00 },
+  { id:7, codigo:'ELEC-007', nombre:'RAM 16GB DDR4',        stock:18, precio_usd:55.00  },
+];
+
+let cart = {}; // { productId: { ...product, qty } }
+let payMode = 'single'; // 'single' | 'multi'
+let multiMethods = [];  // [{ id, value, amount, moneda }]
+
+/* ═══════════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════════ */
+function openModal() {
+  document.getElementById('ventaModal').classList.add('active');
+  document.body.classList.add('modal-open');
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  renderProducts(PRODUCTS_DEMO);
+  updateInvoiceDate();
+  generateInvoiceCode();
+}
+function closeModal() {
+  document.getElementById('ventaModal').classList.remove('active');
+  document.body.classList.remove('modal-open');
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRODUCTOS
+═══════════════════════════════════════════════════════ */
+function filterProducts() {
+  const q = document.getElementById('productSearch').value.toLowerCase();
+  const filtered = PRODUCTS_DEMO.filter(p =>
+    p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+  );
+  renderProducts(filtered);
+}
+
+function renderProducts(list) {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  const tbody = document.getElementById('productsBody');
+  tbody.innerHTML = '';
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:18px;color:#aaa;">Sin resultados</td></tr>';
+    return;
+  }
+  list.forEach(p => {
+    const pBs = (p.precio_usd * tasa).toFixed(2);
+    const inCart = cart[p.id];
+    const sinStock = p.stock === 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span style="font-family:monospace;font-size:11px;color:#777;">${p.codigo}</span></td>
+      <td style="font-weight:500;">${p.nombre}</td>
+      <td style="${sinStock?'color:#e74c3c;font-weight:700;':''}">${p.stock}</td>
+      <td><span class="price-usd">$${p.precio_usd.toFixed(2)}</span></td>
+      <td><span class="price-bs">Bs ${pBs}</span></td>
+      <td>
+        <button class="add-product-btn" onclick="addToCart(${p.id})" ${sinStock?'disabled':''}>
+          <i class="fa fa-plus"></i> ${inCart ? 'En carrito' : 'Agregar'}
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updatePrices() {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  filterProducts();
+  updateCartTotals();
+  updateInvoice();
+  calcChange();
+  updateMultiSummary();
+}
+
+/* ═══════════════════════════════════════════════════════
+   CARRITO
+═══════════════════════════════════════════════════════ */
+function addToCart(id) {
+  const p = PRODUCTS_DEMO.find(x => x.id === id);
+  if (!p || p.stock === 0) return;
+  if (cart[id]) {
+    if (cart[id].qty < p.stock) cart[id].qty++;
+  } else {
+    cart[id] = { ...p, qty: 1 };
+  }
+  renderCart();
+  updateInvoice();
+  calcChange();
+  updateMultiSummary();
+}
+
+function changeQty(id, delta) {
+  if (!cart[id]) return;
+  const p = PRODUCTS_DEMO.find(x => x.id === id);
+  cart[id].qty = Math.min(p.stock, Math.max(1, cart[id].qty + delta));
+  renderCart();
+  updateInvoice();
+  calcChange();
+  updateMultiSummary();
+}
+
+function setQty(id, val) {
+  const p = PRODUCTS_DEMO.find(x => x.id === id);
+  const qty = Math.min(p.stock, Math.max(1, parseInt(val) || 1));
+  cart[id].qty = qty;
+  renderCart();
+  updateInvoice();
+  calcChange();
+  updateMultiSummary();
+}
+
+function removeFromCart(id) {
+  delete cart[id];
+  renderCart();
+  updateInvoice();
+  calcChange();
+  updateMultiSummary();
+}
+
+function renderCart() {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  const keys = Object.keys(cart);
+  const empty = document.getElementById('emptyCart');
+  const table = document.getElementById('cartTable');
+  const countEl = document.getElementById('cartCount');
+
+  if (!keys.length) {
+    empty.style.display = 'flex';
+    table.style.display = 'none';
+    countEl.textContent = '(0 ítems)';
+    updateCartTotals();
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = 'table';
+  countEl.textContent = `(${keys.length} ítem${keys.length !== 1 ? 's' : ''})`;
+
+  const tbody = document.getElementById('cartBody');
+  tbody.innerHTML = '';
+  keys.forEach(id => {
+    const item = cart[id];
+    /* FIX #1: solo mostramos Total (qty × precio), NO precio unitario */
+    const totalUSD = (item.qty * item.precio_usd).toFixed(2);
+    const totalBs  = (item.qty * item.precio_usd * tasa).toFixed(2);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-size:11.5px;">${item.nombre}</td>
+      <td class="text-right">
+        <div class="qty-controls">
+          <button class="qty-btn" onclick="changeQty(${id},-1)">−</button>
+          <input class="qty-input" type="number" value="${item.qty}" min="1" max="${item.stock}"
+            onchange="setQty(${id},this.value)">
+          <button class="qty-btn" onclick="changeQty(${id},+1)">+</button>
+        </div>
+      </td>
+      <td class="text-right"><span class="price-usd">$${totalUSD}</span></td>
+      <td class="text-right"><span class="price-bs">Bs ${totalBs}</span></td>
+      <td><button class="remove-item" onclick="removeFromCart(${id})"><i class="fa fa-trash"></i></button></td>`;
+    tbody.appendChild(tr);
+  });
+  updateCartTotals();
+}
+
+function getCartTotalUSD() {
+  return Object.values(cart).reduce((s, i) => s + i.qty * i.precio_usd, 0);
+}
+
+function updateCartTotals() {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  const totalUSD = getCartTotalUSD();
+  const totalBs  = totalUSD * tasa;
+  document.getElementById('cartTotalUSD').textContent = '$' + totalUSD.toFixed(2);
+  document.getElementById('cartTotalBs').textContent  = 'Bs ' + fmt(totalBs);
+  document.getElementById('invTotalUSD').textContent  = '$' + totalUSD.toFixed(2);
+  document.getElementById('invTotalBs').textContent   = 'Bs ' + fmt(totalBs);
+  document.getElementById('multiTotalVenta').textContent = '$' + totalUSD.toFixed(2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   MODO PAGO (tab)
+═══════════════════════════════════════════════════════ */
+function setPayMode(mode) {
+  payMode = mode;
+  document.getElementById('tab-single').classList.toggle('active', mode === 'single');
+  document.getElementById('tab-multi').classList.toggle('active', mode === 'multi');
+  document.getElementById('single-pay-section').style.display = mode === 'single' ? '' : 'none';
+  document.getElementById('multi-pay-section').classList.toggle('visible', mode === 'multi');
+  updateInvoice();
+}
+
+/* ═══════════════════════════════════════════════════════
+   PAGO ÚNICO — FIX #2
+   Efectivo: vuelto en la misma moneda que se pagó.
+   Si se paga en USD → vuelto en USD.
+   Si se paga en Bs  → vuelto en Bs.
+═══════════════════════════════════════════════════════ */
+function onSingleMethodChange() {
+  const sel = document.getElementById('metodoPago');
+  const opt = sel.selectedOptions[0];
+  const tipo   = opt ? opt.dataset.tipo : '';
+  const moneda = opt ? opt.dataset.moneda : '';
+  const cashPanel = document.getElementById('cashPanel');
+
+  // Limpiar inputs
+  document.getElementById('cashReceivedUSD').value = '';
+  document.getElementById('cashReceivedBS').value  = '';
+
+  if (tipo === 'efectivo') {
+    cashPanel.classList.add('visible');
+    document.getElementById('cashPanelUSD').style.display = moneda === 'USD' ? '' : 'none';
+    document.getElementById('cashPanelBS').style.display  = moneda === 'BS'  ? '' : 'none';
+  } else {
+    cashPanel.classList.remove('visible');
+  }
+  calcChange();
+  updateInvoice();
+}
+
+function calcChange() {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  const totalUSD = getCartTotalUSD();
+  const totalBs  = totalUSD * tasa;
+
+  /* FIX #2: evalúa según la moneda del método de pago activo */
+  const sel    = document.getElementById('metodoPago');
+  const opt    = sel.selectedOptions[0];
+  const moneda = opt ? opt.dataset.moneda : '';
+
+  // USD
+  const recUSD = parseFloat(document.getElementById('cashReceivedUSD').value) || 0;
+  const vueltoUSD = recUSD - totalUSD;
+  const dispUSD = document.getElementById('changeDisplayUSD');
+  document.getElementById('changeValueUSD').textContent = '$ ' + Math.abs(vueltoUSD).toFixed(2);
+  dispUSD.classList.toggle('negative', vueltoUSD < 0);
+  document.getElementById('changeValueUSD').textContent =
+    (vueltoUSD < 0 ? '- $ ' : '$ ') + Math.abs(vueltoUSD).toFixed(2);
+
+  // Bs
+  const recBS    = parseFloat(document.getElementById('cashReceivedBS').value) || 0;
+  const vueltoBs = recBS - totalBs;
+  const dispBs = document.getElementById('changeDisplayBS');
+  dispBs.classList.toggle('negative', vueltoBs < 0);
+  document.getElementById('changeValueBS').textContent =
+    (vueltoBs < 0 ? '- Bs ' : 'Bs ') + fmt(Math.abs(vueltoBs));
+}
+
+/* ═══════════════════════════════════════════════════════
+   PAGO MÚLTIPLE — FIX #3
+═══════════════════════════════════════════════════════ */
+const METODOS_DISPONIBLES = [
+  { value:'efectivo_usd',    label:'Efectivo USD',         moneda:'USD', tipo:'efectivo' },
+  { value:'efectivo_bs',     label:'Efectivo Bs',          moneda:'BS',  tipo:'efectivo' },
+  { value:'transferencia_bs',label:'Transferencia Bs',     moneda:'BS',  tipo:'transferencia' },
+  { value:'zelle',           label:'Zelle (USD)',           moneda:'USD', tipo:'digital' },
+  { value:'pago_movil',      label:'Pago Móvil (Bs)',       moneda:'BS',  tipo:'digital' },
+  { value:'tarjeta_usd',     label:'Tarjeta USD',           moneda:'USD', tipo:'tarjeta' },
+  { value:'tarjeta_bs',      label:'Tarjeta Bs',            moneda:'BS',  tipo:'tarjeta' },
+];
+
+let multiCounter = 0;
+
+function addPaymentMethod() {
+  const id = ++multiCounter;
+  multiMethods.push({ id, value:'', amount:'', moneda:'USD', tipo:'' });
+  renderMultiMethods();
+}
+
+function removePayMethod(id) {
+  multiMethods = multiMethods.filter(m => m.id !== id);
+  renderMultiMethods();
+  updateMultiSummary();
+  updateInvoice();
+}
+
+function renderMultiMethods() {
+  const container = document.getElementById('payMethodsList');
+  container.innerHTML = '';
+
+  multiMethods.forEach(m => {
+    const div = document.createElement('div');
+    div.style.marginBottom = '10px';
+    div.style.borderBottom = '1px solid #f0f0f0';
+    div.style.paddingBottom = '10px';
+
+    const optsHTML = METODOS_DISPONIBLES.map(op =>
+      `<option value="${op.value}" data-moneda="${op.moneda}" data-tipo="${op.tipo}"
+        ${m.value === op.value ? 'selected' : ''}>${op.label}</option>`
+    ).join('');
+
+    // Tag moneda dinámico
+    const currTag = m.moneda === 'BS' ? 'Bs' : 'USD';
+    const placeholder = m.moneda === 'BS' ? 'Monto en Bs' : 'Monto en $';
+
+    div.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 110px 26px;gap:5px;align-items:center;margin-bottom:${m.tipo==='efectivo'?'6px':'0'};">
+        <select class="pay-method-select" onchange="onMultiMethodChange(${m.id}, this)">
+          <option value="">— Método —</option>
+          ${optsHTML}
+        </select>
+        <div style="position:relative;">
+          <input type="number" class="pay-amount-input" style="width:100%;padding-right:28px;"
+            placeholder="${placeholder}" value="${m.amount}"
+            oninput="onMultiAmountChange(${m.id}, this.value)">
+          <span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:10px;color:#888;pointer-events:none;">${currTag}</span>
+        </div>
+        <button class="remove-pay-btn" onclick="removePayMethod(${m.id})"><i class="fa fa-times"></i></button>
+      </div>
+      ${m.tipo === 'efectivo' ? renderCashSubPanel(m) : ''}
+    `;
+    container.appendChild(div);
+  });
+  updateMultiSummary();
+  updateInvoice();
+}
+
+function renderCashSubPanel(m) {
+  const totalUSD = getCartTotalUSD();
+  const totalBs  = totalUSD * tasa;
+  const recVal   = parseFloat(m.amount) || 0;
+
+  if (m.moneda === 'USD') {
+    const vuelto = recVal - totalUSD;
+    return `
+      <div class="cash-sub-panel visible" id="subpanel-${m.id}">
+        <div style="font-size:10.5px;color:#555;margin-bottom:4px;">
+          <i class="fa fa-info-circle" style="color:#1F9166;"></i>
+          Vuelto en <strong>USD</strong>:
+          <span style="color:${vuelto>=0?'#1F9166':'#e74c3c'};font-weight:700;">
+            ${vuelto >= 0 ? '$ ' : '- $ '}${Math.abs(vuelto).toFixed(2)}
+          </span>
+        </div>
+      </div>`;
+  } else {
+    const vuelto = recVal - totalBs;
+    return `
+      <div class="cash-sub-panel visible" id="subpanel-${m.id}">
+        <div style="font-size:10.5px;color:#555;margin-bottom:4px;">
+          <i class="fa fa-info-circle" style="color:#1F9166;"></i>
+          Vuelto en <strong>Bs</strong>:
+          <span style="color:${vuelto>=0?'#1F9166':'#e74c3c'};font-weight:700;">
+            ${vuelto >= 0 ? 'Bs ' : '- Bs '}${fmt(Math.abs(vuelto))}
+          </span>
+        </div>
+      </div>`;
+  }
+}
+
+function onMultiMethodChange(id, sel) {
+  const opt = sel.selectedOptions[0];
+  const m = multiMethods.find(x => x.id === id);
+  if (!m) return;
+  m.value  = opt.value;
+  m.moneda = opt.dataset.moneda || 'USD';
+  m.tipo   = opt.dataset.tipo || '';
+  m.amount = '';
+  renderMultiMethods();
+}
+
+function onMultiAmountChange(id, val) {
+  const m = multiMethods.find(x => x.id === id);
+  if (!m) return;
+  m.amount = val;
+  // recalcular vuelto sin re-renderizar todo (solo el subpanel)
+  const subpanel = document.getElementById(`subpanel-${id}`);
+  if (subpanel && m.tipo === 'efectivo') {
+    const totalUSD = getCartTotalUSD();
+    const totalBs  = totalUSD * tasa;
+    const recVal   = parseFloat(val) || 0;
+    if (m.moneda === 'USD') {
+      const vuelto = recVal - totalUSD;
+      subpanel.innerHTML = `
+        <div style="font-size:10.5px;color:#555;">
+          <i class="fa fa-info-circle" style="color:#1F9166;"></i>
+          Vuelto en <strong>USD</strong>:
+          <span style="color:${vuelto>=0?'#1F9166':'#e74c3c'};font-weight:700;">
+            ${vuelto >= 0 ? '$ ' : '- $ '}${Math.abs(vuelto).toFixed(2)}
+          </span>
+        </div>`;
+    } else {
+      const vuelto = recVal - totalBs;
+      subpanel.innerHTML = `
+        <div style="font-size:10.5px;color:#555;">
+          <i class="fa fa-info-circle" style="color:#1F9166;"></i>
+          Vuelto en <strong>Bs</strong>:
+          <span style="color:${vuelto>=0?'#1F9166':'#e74c3c'};font-weight:700;">
+            ${vuelto >= 0 ? 'Bs ' : '- Bs '}${fmt(Math.abs(vuelto))}
+          </span>
+        </div>`;
+    }
+  }
+  updateMultiSummary();
+  updateInvoice();
+}
+
+function updateMultiSummary() {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  const totalUSD = getCartTotalUSD();
+  // Convertir todos los montos a USD para comparar
+  let pagadoUSD = 0;
+  multiMethods.forEach(m => {
+    const amt = parseFloat(m.amount) || 0;
+    if (m.moneda === 'BS') pagadoUSD += amt / tasa;
+    else pagadoUSD += amt;
+  });
+  const diff = pagadoUSD - totalUSD;
+
+  document.getElementById('multiTotalVenta').textContent  = '$ ' + totalUSD.toFixed(2);
+  document.getElementById('multiTotalPagado').textContent = '$ ' + pagadoUSD.toFixed(2);
+
+  const diffRow = document.getElementById('multiDiffRow');
+  const diffLabel = document.getElementById('multiDiffLabel');
+  const diffValue = document.getElementById('multiDiffValue');
+
+  diffRow.className = 'multi-pay-summary-row total-row diff-row';
+  if (Math.abs(diff) < 0.01) {
+    diffRow.classList.add('ok');
+    diffLabel.textContent = 'Cuadre:';
+    diffValue.textContent = '✔ Exacto';
+  } else if (diff < 0) {
+    diffRow.classList.add('neg');
+    diffLabel.textContent = 'Falta:';
+    diffValue.textContent = '$ ' + Math.abs(diff).toFixed(2);
+  } else {
+    diffRow.classList.add('surplus');
+    diffLabel.textContent = 'Sobrante:';
+    diffValue.textContent = '$ ' + diff.toFixed(2);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   COMPROBANTE / INVOICE
+═══════════════════════════════════════════════════════ */
+function updateInvoice() {
+  tasa = parseFloat(document.getElementById('tasaCambio').value) || TASA_DEFAULT;
+  // Cliente
+  const cSel = document.getElementById('clienteSelect');
+  document.getElementById('invCliente').textContent =
+    cSel.value ? cSel.options[cSel.selectedIndex].text : 'Consumidor Final';
+
+  // Items
+  const itemsEl = document.getElementById('invItems');
+  const keys = Object.keys(cart);
+  if (!keys.length) {
+    itemsEl.innerHTML = '<span style="color:#aaa;font-size:10px;">Sin ítems</span>';
+  } else {
+    itemsEl.innerHTML = keys.map(id => {
+      const item = cart[id];
+      const tot = (item.qty * item.precio_usd).toFixed(2);
+      return `<div class="inv-item"><span>${item.qty}x ${item.nombre.substring(0,22)}</span><span>$${tot}</span></div>`;
+    }).join('');
+  }
+
+  // Totales
+  const totalUSD = getCartTotalUSD();
+  const totalBs  = totalUSD * tasa;
+  document.getElementById('invTotalUSD').textContent = '$ ' + totalUSD.toFixed(2);
+  document.getElementById('invTotalBs').textContent  = 'Bs ' + fmt(totalBs);
+
+  // Pago en comprobante
+  const invPago = document.getElementById('invPago');
+  if (payMode === 'single') {
+    const mSel = document.getElementById('metodoPago');
+    const mOpt = mSel.selectedOptions[0];
+    const mLabel = mOpt && mOpt.value ? mOpt.text : '—';
+    invPago.innerHTML = `<div class="inv-line"><span>${mLabel}</span><span>$ ${totalUSD.toFixed(2)}</span></div>`;
+  } else {
+    invPago.innerHTML = multiMethods.map(m => {
+      const label = METODOS_DISPONIBLES.find(x => x.value === m.value)?.label || '—';
+      const amt = parseFloat(m.amount) || 0;
+      const tag = m.moneda === 'BS' ? 'Bs ' : '$ ';
+      const fmtAmt = m.moneda === 'BS' ? fmt(amt) : amt.toFixed(2);
+      return `<div class="inv-line"><span>${label}</span><span>${tag}${fmtAmt}</span></div>`;
+    }).join('') || '<span style="color:#aaa;font-size:10px;">Sin método</span>';
+  }
+}
+
+function updateInvoiceDate() {
+  const now = new Date();
+  document.getElementById('invFecha').textContent = now.toLocaleString('es-VE');
+}
+
+function generateInvoiceCode() {
+  const code = 'V-' + String(Math.floor(Math.random()*9000)+1000);
+  document.getElementById('invCodigo').textContent = 'FACTURA #' + code;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CLIENTE
+═══════════════════════════════════════════════════════ */
+function showClientInfo() {
+  const sel = document.getElementById('clienteSelect');
+  const opt = sel.selectedOptions[0];
+  const infoDiv = document.getElementById('clientInfo');
+  if (!sel.value) { infoDiv.style.display = 'none'; updateInvoice(); return; }
+  infoDiv.style.display = '';
+  document.getElementById('clientCedula').textContent = opt.dataset.cedula || '—';
+  document.getElementById('clientTel').textContent    = opt.dataset.tel    || '—';
+  document.getElementById('clientDir').textContent    = opt.dataset.dir    || '—';
+  updateInvoice();
+}
+
+/* ═══════════════════════════════════════════════════════
+   ACCIONES
+═══════════════════════════════════════════════════════ */
+function completeSale() {
+  if (!Object.keys(cart).length) {
+    alert('El carrito está vacío. Agrega productos antes de completar la venta.');
+    return;
+  }
+  alert('✅ Venta completada exitosamente.\n\nEsta acción enviaría los datos al servidor PHP.');
+}
+
+function printInvoice() {
+  window.print();
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILIDADES
+═══════════════════════════════════════════════════════ */
+function fmt(n) {
+  // Formato con puntos de miles y coma decimal (estilo venezolano)
+  return Number(n).toLocaleString('es-VE', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+// Cerrar con Escape
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// Init: inicializar el multi-pago vacío
+document.getElementById('payMethodsList').innerHTML =
+  '<p style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Presiona «+ Agregar método de pago»</p>';
+</script>
+</body>
+</html>

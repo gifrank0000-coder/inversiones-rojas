@@ -36,6 +36,7 @@ if (is_dir($backupDir)) {
 }
 
 // Función para encontrar ejecutables de PostgreSQL
+
 function find_postgres_executable($name) {
     // Primero intentar con la constante definida
     if ($name === 'pg_dump' && defined('PG_DUMP_PATH') && is_file(PG_DUMP_PATH)) {
@@ -1194,9 +1195,6 @@ $psql_found = find_postgres_executable('psql');
         
         .modal {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             background: white;
             border-radius: 10px;
             width: 90%;
@@ -1459,7 +1457,7 @@ $psql_found = find_postgres_executable('psql');
 <body>
     <!-- Botón de regreso para volver a la pantalla anterior -->
     <div class="back-btn-wrapper">
-        <button class="back-btn-enhanced" onclick="window.location.href='<?php echo htmlspecialchars($previous_url); ?>'" aria-label="Regresar">
+        <button class="back-btn-enhanced" type="button" onclick="goBack()" aria-label="Regresar">
             <i class="fas fa-arrow-left" aria-hidden="true"></i>
             Regresar
         </button>
@@ -1479,12 +1477,12 @@ $psql_found = find_postgres_executable('psql');
             <?php if ($is_admin): ?>
             <button class="tab-btn" data-tab="users">
                 <i class="fas fa-users-cog"></i>
-                <span>Usuarios y Roles</span>
+                <span>Usuarios</span>
             </button>
             <!-- Empresa tab removed -->
             <button class="tab-btn" data-tab="bitacora">
                 <i class="fas fa-history"></i>
-                <span>Bitácora del Sistema</span>
+                <span>Bitácora</span>
             </button>
             <button class="tab-btn" data-tab="backup">
                 <i class="fas fa-database"></i>
@@ -2125,9 +2123,11 @@ $psql_found = find_postgres_executable('psql');
             <div class="config-section">
                 <div class="section-header">
                     <h2><i class="fas fa-plug"></i> Configuración de Integraciones</h2>
-                    <p>Define los canales de comunicación disponibles para los pedidos digitales. Los cambios se guardan en la base de datos y se aplican de inmediato.</p>
+                  
+                    
                 </div>
-
+               <p>Define los canales de comunicación disponibles para los pedidos digitales.</p>
+                 <br>
                 <!-- Alerta de feedback visible -->
                 <div id="intAlert" style="display:none;padding:12px 16px;border-radius:8px;margin-bottom:20px;font-weight:500;"></div>
 
@@ -2271,9 +2271,7 @@ $psql_found = find_postgres_executable('psql');
                     </div>
 
                     <div style="display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;">
-                        <button type="button" class="btn btn-outline" onclick="testIntegrations()">
-                            <i class="fas fa-flask"></i> Probar Conexiones
-                        </button>
+                      
                         <button type="button" class="btn btn-primary" id="btnGuardarIntegraciones" onclick="guardarIntegraciones()">
                             <i class="fas fa-save"></i> Guardar Configuración
                         </button>
@@ -2395,7 +2393,7 @@ $psql_found = find_postgres_executable('psql');
     </div>
 
     <!-- Modal para subir backup -->
-    <div class="modal-overlay" id="uploadModal" style="display: none;">
+    <div class="modal-overlay" id="uploadModal">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
                 <h3><i class="fas fa-cloud-upload-alt"></i> Subir Backup</h3>
@@ -2430,6 +2428,16 @@ $psql_found = find_postgres_executable('psql');
 <script>
     // Configuración
     window.APP_BASE = '<?php echo BASE_URL; ?>';
+
+    function goBack() {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else if (window.APP_BASE) {
+            window.location.href = window.APP_BASE + '/index.php';
+        } else {
+            window.location.href = '<?php echo htmlspecialchars(BASE_URL . '/index.php'); ?>';
+        }
+    }
     
     // Elementos del DOM para backup
     const backupAlert = document.getElementById('backupAlert');
@@ -2460,39 +2468,38 @@ $psql_found = find_postgres_executable('psql');
     }
     
     // Crear backup
-    async function createBackup() {
-        if (!confirm('¿Crear una nueva copia de seguridad de la base de datos?')) {
-            return;
-        }
+    
+   async function createBackup() {
+    const confirmed = await confirmAction('¿Crear una nueva copia de seguridad de la base de datos?');
+    if (!confirmed) return;
+    
+    createBackupBtn.disabled = true;
+    createBackupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Creando backup...</span>';
+    
+    try {
+        const response = await fetch('', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'action=create_backup'
+        });
         
-        createBackupBtn.disabled = true;
-        createBackupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Creando backup...</span>';
+        const data = await response.json();
         
-        try {
-            const response = await fetch('', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'action=create_backup'
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showAlert(`✅ Backup creado exitosamente: ${data.filename}`, 'success');
-                // Recargar la lista después de 1 segundo
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showAlert(`❌ Error: ${data.message}`, 'error');
-            }
-        } catch (error) {
-            showAlert(`❌ Error de conexión: ${error.message}`, 'error');
-        } finally {
-            createBackupBtn.disabled = false;
-            createBackupBtn.innerHTML = '<i class="fas fa-plus-circle"></i> <span>Crear Backup Ahora</span>';
+        if (data.success) {
+            showAlert(`Backup creado exitosamente: ${data.filename}`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(`Error: ${data.message}`, 'error');
         }
+    } catch (error) {
+        showAlert(`Error de conexión: ${error.message}`, 'error');
+    } finally {
+        createBackupBtn.disabled = false;
+        createBackupBtn.innerHTML = '<i class="fas fa-plus-circle"></i> <span>Crear Backup Ahora</span>';
     }
+}
     
     // Descargar backup
     function downloadBackup(filename) {
@@ -2501,21 +2508,21 @@ $psql_found = find_postgres_executable('psql');
     
     // Restaurar backup
     async function restoreBackup(filename) {
-        if (!confirm(`⚠️ ATENCIÓN: Esto sobrescribirá TODOS los datos actuales con los del backup "${filename}".\n\n¿Está completamente seguro de continuar?`)) {
-            return;
-        }
-        
-        if (!confirm('❌ ÚLTIMA ADVERTENCIA: Esta acción NO se puede deshacer. ¿Continuar?')) {
-            return;
-        }
-        
+           const confirmed = await confirmAction(
+        `ATENCIÓN: Esto sobrescribirá TODOS los datos actuales con los del backup "${filename}".\n\n¿Está completamente seguro de continuar?`
+    );
+    if (!confirmed) return;
+    
+    const confirmed2 = await confirmAction('ÚLTIMA ADVERTENCIA: Esta acción NO se puede deshacer. ¿Continuar?');
+    if (!confirmed2) return;
+
         const password = prompt('Escriba "CONFIRMAR" para proceder con la restauración:');
         if (password !== 'CONFIRMAR') {
             alert('Restauración cancelada');
             return;
         }
         
-        showAlert(`🔄 Restaurando backup: ${filename}...`, 'warning');
+        showAlert(` Restaurando backup: ${filename}...`, 'warning');
         
         try {
             const response = await fetch('', {
@@ -2529,52 +2536,50 @@ $psql_found = find_postgres_executable('psql');
             const data = await response.json();
             
             if (data.success) {
-                showAlert(`✅ Base de datos restaurada exitosamente. La página se recargará en 3 segundos.`, 'success');
+                showAlert(`Base de datos restaurada exitosamente. La página se recargará en 3 segundos.`, 'success');
                 setTimeout(() => location.reload(), 3000);
             } else {
-                showAlert(`❌ Error al restaurar: ${data.message}`, 'error');
+                showAlert(` Error al restaurar: ${data.message}`, 'error');
             }
         } catch (error) {
-            showAlert(`❌ Error de conexión: ${error.message}`, 'error');
+            showAlert(` Error de conexión: ${error.message}`, 'error');
         }
     }
     
     // Eliminar backup
     async function deleteBackup(filename) {
-        if (!confirm(`¿Eliminar permanentemente el backup "${filename}"?`)) {
-            return;
-        }
+    const confirmed = await confirmAction(`¿Eliminar permanentemente el backup "${filename}"?`);
+    if (!confirmed) return;
+    
+    try {
+        const response = await fetch('', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=delete_backup&filename=${encodeURIComponent(filename)}`
+        });
         
-        try {
-            const response = await fetch('', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `action=delete_backup&filename=${encodeURIComponent(filename)}`
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                showAlert(`✅ Backup eliminado: ${filename}`, 'success');
-                // Recargar la lista después de 1 segundo
-                setTimeout(() => location.reload(), 1000);
-            } else {
-                showAlert(`❌ Error: ${data.message}`, 'error');
-            }
-        } catch (error) {
-            showAlert(`❌ Error de conexión: ${error.message}`, 'error');
+        const data = await response.json();
+        
+        if (data.success) {
+            showAlert(`Backup eliminado: ${filename}`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(`Error: ${data.message}`, 'error');
         }
+    } catch (error) {
+        showAlert(`Error de conexión: ${error.message}`, 'error');
     }
+}
     
     // Modal para subir backup
     function openUploadModal() {
-        uploadModal.style.display = 'block';
+        uploadModal.classList.add('active');
     }
     
     function closeUploadModal() {
-        uploadModal.style.display = 'none';
+        uploadModal.classList.remove('active');
         document.getElementById('backupFile').value = '';
     }
     
@@ -2599,7 +2604,7 @@ $psql_found = find_postgres_executable('psql');
             return;
         }
         
-        if (autoRestore && !confirm('⚠️ ADVERTENCIA: Esto restaurará el backup después de subirlo, sobrescribiendo la base de datos actual. ¿Continuar?')) {
+        if (autoRestore && !confirm(' ADVERTENCIA: Esto restaurará el backup después de subirlo, sobrescribiendo la base de datos actual. ¿Continuar?')) {
             return;
         }
         
@@ -2607,7 +2612,7 @@ $psql_found = find_postgres_executable('psql');
         formData.append('backupFile', file);
         formData.append('autoRestore', autoRestore ? '1' : '0');
         
-        showAlert('📤 Subiendo archivo...', 'warning');
+        showAlert('Subiendo archivo...', 'warning');
         
         try {
             const response = await fetch(`${APP_BASE}/config/upload_backup.php`, {
@@ -2618,34 +2623,33 @@ $psql_found = find_postgres_executable('psql');
             const data = await response.json();
             
             if (data.success) {
-                showAlert(`✅ ${data.message}`, 'success');
+                showAlert(`${data.message}`, 'success');
                 closeUploadModal();
                 setTimeout(() => location.reload(), 2000);
             } else {
-                showAlert(`❌ ${data.message}`, 'error');
+                showAlert(`${data.message}`, 'error');
             }
         } catch (error) {
-            showAlert(`❌ Error al subir: ${error.message}`, 'error');
+            showAlert(`Error al subir: ${error.message}`, 'error');
         }
     }
     
     // Limpiar backups antiguos
     async function cleanOldBackups() {
-        if (!confirm('¿Eliminar todos los backups con más de 30 días?')) {
-            return;
-        }
-        
-        showAlert('🧹 Limpiando backups antiguos...', 'warning');
-        
-        try {
-            const response = await fetch(`${APP_BASE}/config/clean_backups.php`);
-            const data = await response.text();
-            showAlert('✅ Backups antiguos eliminados', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } catch (error) {
-            showAlert(`❌ Error: ${error.message}`, 'error');
-        }
+    const confirmed = await confirmAction('¿Eliminar todos los backups con más de 30 días?');
+    if (!confirmed) return;
+    
+    showAlert('Limpiando backups antiguos...', 'warning');
+    
+    try {
+        const response = await fetch(`${APP_BASE}/config/clean_backups.php`);
+        const data = await response.text();
+        showAlert('Backups antiguos eliminados', 'success');
+        setTimeout(() => location.reload(), 1000);
+    } catch (error) {
+        showAlert(`Error: ${error.message}`, 'error');
     }
+}
     
     // Funciones para bitácora
     let currentBitacoraPage = 1;
@@ -2792,7 +2796,7 @@ $psql_found = find_postgres_executable('psql');
     }
     
     async function cleanBitacora() {
-        if (!confirm('⚠️ ¿Eliminar registros de bitácora con más de 90 días?\n\nEsta acción no se puede deshacer.')) {
+        if (!confirm('¿Eliminar registros de bitácora con más de 90 días?\n\nEsta acción no se puede deshacer.')) {
             return;
         }
         
@@ -2817,10 +2821,10 @@ $psql_found = find_postgres_executable('psql');
             const result = await response.json();
             
             if (result.success) {
-                alert(`✅ ${result.message}\n\nRegistros eliminados: ${result.deleted}`);
+                alert(`${result.message}\n\nRegistros eliminados: ${result.deleted}`);
                 location.reload();
             } else {
-                alert(`❌ Error: ${result.message}`);
+                alert(`Error: ${result.message}`);
             }
         } catch (error) {
             alert('Error de conexión: ' + error.message);
@@ -2979,7 +2983,7 @@ $psql_found = find_postgres_executable('psql');
 
             if (j.success) {
                 alerta.style.cssText = 'display:block;padding:14px 18px;border-radius:8px;margin-bottom:20px;font-weight:500;background:#d4edda;color:#155724;border:1px solid #c3e6cb;';
-                alerta.innerHTML = '<i class="fas fa-check-circle"></i> ✅ Configuración guardada correctamente. Los cambios se aplican de inmediato en el carrito.';
+                alerta.innerHTML = '<i class="fas fa-check-circle"></i> Configuración guardada correctamente. Los cambios se aplican de inmediato en el carrito.';
                 // Recargar la página tras 1.5s para que los badges de estado se actualicen
                 setTimeout(() => location.reload(), 1500);
             } else {
@@ -3010,9 +3014,9 @@ $psql_found = find_postgres_executable('psql');
         if (wa) {
             const onlyDigits = wa.replace(/\D/,'');
             if (onlyDigits.length >= 10 && onlyDigits.length <= 15) {
-                resultados.push('<span style="color:#25D366;">✅ WhatsApp: número válido (' + wa + ')</span>');
+                resultados.push('<span style="color:#25D366;">WhatsApp: número válido (' + wa + ')</span>');
             } else {
-                resultados.push('<span style="color:#e74c3c;">❌ WhatsApp: número inválido (debe tener 10-15 dígitos)</span>');
+                resultados.push('<span style="color:#e74c3c;">WhatsApp: número inválido (debe tener 10-15 dígitos)</span>');
             }
         } else {
             resultados.push('<span style="color:#aaa;">⚪ WhatsApp: sin número configurado</span>');
@@ -3022,8 +3026,8 @@ $psql_found = find_postgres_executable('psql');
         if (em) {
             const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em);
             resultados.push(emailOk
-                ? '<span style="color:#25D366;">✅ Email: dirección válida (' + em + ')</span>'
-                : '<span style="color:#e74c3c;">❌ Email: formato inválido</span>');
+                ? '<span style="color:#25D366;">Email: dirección válida (' + em + ')</span>'
+                : '<span style="color:#e74c3c;">Email: formato inválido</span>');
         } else {
             resultados.push('<span style="color:#aaa;">⚪ Email: sin dirección configurada</span>');
         }
@@ -3032,10 +3036,10 @@ $psql_found = find_postgres_executable('psql');
         if (tg_tok && tg_id) {
             const tokenOk = /^\d+:[A-Za-z0-9_-]{30,}$/.test(tg_tok);
             resultados.push(tokenOk
-                ? '<span style="color:#25D366;">✅ Telegram: token con formato válido</span>'
-                : '<span style="color:#e74c3c;">❌ Telegram: token con formato inválido</span>');
+                ? '<span style="color:#25D366;">Telegram: token con formato válido</span>'
+                : '<span style="color:#e74c3c;">Telegram: token con formato inválido</span>');
         } else if (tg_tok || tg_id) {
-            resultados.push('<span style="color:#f39c12;">⚠️ Telegram: faltan Token o Chat ID</span>');
+            resultados.push('<span style="color:#f39c12;">Telegram: faltan Token o Chat ID</span>');
         } else {
             resultados.push('<span style="color:#aaa;">⚪ Telegram: sin configurar</span>');
         }
@@ -3298,13 +3302,13 @@ $psql_found = find_postgres_executable('psql');
             document.body.removeChild(a);
 
             // Mostrar mensaje de éxito
-            showNotification(`✅ ${title} descargado exitosamente`, 'success');
+            showNotification(`${title} descargado exitosamente`, 'success');
 
         } catch (error) {
             console.error('Error descargando manual:', error);
 
             // Mostrar mensaje de error
-            showNotification(`❌ Error al descargar ${title}: ${error.message}`, 'error');
+            showNotification(`Error al descargar ${title}: ${error.message}`, 'error');
 
             // Si el archivo no existe, mostrar mensaje alternativo
             if (error.message.includes('404') || error.message.includes('no encontrado')) {

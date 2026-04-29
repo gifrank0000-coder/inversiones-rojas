@@ -211,6 +211,20 @@ CREATE TABLE IF NOT EXISTS public.metodos_pago
     CONSTRAINT metodos_pago_pkey PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS public.metodos_pago_reservas
+(
+    id serial NOT NULL,
+    tipo character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    banco character varying(100) COLLATE pg_catalog."default",
+    cedula character varying(20) COLLATE pg_catalog."default",
+    telefono character varying(15) COLLATE pg_catalog."default",
+    numero_cuenta character varying(50) COLLATE pg_catalog."default",
+    codigo_banco character varying(10) COLLATE pg_catalog."default",
+    estado boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT metodos_pago_reservas_pkey PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS public.movimientos_inventario
 (
     id serial NOT NULL,
@@ -263,6 +277,8 @@ CREATE TABLE IF NOT EXISTS public.pedidos_online
     venta_id integer,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    comprobante_url character varying(500) COLLATE pg_catalog."default",
+    metodo_pago character varying(200) COLLATE pg_catalog."default",
     CONSTRAINT pedidos_online_pkey PRIMARY KEY (id),
     CONSTRAINT pedidos_online_codigo_pedido_key UNIQUE (codigo_pedido)
 );
@@ -325,6 +341,7 @@ CREATE TABLE IF NOT EXISTS public.productos
     precio_venta_usd numeric(12, 2),
     precio_compra_bs numeric(12, 2),
     precio_compra_usd numeric(12, 2),
+    stock_reservado integer DEFAULT 0,
     CONSTRAINT productos_pkey PRIMARY KEY (id),
     CONSTRAINT productos_codigo_interno_key UNIQUE (codigo_interno)
 );
@@ -402,6 +419,14 @@ CREATE TABLE IF NOT EXISTS public.reservas
     comprobante_url text COLLATE pg_catalog."default",
     ip_address character varying(45) COLLATE pg_catalog."default",
     user_agent text COLLATE pg_catalog."default",
+    metodo_pago_resto character varying(100) COLLATE pg_catalog."default",
+    referencia_pago_resto character varying(100) COLLATE pg_catalog."default",
+    comprobante_url_resto text COLLATE pg_catalog."default",
+    monto_pagado_resto numeric(12, 2) DEFAULT 0,
+    fecha_pago_resto timestamp without time zone,
+    subtotal numeric(12, 2) DEFAULT 0,
+    iva numeric(12, 2) DEFAULT 0,
+    monto_total numeric(12, 2) DEFAULT 0,
     CONSTRAINT reservas_pkey PRIMARY KEY (id),
     CONSTRAINT reservas_codigo_reserva_key UNIQUE (codigo_reserva)
 );
@@ -487,6 +512,21 @@ CREATE TABLE IF NOT EXISTS public.vehiculos
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT vehiculos_pkey PRIMARY KEY (id),
     CONSTRAINT vehiculos_producto_id_key UNIQUE (producto_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.venta_pagos
+(
+    id serial NOT NULL,
+    venta_id integer NOT NULL,
+    metodo_pago_id integer,
+    metodo_nombre character varying(200) COLLATE pg_catalog."default",
+    moneda character varying(10) COLLATE pg_catalog."default" DEFAULT 'BS'::character varying,
+    monto numeric(14, 2) DEFAULT 0,
+    monto_bs numeric(14, 2) DEFAULT 0,
+    monto_usd numeric(14, 2) DEFAULT 0,
+    es_efectivo boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT venta_pagos_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS public.ventas
@@ -833,6 +873,22 @@ ALTER TABLE IF EXISTS public.vehiculos
     ON DELETE CASCADE;
 CREATE INDEX IF NOT EXISTS vehiculos_producto_id_key
     ON public.vehiculos(producto_id);
+
+
+ALTER TABLE IF EXISTS public.venta_pagos
+    ADD CONSTRAINT venta_pagos_metodo_pago_id_fkey FOREIGN KEY (metodo_pago_id)
+    REFERENCES public.metodos_pago (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE NO ACTION;
+
+
+ALTER TABLE IF EXISTS public.venta_pagos
+    ADD CONSTRAINT venta_pagos_venta_id_fkey FOREIGN KEY (venta_id)
+    REFERENCES public.ventas (id) MATCH SIMPLE
+    ON UPDATE NO ACTION
+    ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_venta_pagos_venta_id
+    ON public.venta_pagos(venta_id);
 
 
 ALTER TABLE IF EXISTS public.ventas

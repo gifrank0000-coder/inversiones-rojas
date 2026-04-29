@@ -24,9 +24,12 @@ try {
     $db = new Database();
     $conn = $db->getConnection();
     
+    // Convertir boolean a integer (0 ó 1) para PostgreSQL
+    $estado_int = ($estado === '1' || $estado === 'true') ? 1 : 0;
+    
     $stmt = $conn->prepare("UPDATE clientes SET estado = :estado, updated_at = NOW() WHERE id = :id");
     $stmt->execute([
-        ':estado' => $estado === '1' || $estado === 'true' ? true : false,
+        ':estado' => $estado_int,
         ':id' => $id
     ]);
     

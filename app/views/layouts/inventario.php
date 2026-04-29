@@ -12,6 +12,35 @@ $proveedores = $stmt->fetchAll();
 // Listado de categorías para filtro de inventario
 $stmt = $pdo->query("SELECT id, nombre FROM categorias WHERE estado = true ORDER BY nombre");
 $categorias = $stmt->fetchAll();
+
+// Después de obtener $categorias (línea ~30), agrega:
+
+// Obtener categorías agrupadas por tipo de producto
+$categoriasPorTipo = [
+    'VEHICULO' => [],
+    'REPUESTO' => [],
+    'ACCESORIO' => []
+];
+
+$stmt = $pdo->query("
+    SELECT c.id, c.nombre, tp.nombre as tipo_nombre
+    FROM categorias c
+    INNER JOIN tipos_producto tp ON c.tipo_producto_id = tp.id
+    WHERE c.estado = true 
+    ORDER BY tp.nombre, c.nombre
+");
+
+while ($cat = $stmt->fetch()) {
+    $tipo = strtoupper($cat['tipo_nombre']);
+    
+    if ($tipo == 'VEHICULO' || $tipo == 'MOTO') {
+        $categoriasPorTipo['VEHICULO'][] = ['id' => $cat['id'], 'nombre' => $cat['nombre']];
+    } elseif ($tipo == 'REPUESTO') {
+        $categoriasPorTipo['REPUESTO'][] = ['id' => $cat['id'], 'nombre' => $cat['nombre']];
+    } elseif ($tipo == 'ACCESORIO') {
+        $categoriasPorTipo['ACCESORIO'][] = ['id' => $cat['id'], 'nombre' => $cat['nombre']];
+    }
+}
 ?>
 
 <!DOCTYPE html>

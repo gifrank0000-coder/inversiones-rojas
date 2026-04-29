@@ -19,6 +19,17 @@ class Usuario {
     }
 
     /**
+     * Obtener usuario por email o username
+     */
+    public function obtenerPorEmailOUsername($identificador) {
+        $query = "SELECT * FROM " . $this->table_name . " WHERE (email = :identificador OR username = :identificador) AND estado = true";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':identificador', $identificador);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Actualizar contador de intentos fallidos
      */
     public function actualizarIntentosFallidos($usuarioId, $intentos) {

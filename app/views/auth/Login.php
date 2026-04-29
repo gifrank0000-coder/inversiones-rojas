@@ -186,10 +186,10 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
             <input type="text" name="website" id="website" style="position:absolute;left:-9999px;top:auto;opacity:0;" tabindex="-1" autocomplete="off">
             
             <div class="form-group">
-                <label for="email">Correo Electrónico</label>
+                <label for="email">Usuario o Correo electrónico</label>
                 <div class="input-group">
                     <i class="fas fa-envelope"></i>
-                    <input type="text" id="email" name="email" placeholder="tu@email.com" autocomplete="email">
+                    <input type="text" id="email" name="email" placeholder="usuario123 o tu@email.com" autocomplete="username">
                 </div>
                 <div id="emailValidationMessage" class="email-validation-message"></div>
             </div>
@@ -250,6 +250,16 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                 return emailRegex.test(email);
             }
             
+            function validateUsernameFormat(username) {
+                // Username: letras, números, guiones y guiones bajos, 3-50 caracteres
+                const usernameRegex = /^[a-zA-Z0-9_\-]{3,50}$/;
+                return usernameRegex.test(username);
+            }
+            
+            function isValidIdentifier(identifier) {
+                return validateEmailFormat(identifier) || validateUsernameFormat(identifier);
+            }
+            
             function showFormMessage(message, type) {
                 formMessage.textContent = message;
                 formMessage.className = 'form-message ' + type;
@@ -283,8 +293,8 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                 inputGroup.classList.remove('is-valid', 'is-invalid');
             }
             
-            function checkEmail() {
-                const email = emailInput.value.trim();
+            function checkIdentifier() {
+                const identifier = emailInput.value.trim();
                 
                 if (emailCheckTimeout) {
                     clearTimeout(emailCheckTimeout);
@@ -293,14 +303,14 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                 clearEmailMessage();
                 emailValidated = false;
                 
-                if (!email) {
+                if (!identifier) {
                     lastCheckedEmail = '';
                     return;
                 }
                 
-                if (!validateEmailFormat(email)) {
+                if (!isValidIdentifier(identifier)) {
                     showEmailMessage(
-                        '<i class="fas fa-exclamation-circle"></i> Por favor ingresa un correo electrónico válido',
+                        '<i class="fas fa-exclamation-circle"></i> Ingresa un correo electrónico válido o nombre de usuario (3-50 caracteres)',
                         'error'
                     );
                     emailValidated = false;
@@ -308,25 +318,51 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                 }
                 
                 emailCheckTimeout = setTimeout(() => {
-                    const url = buildUrl('/api/check_email.php') + '?email=' + encodeURIComponent(email);
+                    // Verificar si existe como email o username
+                    const emailUrl = buildUrl('/api/check_email.php') + '?email=' + encodeURIComponent(identifier);
+                    const usernameUrl = buildUrl('/api/check_username.php') + '?username=' + encodeURIComponent(identifier);
+                    
+                    console.log('Checking identifier:', identifier);
+                    console.log('Email URL:', emailUrl);
+                    console.log('Username URL:', usernameUrl);
 
-                    fetch(url)
-                        .then(response => response.json())
+                    // Intentar primero como email
+                    fetch(emailUrl)
+                        .then(response => {
+                            console.log('Email response status:', response.status);
+                            return response.json();
+                        })
                         .then(data => {
+                            console.log('Email API response:', data);
                             if (data.exists) {
-                                showEmailMessage('<i class="fas fa-check-circle"></i> Correo válido','success');
+                                console.log('Email exists, showing success message');
+                                showEmailMessage('<i class="fas fa-check-circle"></i> Usuario válido','success');
                                 emailValidated = true;
-                                lastCheckedEmail = email;
+                                lastCheckedEmail = identifier;
+                                return; // Importante: detener aquí si el email existe
                             } else {
-                                showEmailMessage(
-                                    '<i class="fas fa-exclamation-circle"></i> Correo inválido o no registrado',
-                                    'error'
-                                );
-                                emailValidated = false;
+                                console.log('Email does not exist, trying username');
+                                // Si no es email válido, intentar como username
+                                return fetch(usernameUrl).then(response => response.json()).then(usernameData => {
+                                    console.log('Username API response:', usernameData);
+                                    if (usernameData.exists) {
+                                        console.log('Username exists, showing success message');
+                                        showEmailMessage('<i class="fas fa-check-circle"></i> Usuario válido','success');
+                                        emailValidated = true;
+                                        lastCheckedEmail = identifier;
+                                    } else {
+                                        console.log('Neither email nor username exists, showing error');
+                                        showEmailMessage(
+                                            '<i class="fas fa-exclamation-circle"></i> Usuario no encontrado',
+                                            'error'
+                                        );
+                                        emailValidated = false;
+                                    }
+                                });
                             }
                         })
                         .catch(error => {
-                            console.error('Error:', error);
+                            console.error('Error checking identifier:', error);
                             showEmailMessage(
                                 '<i class="fas fa-exclamation-circle"></i> Error de conexión. Intenta de nuevo.',
                                 'error'
@@ -335,6 +371,25 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                         });
                 }, 500);
             }
+            
+            // Event listeners para validación en tiempo real
+            emailInput.addEventListener('input', function() {
+                if (emailCheckTimeout) {
+                    clearTimeout(emailCheckTimeout);
+                }
+                clearEmailMessage();
+                emailValidated = false;
+                lastCheckedEmail = '';
+                
+                // Llamar a checkIdentifier con delay
+                emailCheckTimeout = setTimeout(() => {
+                    checkIdentifier();
+                }, 300);
+            });
+            
+            emailInput.addEventListener('blur', function() {
+                checkIdentifier();
+            });
             
             loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -346,35 +401,45 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                     return;
                 }
                 
-                const email = emailInput.value.trim();
+                const identifier = emailInput.value.trim();
                 const password = passwordInput.value.trim();
                 
-                if (!email || !password) {
+                if (!identifier || !password) {
                     showFormMessage('Por favor completa todos los campos', 'error');
-                    if (!email) emailInput.focus();
+                    if (!identifier) emailInput.focus();
                     else passwordInput.focus();
                     return;
                 }
                 
-                if (!validateEmailFormat(email)) {
-                    showFormMessage('Por favor ingresa un correo electrónico válido', 'error');
+                if (!isValidIdentifier(identifier)) {
+                    showFormMessage('Ingresa un correo electrónico válido o nombre de usuario (3-50 caracteres)', 'error');
                     emailInput.focus();
                     return;
                 }
                 
                 if (!emailValidated) {
                     try {
-                        const url = buildUrl('/api/check_email.php') + '?email=' + encodeURIComponent(email);
-                        const resp = await fetch(url);
-                        const data = await resp.json();
-                        if (data.success && data.exists) {
+                        // Verificar si existe como email o username
+                        const emailUrl = buildUrl('/api/check_email.php') + '?email=' + encodeURIComponent(identifier);
+                        const usernameUrl = buildUrl('/api/check_username.php') + '?username=' + encodeURIComponent(identifier);
+                        
+                        const emailResp = await fetch(emailUrl);
+                        const emailData = await emailResp.json();
+                        
+                        if (emailData.exists) {
                             emailValidated = true;
                         } else {
-                            showEmailMessage(
-                                '<i class="fas fa-exclamation-circle"></i> Correo inválido o no registrado',
-                                'error'
-                            );
-                            return;
+                            const usernameResp = await fetch(usernameUrl);
+                            const usernameData = await usernameResp.json();
+                            if (usernameData.exists) {
+                                emailValidated = true;
+                            } else {
+                                showEmailMessage(
+                                    '<i class="fas fa-exclamation-circle"></i> Usuario no encontrado',
+                                    'error'
+                                );
+                                return;
+                            }
                         }
                     } catch (err) {
                         console.error('Error:', err);

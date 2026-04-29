@@ -2,6 +2,7 @@
 session_start();
 require_once __DIR__ . '/../../../config/config.php';
 require_once __DIR__ . '/../../helpers/moneda_helper.php';
+
 $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 
 // Verificar si el usuario está logueado (usando los nombres de session de process_login.php)
@@ -46,13 +47,7 @@ if (!isset($_SESSION['user_name']) || $nombre_usuario == 'Sistema') {
     <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/layouts/ventas.css">
     <style>
     
-    /* ================================================================
-       VENTAS — Estilos inline (modal + componentes)
-       El CSS de layout de página viene de ventas.css externo.
-       Este bloque hace el modal autosuficiente sin depender de caché.
-       ================================================================ */
 
-    /* ── Moneda dual ── */
     .moneda-bs  { color: #1F9166; font-weight: 600; }
     .moneda-usd { color: #6c757d; font-size: 0.9em; }
 
@@ -257,6 +252,7 @@ if (!isset($_SESSION['user_name']) || $nombre_usuario == 'Sistema') {
     .btn-complete:hover { background: #187c56; }
     .btn-print  { background: #3498db; color: #fff; }
     .btn-print:hover { background: #2980b9; }
+    .btn-btn-report{color: white; background: #6c757d;}
 
     /* ================================================================
        MODAL NUEVA VENTA — Layout de dos paneles
@@ -942,7 +938,7 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                     Nueva Venta
                 </button>
              
-                <button class="btn btn-report" id="openReportsModalBtn">
+                <button class="btn btn-report" style="color: white; background: #6c757d;" id="openReportsModalBtn">
                     <i class="fas fa-chart-bar"></i>
                     Reportes
                 </button>
@@ -1099,7 +1095,6 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                                         <th>Código</th>
                                         <th>Producto</th>
                                         <th>Cantidad</th>
-                                        <th>Precio</th>
                                         <th>Total</th>
                                         <th></th>
                                     </tr>
@@ -1198,18 +1193,64 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                         
 
                         
-                        <!-- Sección de efectivo -->
+                        <!-- Sección de efectivo — moneda dinámica según método seleccionado -->
                         <div id="cashSection" style="display: none;">
                             <div class="cash-section">
                                 <div class="cash-input-group">
-                                    <label>Efectivo Recibido (USD):</label>
-                                    <input type="number" id="cashReceived" placeholder="0.00" step="0.01" min="0">
+                                    <label id="cashReceivedLabel">Efectivo Recibido:</label>
+                                    <input type="text" id="cashReceived"
+                                           placeholder="0.00"
+                                           inputmode="decimal"
+                                           style="text-align:right;">
                                 </div>
+                                <!-- Vuelto principal (en la moneda del pago) -->
                                 <div class="change-display" id="changeDisplay">
-                                    Vuelto: Bs 0.00
+                                    Vuelto: 0.00
                                 </div>
-                                <div style="font-size: 0.75rem; color: #666; margin-top: 4px; text-align: center;">
-                                    Equivalente: Bs <span id="cashReceivedBs">0.00</span>
+                                <!-- Equivalente en la otra moneda -->
+                                <div style="font-size: 0.75rem; color: #666; margin-top: 4px; text-align: center;" id="changeEquivalent">
+                                    &nbsp;
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── PAGOS MÚLTIPLES ─────────────────────────────────── -->
+                        <!-- Toggle para activar modo multi-pago -->
+                        <div style="margin-top:10px;padding:8px 0;border-top:1px dashed #e0e0e0;">
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:#555;user-select:none;">
+                                <input type="checkbox" id="multiPayToggle" style="width:15px;height:15px;accent-color:#1F9166;">
+                                <span><i class="fas fa-layer-group" style="color:#1F9166;"></i> Dividir pago en varios métodos</span>
+                            </label>
+                        </div>
+
+                        <!-- Sección multi-pago (oculta por defecto) -->
+                        <div id="multiPaySection" style="display:none;margin-top:8px;border:1px solid #d0e8dc;border-radius:8px;padding:11px;background:#f7fdf9;">
+                            <p style="font-size:11.5px;color:#1F9166;font-weight:700;margin:0 0 9px;display:flex;align-items:center;gap:5px;">
+                                <i class="fas fa-credit-card"></i> Métodos de pago combinados
+                            </p>
+
+                            <div id="multiPayLines">
+                                <!-- Las líneas de pago se agregan aquí -->
+                            </div>
+
+                            <button type="button" id="addMultiPayLine"
+                                    style="width:100%;padding:7px;margin-top:6px;background:#fff;border:1px dashed #1F9166;border-radius:6px;color:#1F9166;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;">
+                                <i class="fas fa-plus"></i> Agregar otro método de pago
+                            </button>
+
+                            <!-- Resumen del balance -->
+                            <div style="margin-top:10px;padding:9px;background:#fff;border-radius:6px;border:1px solid #e0e0e0;font-size:12.5px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                                    <span>Total venta:</span>
+                                    <span id="mpTotalVenta" style="font-weight:700;color:#1F9166;">$0.00</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                                    <span>Total pagado:</span>
+                                    <span id="mpTotalPagado" style="font-weight:700;">$0.00</span>
+                                </div>
+                                <div style="display:flex;justify-content:space-between;border-top:1px solid #eee;padding-top:5px;margin-top:3px;">
+                                    <span>Pendiente:</span>
+                                    <span id="mpPendiente" style="font-weight:800;color:#e74c3c;">$0.00</span>
                                 </div>
                             </div>
                         </div>
@@ -1371,6 +1412,14 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
         cart = [];
         selectedClient = null;
         selectedPaymentMethod = null;
+        // Reset multi-pago
+        if (typeof multiPayMethods !== 'undefined') multiPayMethods = [];
+        const mpToggle = document.getElementById('multiPayToggle');
+        if (mpToggle) mpToggle.checked = false;
+        const mpSection = document.getElementById('multiPaySection');
+        if (mpSection) mpSection.style.display = 'none';
+        const mpLines = document.getElementById('multiPayLines');
+        if (mpLines) mpLines.innerHTML = '';
         updateCartUI();
         updateInvoiceComprobante();
         updateDateTime();
@@ -1454,59 +1503,49 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
         return { subtotal, tax, total };
     }
     
+    // ── Detectar moneda del método de pago seleccionado ─────────────────────
     function getPaymentCurrency() {
-        const selectedOption = paymentMethodSelect?.options[paymentMethodSelect.selectedIndex];
-        const moneda = selectedOption?.dataset?.moneda || 'AMBOS';
-        const selectedText = selectedOption?.textContent?.toLowerCase() || '';
-        
+        const sel  = paymentMethodSelect?.options[paymentMethodSelect.selectedIndex];
+        if (!sel)  return 'BS';
+        const moneda = (sel.dataset?.moneda || '').toUpperCase();
+        const txt  = (sel.textContent || '').toLowerCase();
         if (moneda === 'USD') return 'USD';
-        if (moneda === 'BS') return 'BS';
-        if (selectedText.includes('efectivo $')) return 'USD';
+        if (moneda === 'BS')  return 'BS';
+        if (txt.includes('efectivo $') || txt.includes('efectivo dolar') || txt.includes('cash usd')) return 'USD';
         return 'BS';
+    }
+
+    // Detecta si el método actual requiere sección de efectivo/vuelto
+    function isEfectivo() {
+        const sel = paymentMethodSelect?.options[paymentMethodSelect.selectedIndex];
+        if (!sel) return false;
+        const txt = (sel.textContent || '').toLowerCase();
+        return txt.includes('efectivo') || txt.includes('cash') || txt.includes('contado');
+    }
+
+    // Parser de números con formato local (1.400,00) y americano (1,400.00)
+    function parseLocalFloat(str) {
+        if (!str) return 0;
+        let s = String(str).trim();
+        if (/,\d{1,2}$/.test(s)) { s = s.replace(/\./g, '').replace(',', '.'); }
+        else { s = s.replace(/,/g, ''); }
+        return parseFloat(s) || 0;
     }
     
     function calculateTotalsInCurrency() {
         const totals = calculateTotals();
         const currency = getPaymentCurrency();
         const tasa = window.TASA_CAMBIO || 35.50;
-        
-        let subtotalBs, taxBs, totalBs;
-        let subtotalUsd, taxUsd, totalUsd;
-        
+        let subtotalBs, taxBs, totalBs, subtotalUsd, taxUsd, totalUsd;
         if (currency === 'USD') {
-            subtotalUsd = totals.subtotal;
-            taxUsd = totals.tax;
-            totalUsd = totals.total;
-            subtotalBs = subtotalUsd * tasa;
-            taxBs = taxUsd * tasa;
-            totalBs = totalUsd * tasa;
+            subtotalUsd = totals.subtotal; taxUsd = totals.tax; totalUsd = totals.total;
+            subtotalBs = subtotalUsd * tasa; taxBs = taxUsd * tasa; totalBs = totalUsd * tasa;
         } else {
-            subtotalBs = totals.subtotal * tasa;
-            taxBs = totals.tax * tasa;
-            totalBs = totals.total * tasa;
-            subtotalUsd = totals.subtotal;
-            taxUsd = totals.tax;
-            totalUsd = totals.total;
+            subtotalBs = totals.subtotal * tasa; taxBs = totals.tax * tasa; totalBs = totals.total * tasa;
+            subtotalUsd = totals.subtotal; taxUsd = totals.tax; totalUsd = totals.total;
         }
-        
-        return {
-            subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
-            subtotalBs, taxBs, totalBs,
-            subtotalUsd, taxUsd, totalUsd,
-            currency, tasa
-        };
-    }
-    
-    function getPaymentAmount() {
-        const currency = document.getElementById('paymentCurrency')?.value || 'BS';
-        const totals = calculateTotalsInCurrency();
-        
-        if (currency === 'USD') {
-            return totals.totalUsd;
-        } else if (currency === 'TARJETA') {
-            return totals.totalBs;
-        }
-        return totals.totalBs;
+        return { subtotal: totals.subtotal, tax: totals.tax, total: totals.total,
+                 subtotalBs, taxBs, totalBs, subtotalUsd, taxUsd, totalUsd, currency, tasa };
     }
 
     function updateCartUI() {
@@ -1539,12 +1578,8 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                         </div>
                     </td>
                     <td class="product-price">
-                        <span class="moneda-usd">$${item.price.toFixed(2)}</span>
-                        <span class="moneda-bs">Bs ${(item.price * (window.TASA_CAMBIO || 35.50)).toFixed(0)}</span>
-                    </td>
-                    <td class="product-price">
                         <span class="moneda-usd">$${itemTotal.toFixed(2)}</span>
-                        <span class="moneda-bs">Bs ${(itemTotal * (window.TASA_CAMBIO || 35.50)).toFixed(0)}</span>
+                        <span class="moneda-bs">Bs ${(itemTotal * (window.TASA_CAMBIO || 35.50)).toLocaleString('es-VE', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
                     </td>
                     <td>
                         <button class="remove-item" data-id="${item.id}">
@@ -1623,10 +1658,27 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
             });
         }
 
-        // Actualizar métodos de pago en el comprobante (en Bs)
+        // Actualizar métodos de pago en el comprobante
         paymentMethodsComprobante.innerHTML = '';
 
-        if (selectedPaymentMethod) {
+        // ── Modo multi-pago activo ────────────────────────────────────
+        const isMulti = document.getElementById('multiPayToggle')?.checked && typeof multiPayMethods !== 'undefined' && multiPayMethods.length > 0;
+        if (isMulti) {
+            const tasa = window.TASA_CAMBIO || 35.50;
+            multiPayMethods.forEach(function(mp) {
+                if (!mp.metodoPagoId && !mp.monto) return;
+                const monto = parseLocalFloat(mp.monto) || 0;
+                const montoFmt = (mp.moneda === 'USD')
+                    ? `$${monto.toFixed(2)} USD`
+                    : `Bs ${monto.toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                const row = document.createElement('div');
+                row.className = 'invoice-line-item';
+                row.innerHTML = `<span>${mp.nombre || '—'}:</span><span>${montoFmt}</span>`;
+                paymentMethodsComprobante.appendChild(row);
+            });
+        }
+        // ── Modo pago simple ──────────────────────────────────────────
+        else if (selectedPaymentMethod) {
             const selectedOption = paymentMethodSelect.options[paymentMethodSelect.selectedIndex];
             if (selectedOption) {
                 const paymentRow = document.createElement('div');
@@ -1637,28 +1689,33 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                 `;
                 paymentMethodsComprobante.appendChild(paymentRow);
 
-                // Si es efectivo, mostrar el cambio
-                if (selectedOption.textContent.toLowerCase().includes('efectivo') && cashReceived.value) {
-                    const cash = parseFloat(cashReceived.value);
-                    const cashBs = cash * tasa;
-                    if (cashBs > totalBs) {
-                        const changeRow = document.createElement('div');
-                        changeRow.className = 'invoice-line-item';
-                        changeRow.innerHTML = `
-                            <span>Vuelto:</span>
-                            <span>Bs ${(cashBs - totalBs).toFixed(2)}</span>
-                        `;
-                        paymentMethodsComprobante.appendChild(changeRow);
+                // Vuelto en efectivo
+                if (selectedOption.textContent.toLowerCase().includes('efectivo') && cashReceived?.value) {
+                    const paid = parseLocalFloat(cashReceived.value);
+                    const currency = getPaymentCurrency();
+                    if (currency === 'USD') {
+                        const changeUsd = paid - (totals.total);
+                        if (changeUsd > 0) {
+                            const cr = document.createElement('div');
+                            cr.className = 'invoice-line-item';
+                            cr.innerHTML = `<span>Vuelto:</span><span>$${changeUsd.toFixed(2)} USD</span>`;
+                            paymentMethodsComprobante.appendChild(cr);
+                        }
+                    } else {
+                        const cashBs = paid;
+                        if (cashBs > totalBs) {
+                            const cr = document.createElement('div');
+                            cr.className = 'invoice-line-item';
+                            cr.innerHTML = `<span>Vuelto:</span><span>Bs ${(cashBs - totalBs).toFixed(2)}</span>`;
+                            paymentMethodsComprobante.appendChild(cr);
+                        }
                     }
                 }
             }
         } else {
             const paymentRow = document.createElement('div');
             paymentRow.className = 'invoice-line-item';
-            paymentRow.innerHTML = `
-                <span>Por definir</span>
-                <span>Bs 0.00</span>
-            `;
+            paymentRow.innerHTML = `<span>Por definir</span><span>Bs 0.00</span>`;
             paymentMethodsComprobante.appendChild(paymentRow);
         }
 
@@ -1671,21 +1728,57 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
         calculateChange();
     }
 
-    // Calcular cambio para pagos en efectivo
+    // ── Vuelto/cambio — respeta moneda del método de pago ────────────────────
+    // Efectivo USD → paga en USD, vuelto en USD
+    // Efectivo Bs  → paga en Bs,  vuelto en Bs
     function calculateChange() {
-        const tasa = window.TASA_CAMBIO || 400;
-        if (cashReceived.value) {
-            const cash = parseFloat(cashReceived.value);
-            const cashBs = cash * tasa;
-            const totalBs = calculateTotals().total * tasa;
-
-            if (cashBs >= totalBs) {
-                changeDisplay.textContent = `Vuelto: Bs ${(cashBs - totalBs).toFixed(2)}`;
+        const tasa     = window.TASA_CAMBIO || 35.50;
+        const currency = getPaymentCurrency();
+        const totals   = calculateTotals();
+        const raw      = cashReceived?.value || '';
+        const paid     = parseLocalFloat(raw);
+        const label = document.getElementById('cashReceivedLabel');
+        const disp  = document.getElementById('changeDisplay');
+        const equiv = document.getElementById('changeEquivalent');
+        if (!disp) return;
+        if (currency === 'USD') {
+            const totalUsd = totals.total;
+            if (label) label.textContent = 'Efectivo Recibido (USD):';
+            if (paid > 0) {
+                const changeUsd = paid - totalUsd;
+                if (changeUsd >= 0) {
+                    disp.textContent = `Vuelto: $${changeUsd.toFixed(2)} USD`;
+                    disp.style.color = '#1F9166';
+                    if (equiv) equiv.textContent = `Equiv: Bs ${(changeUsd * tasa).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                } else {
+                    disp.textContent = `Falta: $${Math.abs(changeUsd).toFixed(2)} USD`;
+                    disp.style.color = '#e74c3c';
+                    if (equiv) equiv.textContent = '';
+                }
             } else {
-                changeDisplay.textContent = `Vuelto: Bs 0.00`;
+                disp.textContent = 'Vuelto: $0.00 USD';
+                disp.style.color = '#333';
+                if (equiv) equiv.textContent = '';
             }
         } else {
-            changeDisplay.textContent = `Vuelto: Bs 0.00`;
+            const totalBs = totals.total * tasa;
+            if (label) label.textContent = 'Efectivo Recibido (Bs):';
+            if (paid > 0) {
+                const changeBs = paid - totalBs;
+                if (changeBs >= 0) {
+                    disp.textContent = `Vuelto: Bs ${changeBs.toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                    disp.style.color = '#1F9166';
+                    if (equiv) equiv.textContent = `Equiv: $${(changeBs / tasa).toFixed(2)} USD`;
+                } else {
+                    disp.textContent = `Falta: Bs ${Math.abs(changeBs).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                    disp.style.color = '#e74c3c';
+                    if (equiv) equiv.textContent = '';
+                }
+            } else {
+                disp.textContent = 'Vuelto: Bs 0.00';
+                disp.style.color = '#333';
+                if (equiv) equiv.textContent = '';
+            }
         }
     }
 
@@ -2347,35 +2440,62 @@ async function saveNewClient() {
     // Completar venta
     console.log('✅ Event listener completeSaleBtn registrado');
     completeSaleBtn.addEventListener('click', () => {
-        console.log('🔘 Botón Completar Venta clickeado');
-        console.log('Cart length:', cart.length);
-        console.log('selectedPaymentMethod:', selectedPaymentMethod);
-        
         if (cart.length === 0) {
             Toast.warning('Agrega al menos un producto al carrito antes de completar la venta', 'Carrito vacío');
             return;
         }
-        
-        if (!selectedPaymentMethod) {
-            Toast.warning('Por favor seleccione un método de pago', 'Falta información');
-            return;
-        }
-        
-        // Validar pago en efectivo
-        const selectedText = paymentMethodSelect.options[paymentMethodSelect.selectedIndex].textContent.toLowerCase();
-        if (selectedText.includes('efectivo')) {
-            const cash = parseFloat(cashReceived.value) || 0;
-            const total = calculateTotals().total;
-            if (!InvValidate.positiveNumber(cashReceived, 'El efectivo recibido', false)) {
+
+        const isMulti = document.getElementById('multiPayToggle')?.checked;
+        const tasa    = window.TASA_CAMBIO || 35.50;
+        const totals  = calculateTotals();
+
+        // ── Validación modo MULTI-PAGO ─────────────────────────────────
+        if (isMulti) {
+            if (multiPayMethods.length === 0) {
+                Toast.warning('Agrega al menos un método de pago', 'Pago incompleto');
                 return;
             }
-            if (cash < total) {
-                Toast.warning(`El efectivo recibido ($ ${cash.toFixed(2)}) es menor al total ($ ${total.toFixed(2)})`, 'Pago insuficiente');
+            const alguno = multiPayMethods.some(m => m.metodoPagoId);
+            if (!alguno) {
+                Toast.warning('Selecciona el método de pago en cada línea', 'Falta información');
+                return;
+            }
+            // Calcular balance
+            let totalPagadoUsd = 0;
+            multiPayMethods.forEach(mp => {
+                const monto = parseLocalFloat(mp.monto) || 0;
+                totalPagadoUsd += (mp.moneda === 'BS') ? monto / tasa : monto;
+            });
+            if (totalPagadoUsd < totals.total - 0.01) {
+                const faltaUsd = totals.total - totalPagadoUsd;
+                Toast.warning(`El monto ingresado ($${totalPagadoUsd.toFixed(2)}) no cubre el total ($${totals.total.toFixed(2)}). Falta: $${faltaUsd.toFixed(2)}`, 'Pago insuficiente');
                 return;
             }
         }
-        
-        // Validación de stock antes de enviar (por si cambió en el servidor)
+        // ── Validación modo PAGO SIMPLE ────────────────────────────────
+        else {
+            if (!selectedPaymentMethod) {
+                Toast.warning('Por favor seleccione un método de pago', 'Falta información');
+                return;
+            }
+            const selectedText = paymentMethodSelect.options[paymentMethodSelect.selectedIndex].textContent.toLowerCase();
+            if (selectedText.includes('efectivo') || selectedText.includes('cash')) {
+                const paid = parseLocalFloat(cashReceived?.value);
+                if (!paid || paid <= 0) {
+                    Toast.warning('Ingresa el monto de efectivo recibido', 'Falta información');
+                    return;
+                }
+                const currency = getPaymentCurrency();
+                const totalReq = (currency === 'USD') ? totals.total : totals.total * tasa;
+                if (paid < totalReq - 0.01) {
+                    const sym = currency === 'USD' ? '$' : 'Bs';
+                    Toast.warning(`El efectivo recibido (${sym}${paid.toFixed(2)}) es menor al total (${sym}${totalReq.toFixed(2)})`, 'Pago insuficiente');
+                    return;
+                }
+            }
+        }
+
+        // Validación de stock
         const stockErrors = cart.filter(item => item.quantity > item.stock);
         if (stockErrors.length) {
             const first = stockErrors[0];
@@ -2383,88 +2503,95 @@ async function saveNewClient() {
             return;
         }
 
-        // Preparar datos para enviar
-        const totalsCurrency = calculateTotalsInCurrency();
+        // ── Preparar payload ──────────────────────────────────────────
+        const totalsCurrency  = calculateTotalsInCurrency();
         const paymentCurrency = getPaymentCurrency();
-        const tasa = window.TASA_CAMBIO || 35.50;
-        
-        let efectivoRecibido = null;
-        let efectivoRecibidoBs = null;
-        let efectivoRecibidoUsd = null;
-        
-        if (cashReceived.value && parseFloat(cashReceived.value) > 0) {
-            if (paymentCurrency === 'USD') {
-                efectivoRecibidoUsd = parseFloat(cashReceived.value);
-                efectivoRecibidoBs = efectivoRecibidoUsd * tasa;
-                efectivoRecibido = efectivoRecibidoUsd;
-            } else {
-                efectivoRecibidoBs = parseFloat(cashReceived.value);
-                efectivoRecibidoUsd = tasa > 0 ? efectivoRecibidoBs / tasa : 0;
-                efectivoRecibido = efectivoRecibidoBs;
+
+        let efectivoRecibido = null, efectivoRecibidoBs = null, efectivoRecibidoUsd = null;
+
+        if (!isMulti && cashReceived?.value) {
+            const paid = parseLocalFloat(cashReceived.value);
+            if (paid > 0) {
+                if (paymentCurrency === 'USD') {
+                    efectivoRecibidoUsd = paid;
+                    efectivoRecibidoBs  = paid * tasa;
+                    efectivoRecibido    = paid;
+                } else {
+                    efectivoRecibidoBs  = paid;
+                    efectivoRecibidoUsd = paid / tasa;
+                    efectivoRecibido    = paid;
+                }
             }
         }
-        
-        // Crear objeto de venta
+
+        // Mapear líneas multi-pago para el backend
+        const pagosMultiples = isMulti ? multiPayMethods
+            .filter(mp => mp.metodoPagoId)
+            .map(mp => ({
+                metodo_pago_id:  parseInt(mp.metodoPagoId),
+                metodo_nombre:   mp.nombre,
+                moneda:          mp.moneda,
+                monto:           parseLocalFloat(mp.monto) || 0,
+                monto_usd:       mp.moneda === 'BS'
+                                   ? (parseLocalFloat(mp.monto) || 0) / tasa
+                                   : (parseLocalFloat(mp.monto) || 0),
+                monto_bs:        mp.moneda === 'USD'
+                                   ? (parseLocalFloat(mp.monto) || 0) * tasa
+                                   : (parseLocalFloat(mp.monto) || 0),
+                es_efectivo:     mp.esEfectivo
+            })) : [];
+
         const ventaData = {
-            cliente_id: selectedClient ? selectedClient.id : null,
-            metodo_pago_id: selectedPaymentMethod,
-            moneda_pago: paymentCurrency,
-            tasa_cambio: tasa,
-            subtotal: totalsCurrency.subtotal,
-            iva: totalsCurrency.tax,
-            total: totalsCurrency.total,
-            monto_bs: totalsCurrency.totalBs,
-            monto_usd: totalsCurrency.totalUsd,
-            productos: cart.map(item => ({
-                id: parseInt(item.id),
-                quantity: parseInt(item.quantity),
-                precio_unitario: item.price,
+            cliente_id:         selectedClient ? selectedClient.id : null,
+            metodo_pago_id:     isMulti ? (parseInt(multiPayMethods[0]?.metodoPagoId) || null) : selectedPaymentMethod,
+            moneda_pago:        isMulti ? 'MIXTO' : paymentCurrency,
+            tasa_cambio:        tasa,
+            subtotal:           totalsCurrency.subtotal,
+            iva:                totalsCurrency.tax,
+            total:              totalsCurrency.total,
+            monto_bs:           totalsCurrency.totalBs,
+            monto_usd:          totalsCurrency.totalUsd,
+            multi_pago:         isMulti,
+            pagos:              pagosMultiples,
+            productos:          cart.map(item => ({
+                id:                 parseInt(item.id),
+                quantity:           parseInt(item.quantity),
+                precio_unitario:    item.price,
                 precio_unitario_bs: item.price * tasa,
-                precio_unitario_usd: item.price
+                precio_unitario_usd:item.price
             })),
-            efectivo_recibido: efectivoRecibido,
-            efectivo_recibido_bs: efectivoRecibidoBs,
+            efectivo_recibido:     efectivoRecibido,
+            efectivo_recibido_bs:  efectivoRecibidoBs,
             efectivo_recibido_usd: efectivoRecibidoUsd
         };
-        
-        console.log('Datos a enviar (JSON):', JSON.stringify(ventaData));
-        
+
         // Mostrar loader
         completeSaleBtn.disabled = true;
         const originalText = completeSaleBtn.innerHTML;
         completeSaleBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-        
-        // Enviar datos al servidor
-        fetch('/inversiones-rojas/api/procesar_venta.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(ventaData)
+
+        const apiUrl = (window.APP_BASE || '') + '/api/procesar_venta.php';
+        fetch(apiUrl, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body:    JSON.stringify(ventaData)
         })
         .then(response => {
-            console.log('Respuesta HTTP:', response.status, response.statusText);
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
-            }
+            if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
             return response.json();
         })
         .then(data => {
-            console.log('Respuesta del servidor:', data);
-            
             if (data.success) {
                 Toast.success('Venta completada exitosamente', '¡Éxito!', 10000);
                 resetSale();
                 saleModal.classList.remove('active');
-                // Dejar que el usuario vea la notificación antes de recargar
-                setTimeout(() => location.reload(), 1200);
+                setTimeout(() => loadRecentSales(), 1200);
             } else {
                 Toast.error('Error al procesar la venta: ' + (data.message || 'Error desconocido'), 'Error');
             }
         })
         .catch(error => {
-            console.error('Error completo:', error);
+            console.error('Error:', error);
             Toast.error('Error de conexión: ' + error.message, 'Error');
         })
         .finally(() => {
@@ -2622,20 +2749,148 @@ async function saveNewClient() {
         updateInvoiceComprobante();
     });
 
-    // Calcular cambio al modificar efectivo recibido
-    cashReceived.addEventListener('input', () => {
-        const tasa = window.TASA_CAMBIO || 400;
-        const cash = parseFloat(cashReceived.value) || 0;
-        const cashBs = cash * tasa;
-        
-        // Mostrar equivalente en Bs
-        const cashReceivedBs = document.getElementById('cashReceivedBs');
-        if (cashReceivedBs) {
-            cashReceivedBs.textContent = cashBs.toFixed(2);
+    // Calcular vuelto al modificar efectivo recibido — moneda dinámica
+    if (cashReceived) {
+        cashReceived.addEventListener('input', function() {
+            calculateChange();
+            updateInvoiceComprobante();
+        });
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  PAGOS MÚLTIPLES — Motor completo
+    // ══════════════════════════════════════════════════════════════════════
+    let multiPayMethods = [];   // [{metodoPagoId, nombre, moneda, monto, esEfectivo}]
+
+    function buildMetodoOptions(selectedId) {
+        const opts = ['<option value="">-- Método --</option>'];
+        document.querySelectorAll('#paymentMethod option').forEach(function(o) {
+            if (!o.value) return;
+            const sel = o.value === String(selectedId || '') ? ' selected' : '';
+            opts.push(`<option value="${o.value}" data-moneda="${o.dataset.moneda||'AMBOS'}"${sel}>${o.textContent}</option>`);
+        });
+        return opts.join('');
+    }
+
+    function renderMultiPayLines() {
+        const container = document.getElementById('multiPayLines');
+        if (!container) return;
+        container.innerHTML = '';
+        multiPayMethods.forEach(function(mp, idx) {
+            const monedaLabel = mp.moneda === 'USD' ? '$ USD' : 'Bs';
+            const div = document.createElement('div');
+            div.style.cssText = 'display:grid;grid-template-columns:1fr 120px 32px;gap:6px;align-items:center;margin-bottom:7px;';
+            div.innerHTML = `
+                <select class="mp-select config-select" style="font-size:12px;padding:6px 8px;" data-idx="${idx}">
+                    ${buildMetodoOptions(mp.metodoPagoId)}
+                </select>
+                <input type="text" class="mp-amount" data-idx="${idx}" value="${mp.monto||''}"
+                       placeholder="${monedaLabel} 0.00" inputmode="decimal"
+                       style="padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:12.5px;text-align:right;width:100%;">
+                <button type="button" class="mp-remove" data-idx="${idx}"
+                        style="background:#fee2e2;border:none;border-radius:5px;color:#ef4444;cursor:pointer;height:30px;width:30px;font-size:14px;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        });
+
+        container.querySelectorAll('.mp-select').forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                const idx = parseInt(this.dataset.idx);
+                const opt = this.options[this.selectedIndex];
+                multiPayMethods[idx].metodoPagoId = this.value;
+                multiPayMethods[idx].nombre = opt.textContent;
+                multiPayMethods[idx].moneda = (opt.dataset.moneda || 'AMBOS').toUpperCase();
+                const t = multiPayMethods[idx].nombre.toLowerCase();
+                multiPayMethods[idx].esEfectivo = t.includes('efectivo') || t.includes('cash');
+                updateMultiPaySummary();
+            });
+        });
+        container.querySelectorAll('.mp-amount').forEach(function(inp) {
+            inp.addEventListener('input', function() {
+                const idx = parseInt(this.dataset.idx);
+                multiPayMethods[idx].monto = parseLocalFloat(this.value);
+                updateMultiPaySummary();
+            });
+        });
+        container.querySelectorAll('.mp-remove').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const idx = parseInt(this.dataset.idx);
+                multiPayMethods.splice(idx, 1);
+                renderMultiPayLines();
+                updateMultiPaySummary();
+            });
+        });
+    }
+
+    function updateMultiPaySummary() {
+        const tasa     = window.TASA_CAMBIO || 35.50;
+        const totals   = calculateTotals();
+        const totalUsd = totals.total;
+        let totalPagadoUsd = 0;
+        multiPayMethods.forEach(function(mp) {
+            const monto = parseLocalFloat(mp.monto) || 0;
+            totalPagadoUsd += (mp.moneda === 'BS') ? monto / tasa : monto;
+        });
+        const pendienteUsd = totalUsd - totalPagadoUsd;
+        const fmtBs = function(v) { return 'Bs ' + (v * tasa).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+
+        const elTotal     = document.getElementById('mpTotalVenta');
+        const elPagado    = document.getElementById('mpTotalPagado');
+        const elPendiente = document.getElementById('mpPendiente');
+
+        if (elTotal)  elTotal.textContent  = `$${totalUsd.toFixed(2)} / ${fmtBs(totalUsd)}`;
+        if (elPagado) elPagado.textContent = `$${totalPagadoUsd.toFixed(2)} / ${fmtBs(totalPagadoUsd)}`;
+        if (elPendiente) {
+            if (pendienteUsd > 0.005) {
+                elPendiente.textContent = `$${pendienteUsd.toFixed(2)} / ${fmtBs(pendienteUsd)}`;
+                elPendiente.style.color = '#e74c3c';
+            } else if (pendienteUsd < -0.005) {
+                elPendiente.textContent = `Vuelto: $${Math.abs(pendienteUsd).toFixed(2)}`;
+                elPendiente.style.color = '#1F9166';
+            } else {
+                elPendiente.textContent = '✓ Pago completo';
+                elPendiente.style.color = '#1F9166';
+            }
         }
-        
-        calculateChange();
         updateInvoiceComprobante();
+    }
+
+    document.getElementById('multiPayToggle')?.addEventListener('change', function() {
+        const section = document.getElementById('multiPaySection');
+        const cashSec = document.getElementById('cashSection');
+        if (!section) return;
+        if (this.checked) {
+            section.style.display = 'block';
+            if (cashSec) cashSec.style.display = 'none';
+            if (multiPayMethods.length === 0 && paymentMethodSelect?.value) {
+                const opt = paymentMethodSelect.options[paymentMethodSelect.selectedIndex];
+                const t = (opt.textContent || '').toLowerCase();
+                multiPayMethods.push({
+                    metodoPagoId: paymentMethodSelect.value,
+                    nombre: opt.textContent,
+                    moneda: (opt.dataset.moneda || 'AMBOS').toUpperCase(),
+                    monto: '',
+                    esEfectivo: t.includes('efectivo') || t.includes('cash')
+                });
+            }
+            renderMultiPayLines();
+            updateMultiPaySummary();
+        } else {
+            section.style.display = 'none';
+            multiPayMethods = [];
+            const opt = paymentMethodSelect?.options[paymentMethodSelect?.selectedIndex];
+            const txt = (opt?.textContent || '').toLowerCase();
+            if (cashSec && (txt.includes('efectivo') || txt.includes('cash'))) {
+                cashSec.style.display = 'block';
+            }
+        }
+    });
+
+    document.getElementById('addMultiPayLine')?.addEventListener('click', function() {
+        multiPayMethods.push({ metodoPagoId: '', nombre: '', moneda: 'AMBOS', monto: '', esEfectivo: false });
+        renderMultiPayLines();
     });
 
     // ==================== FUNCIONES DE BÚSQUEDA Y FILTROS ====================

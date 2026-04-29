@@ -1,18 +1,5 @@
 <?php
-// ============================================================
-// api/compras.php  →  /api/compras.php
-// API backend del módulo de Compras.
-// Actions soportados:
-//   GET  ?action=get&id=X
-//   GET  ?action=get_estado&id=X
-//   GET  ?action=charts_monthly&period=3|6|12
-//   GET  ?action=charts_providers&period=30|90|180
-//   POST ?action=save          → crear / editar orden
-//   POST ?action=change_status → cambiar estado
-//   POST ?action=recepcion_incompleta
-//   POST (FormData) action=search → buscar/filtrar
-//   GET  ?action=test
-// ============================================================
+
 header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(0);

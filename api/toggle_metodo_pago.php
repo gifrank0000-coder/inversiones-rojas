@@ -8,9 +8,10 @@ if (empty($_SESSION['user_id'])) { http_response_code(401); echo json_encode(['o
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); echo json_encode(['ok'=>false,'error'=>'Método no permitido']); exit; }
 
 $id     = (int)($_POST['id']     ?? 0);
-$estado = filter_var($_POST['estado'] ?? '', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+$estado_raw = filter_var($_POST['estado'] ?? '', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+$estado = (int)$estado_raw;  // Convertir boolean a integer (0 ó 1) para PostgreSQL
 
-if (!$id || $estado === null) { echo json_encode(['ok'=>false,'error'=>'Parámetros inválidos']); exit; }
+if (!$id || $estado_raw === null) { echo json_encode(['ok'=>false,'error'=>'Parámetros inválidos']); exit; }
 
 try {
     $db   = new Database();

@@ -59,6 +59,64 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
             border-color: #1F9166;
             box-shadow: 0 0 0 3px rgba(31, 145, 102, 0.1);
         }
+        
+        /* Estilos para mensajes de validación personalizados */
+        .form-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+        .form-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .form-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        /* Estilos para validación de campos */
+        .field-validation-message {
+            font-size: 13px;
+            margin-top: 5px;
+            padding-left: 35px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .field-error-message {
+            color: #dc3545;
+        }
+        
+        .field-success-message {
+            color: #28a745;
+        }
+        
+        .field-loading {
+            color: #6c757d;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .input-group input.is-valid {
+            border-color: #28a745;
+        }
+        
+        .input-group input.is-invalid {
+            border-color: #dc3545;
+        }
         </style>
 </head>
 <body class="auth-page">
@@ -91,6 +149,7 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
                     <i class="fas fa-user-circle"></i>
                     <input type="text" id="username" name="username" class="form-control" placeholder="usuario123">
                 </div>
+                <div id="username-validation" class="field-validation-message"></div>
             </div>
 
             
@@ -135,6 +194,7 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
                     <i class="fas fa-envelope"></i>
                     <input type="text" id="email" name="email" placeholder="tu@email.com">
                 </div>
+                <div id="email-validation" class="field-validation-message"></div>
             </div>
 
             
@@ -231,16 +291,71 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
                 <p>¿Ya tienes cuenta? <a href="<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/app/views/auth/Login.php">Inicia Sesión</a></p>
             </div>
         </form>
+
+        <!-- Contenedor para mensajes de validación personalizados -->
+        <div id="formMessages" class="form-messages-container"></div>
     </div>
 
     <script>
+    // Funciones para mostrar mensajes de validación personalizados
+    function showFormMessage(message, type = 'error') {
+        console.log('showFormMessage called:', message, type);
+        const messagesContainer = document.getElementById('formMessages');
+        if (!messagesContainer) {
+            console.error('formMessages container not found');
+            return;
+        }
+        messagesContainer.innerHTML = `<div class="form-message ${type}">${message}</div>`;
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            messagesContainer.innerHTML = '';
+        }, 5000);
+    }
+    
+    function showFieldMessage(fieldId, message, type = 'error') {
+        const validationElement = document.getElementById(`${fieldId}-validation`);
+        if (validationElement) {
+            validationElement.className = `field-validation-message field-${type}-message`;
+            validationElement.textContent = message;
+            
+            // Auto-hide after 3 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    validationElement.textContent = '';
+                }, 3000);
+            }
+        }
+    }
+    
+    function clearFieldMessage(fieldId) {
+        const validationElement = document.getElementById(`${fieldId}-validation`);
+        if (validationElement) {
+            validationElement.textContent = '';
+        }
+    }
+    
+    function setFieldState(fieldId, state) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.classList.remove('is-valid', 'is-invalid');
+            if (state === 'valid') {
+                field.classList.add('is-valid');
+            } else if (state === 'invalid') {
+                field.classList.add('is-invalid');
+            }
+        }
+    }
+    
     document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        console.log('Form submit event triggered');
         e.preventDefault();
         
         // 1. Validar nombre de usuario
         const usernameValidation = validateUsername();
         if (!usernameValidation.valid) {
-            alert(usernameValidation.message);
+            showFormMessage(usernameValidation.message);
+            setFieldState('username', 'invalid');
             document.getElementById('username').focus();
             return;
         }
@@ -248,7 +363,8 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         // 2. Validar documento (RIF/Cédula)
         const docValidation = validateDocumento();
         if (!docValidation.valid) {
-            alert(docValidation.message);
+            showFormMessage(docValidation.message);
+            setFieldState('cedula_rif', 'invalid');
             document.getElementById('cedula_rif').focus();
             return;
         }
@@ -256,7 +372,8 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         // 3. Validar teléfono
         const phoneValidation = validateTelefono();
         if (!phoneValidation.valid) {
-            alert(phoneValidation.message);
+            showFormMessage(phoneValidation.message);
+            setFieldState('telefono_principal', 'invalid');
             document.getElementById('telefono_principal').focus();
             return;
         }
@@ -264,7 +381,8 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         // 4. Validar nombre completo
         const nombreValidation = validateNombreCompleto();
         if (!nombreValidation.valid) {
-            alert(nombreValidation.message);
+            showFormMessage(nombreValidation.message);
+            setFieldState('nombre_completo', 'invalid');
             document.getElementById('nombre_completo').focus();
             return;
         }
@@ -272,7 +390,8 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         // 5. Validar correo electrónico
         const emailValidation = validateEmail();
         if (!emailValidation.valid) {
-            alert(emailValidation.message);
+            showFormMessage(emailValidation.message);
+            setFieldState('email', 'invalid');
             document.getElementById('email').focus();
             return;
         }
@@ -280,7 +399,8 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         // 6. Validar contraseña
         const passwordValidation = validatePassword();
         if (!passwordValidation.valid) {
-            alert(passwordValidation.message);
+            showFormMessage(passwordValidation.message);
+            setFieldState('password', 'invalid');
             document.getElementById('password').focus();
             return;
         }
@@ -290,35 +410,35 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         const confirmPassword = document.getElementById('confirm_password').value;
         
         if (password !== confirmPassword) {
-            alert('Las contraseñas no coinciden');
+            showFormMessage('Las contraseñas no coinciden');
+            setFieldState('confirm_password', 'invalid');
             document.getElementById('confirm_password').focus();
             return;
         }
         
         // 8. Validar términos aceptados
         if (!document.getElementById('acceptTerms').checked) {
-            alert('Debes aceptar los términos y condiciones');
+            showFormMessage('Debes aceptar los términos y condiciones');
             return;
         }
-        
-        // 9. Validar username único en el sistema
-        const username = document.getElementById('username').value.trim();
-        try {
-            const urlCheck = '<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/api/check_username.php?username=' + encodeURIComponent(username);
-            const respCheck = await fetch(urlCheck);
-            const dataCheck = await respCheck.json();
-            
-            if (!dataCheck.available) {
-                alert('El nombre de usuario ya está en uso. Elige otro.');
-                document.getElementById('username').focus();
-                return;
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error al validar usuario. Intenta de nuevo.');
-            return;
-        }
-        
+  // 9. Validar username único en el sistema
+const username = document.getElementById('username').value.trim();
+try {
+    const urlCheck = '<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/api/check_username.php?username=' + encodeURIComponent(username);
+    const respCheck = await fetch(urlCheck);
+    const dataCheck = await respCheck.json();
+    
+    if (dataCheck.exists) {  // ✅ CORREGIDO: exists en lugar de !available
+        showFormMessage('El nombre de usuario ya está en uso. Elige otro.');
+        setFieldState('username', 'invalid');
+        document.getElementById('username').focus();
+        return;
+    }
+} catch (error) {
+    console.error('Error:', error);
+    showFormMessage('Error al validar usuario. Intenta de nuevo.');
+    return;
+}
         // Mostrar mensaje de carga
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
@@ -335,20 +455,113 @@ $__RECAPTCHA_SITE_KEY = defined('RECAPTCHA_SITE_KEY') ? constant('RECAPTCHA_SITE
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert(data.message);
-                window.location.href = data.redirect;
+                showFormMessage(data.message, 'success');
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 2000);
             } else {
-                alert('Error: ' + data.message);
+                showFormMessage(data.message || 'Error al crear la cuenta');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error en la conexión');
+            showFormMessage('Error en la conexión con el servidor');
         })
         .finally(() => {
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         });
+    });
+    
+    // Validación en tiempo real para username
+    document.getElementById('username').addEventListener('blur', async function() {
+        const username = this.value.trim();
+        if (!username) return;
+        
+        showFieldMessage('username', '<i class="fas fa-spinner fa-spin"></i> Verificando...', 'loading');
+        
+        try {
+            const url = '<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/api/check_username.php?username=' + encodeURIComponent(username);
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType?.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON, got: ${text.substring(0, 200)}`);
+            }
+            
+            const data = await response.json();
+            if (data.exists) {
+                showFieldMessage('username', 'Este nombre de usuario ya está en uso', 'error');
+                setFieldState('username', 'invalid');
+            } else {
+                showFieldMessage('username', 'Nombre de usuario disponible', 'success');
+                setFieldState('username', 'valid');
+            }
+        } catch (error) {
+            console.error('Error checking username:', error);
+            showFieldMessage('username', 'Error al verificar usuario', 'error');
+            setFieldState('username', 'invalid');
+        }
+    });
+    
+    // Validación en tiempo real para email
+    document.getElementById('email').addEventListener('blur', async function() {
+        const email = this.value.trim();
+        if (!email) return;
+        
+        // Validación básica de formato
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showFieldMessage('email', 'Formato de correo electrónico inválido', 'error');
+            setFieldState('email', 'invalid');
+            return;
+        }
+        
+        showFieldMessage('email', '<i class="fas fa-spinner fa-spin"></i> Verificando...', 'loading');
+        
+        try {
+            const url = '<?php echo rtrim(defined('BASE_URL') ? BASE_URL : '', '/'); ?>/api/check_email.php?email=' + encodeURIComponent(email);
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            if (!contentType?.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON, got: ${text.substring(0, 200)}`);
+            }
+            
+            const data = await response.json();
+            if (data.exists) {
+                showFieldMessage('email', 'Este correo electrónico ya está registrado', 'error');
+                setFieldState('email', 'invalid');
+            } else {
+                showFieldMessage('email', 'Correo electrónico disponible', 'success');
+                setFieldState('email', 'valid');
+            }
+        } catch (error) {
+            console.error('Error checking email:', error);
+            showFieldMessage('email', 'Error al verificar correo electrónico', 'error');
+            setFieldState('email', 'invalid');
+        }
+    });
+    
+    // Limpiar mensajes de validación cuando el usuario comienza a escribir
+    document.getElementById('username').addEventListener('input', function() {
+        clearFieldMessage('username');
+        setFieldState('username', '');
+    });
+    
+    document.getElementById('email').addEventListener('input', function() {
+        clearFieldMessage('email');
+        setFieldState('email', '');
     });
     
     // Manejo del tipo de documento
