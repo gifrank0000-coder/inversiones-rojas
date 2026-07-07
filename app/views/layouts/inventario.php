@@ -49,6 +49,7 @@ while ($cat = $stmt->fetch()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Inventario - Inversiones Rojas</title>
+    <link rel="icon" href="<?php echo $base_url; ?>/public/img/logo.png">
     <script>
         var APP_BASE = '<?php echo $base_url; ?>';
         var TASA_CAMBIO = <?php echo getTasaCambio(); ?>;
@@ -2244,21 +2245,22 @@ while ($cat = $stmt->fetch()) {
 
         const url = new URL('/inversiones-rojas/api/inventory_stats.php', window.location.origin);
         
-        // Agregar parámetros
-        if (params.q) url.searchParams.set('q', params.q);
-        if (params.category) url.searchParams.set('category', params.category);
-        if (params.estado && params.estado !== 'all') {
-            url.searchParams.set('estado', params.estado);
-        }
-        if (params.period) {
-            url.searchParams.set('period', params.period);
-        }
-        if (params.created_from) {
-            url.searchParams.set('created_from', params.created_from);
-        }
-        if (params.created_to) {
-            url.searchParams.set('created_to', params.created_to);
-        }
+    // Agregar parámetros
+if (params.q) url.searchParams.set('q', params.q);
+if (params.type) url.searchParams.set('type', params.type);      // ← AGREGAR ESTA
+if (params.category) url.searchParams.set('category', params.category);
+if (params.estado && params.estado !== 'all') {
+    url.searchParams.set('estado', params.estado);
+}
+if (params.period) {
+    url.searchParams.set('period', params.period);
+}
+if (params.created_from) {
+    url.searchParams.set('created_from', params.created_from);
+}
+if (params.created_to) {
+    url.searchParams.set('created_to', params.created_to);
+}
         
         try {
             // Mostrar estado de carga

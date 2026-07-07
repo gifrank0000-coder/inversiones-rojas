@@ -692,10 +692,10 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
             
             <div class="footer-section-custom">
                 <h3>Enlaces Rápidos</h3>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/inicio.php">Inicio</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/motos.php">Motos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/repuestos.php">Repuestos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/contacto.php">Contacto</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/inicio.php">Inicio</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/motos.php">Motos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/repuestos.php">Repuestos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/contacto.php">Contacto</a>
             </div>
             
             <div class="footer-section-custom">
@@ -717,427 +717,369 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
     <script src="<?php echo BASE_URL; ?>/public/js/main.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/components/user-panel.js"></script>
     <script src="<?php echo BASE_URL; ?>/public/js/script.js"></script>
-    <script>
-        var APP_BASE = '<?php echo BASE_URL; ?>';
+   <script>
+    var APP_BASE = '<?php echo BASE_URL; ?>';
+    
+    // Variables de paginación
+    let paginaActual = 1;
+    const productosPorPagina = 6;
+    let productosFiltrados = []; // Array para mantener el estado de productos filtrados
+    let totalProductosOriginal = 0;
+    
+    function addItemToDrawer(id, nombre, cantidad, precio, imagen) {
+        const cartItems = document.getElementById('cartItems');
+        if (!cartItems) return;
         
-        function addItemToDrawer(id, nombre, cantidad, precio, imagen) {
-            const cartItems = document.getElementById('cartItems');
-            if (!cartItems) return;
-            
-            const imgSrc = imagen || '';
-            const tasaCambio = window.TASA_CAMBIO || 1;
-            const precioNum = typeof precio === 'number' ? precio : parseFloat(String(precio).replace(/[^0-9.]/g, '')) || 0;
-            const precioBS = precioNum * tasaCambio;
-            const precioUSDStr = '$' + precioNum.toFixed(2);
-            const precioBSStr = 'Bs ' + precioBS.toFixed(2);
-            
-            const existingItem = cartItems.querySelector(`.cart-drawer-item[data-id="${id}"]`);
-            if (existingItem) {
-                const meta = existingItem.querySelector('.cart-drawer-meta small');
-                if (meta) {
-                    const currentQty = parseInt(meta.textContent.split(' × ')[0]) || 1;
-                    meta.innerHTML = `${cantidad} × <span class="moneda-usd">${precioUSDStr}</span> <span class="moneda-bs">${precioBSStr}</span>`;
-                }
-                return;
+        const imgSrc = imagen || '';
+        const tasaCambio = window.TASA_CAMBIO || 1;
+        const precioNum = typeof precio === 'number' ? precio : parseFloat(String(precio).replace(/[^0-9.]/g, '')) || 0;
+        const precioBS = precioNum * tasaCambio;
+        const precioUSDStr = '$' + precioNum.toFixed(2);
+        const precioBSStr = 'Bs ' + precioBS.toFixed(2);
+        
+        const existingItem = cartItems.querySelector(`.cart-drawer-item[data-id="${id}"]`);
+        if (existingItem) {
+            const meta = existingItem.querySelector('.cart-drawer-meta small');
+            if (meta) {
+                const currentQty = parseInt(meta.textContent.split(' × ')[0]) || 1;
+                meta.innerHTML = `${Number(currentQty) + Number(cantidad)} × <span class="moneda-usd">${precioUSDStr}</span> <span class="moneda-bs">${precioBSStr}</span>`;
             }
-            
-            const html = `<li class="cart-drawer-item" data-id="${id}">
-                <img src="${imgSrc}" class="cart-drawer-img" alt="${nombre}"/>
-                <div class="cart-drawer-meta">
-                    <div><strong>${nombre}</strong></div>
-                    <small>${cantidad} × <span class="moneda-usd">${precioUSDStr}</span> <span class="moneda-bs">${precioBSStr}</span></small>
-                </div>
-                <button class="cart-item-remove" title="Eliminar" data-id="${id}"><i class="fas fa-trash-alt"></i></button>
-            </li>`;
-            
-            const emptyMsg = cartItems.querySelector('p[style*="Tu carrito está vacío"]');
-            if (emptyMsg) {
+            return;
+        }
+        
+        const html = `<li class="cart-drawer-item" data-id="${id}">
+            <img src="${imgSrc}" class="cart-drawer-img" alt="${nombre}"/>
+            <div class="cart-drawer-meta">
+                <div><strong>${nombre}</strong></div>
+                <small>${cantidad} × <span class="moneda-usd">${precioUSDStr}</span> <span class="moneda-bs">${precioBSStr}</span></small>
+            </div>
+            <button class="cart-item-remove" title="Eliminar" data-id="${id}"><i class="fas fa-trash-alt"></i></button>
+        </li>`;
+        
+        const emptyMsg = cartItems.querySelector('p[style*="Tu carrito está vacío"]');
+        if (emptyMsg) {
+            cartItems.innerHTML = '<ul class="cart-drawer-list">' + html + '</ul>';
+        } else {
+            const list = cartItems.querySelector('.cart-drawer-list');
+            if (list) {
+                list.insertAdjacentHTML('beforeend', html);
+            } else {
                 cartItems.innerHTML = '<ul class="cart-drawer-list">' + html + '</ul>';
-            } else {
-                const list = cartItems.querySelector('.cart-drawer-list');
-                if (list) {
-                    list.insertAdjacentHTML('beforeend', html);
+            }
+        }
+    }
+    
+    // Actualizar la lista de productos filtrados
+    function actualizarProductosFiltrados() {
+        const marca = document.getElementById('marca').value.toLowerCase();
+        const cilindrada = document.getElementById('cilindrada').value.toLowerCase();
+        const categoria = document.getElementById('categoria').value.toLowerCase();
+        const anio = document.getElementById('anio').value;
+        
+        const todosLosProductos = document.querySelectorAll('.product-card');
+        productosFiltrados = [];
+        
+        todosLosProductos.forEach(producto => {
+            const productoMarca = producto.dataset.marca || '';
+            const productoCilindrada = producto.dataset.cilindrada || '';
+            const productoCategoria = producto.dataset.categoria || '';
+            const productoAnio = producto.dataset.anio || '';
+            
+            let mostrar = true;
+            
+            if (marca && productoMarca !== marca) mostrar = false;
+            if (cilindrada && productoCilindrada !== cilindrada) mostrar = false;
+            if (categoria && productoCategoria !== categoria) mostrar = false;
+            
+            if (anio) {
+                if (anio === 'antiguo') {
+                    if (productoAnio && parseInt(productoAnio) >= 2020) mostrar = false;
                 } else {
-                    cartItems.innerHTML = '<ul class="cart-drawer-list">' + html + '</ul>';
-                }
-            }
-        }
-        
-        // Variables para paginación
-        let paginaActual = 1;
-        const productosPorPagina = 6; // Mostrar 6 productos por página
-        
-        // Funcionalidad para filtros - filtrar en el DOM (sin API)
-        function filtrarProductos() {
-            const marca = document.getElementById('marca').value.toLowerCase();
-            const cilindrada = document.getElementById('cilindrada').value.toLowerCase();
-            const categoria = document.getElementById('categoria').value.toLowerCase();
-            const anio = document.getElementById('anio').value;
-            
-            // Obtener todas las cards de productos
-            const productos = document.querySelectorAll('.product-card');
-            let productosVisibles = 0;
-            
-            productos.forEach(producto => {
-                // Obtener atributos data del producto
-                const productoMarca = producto.dataset.marca || '';
-                const productoCilindrada = producto.dataset.cilindrada || '';
-                const productoCategoria = producto.dataset.categoria || '';
-                const productoAnio = producto.dataset.anio || '';
-                
-                // Verificar si cumple con los filtros
-                let mostrar = true;
-                
-                if (marca && productoMarca !== marca) {
-                    mostrar = false;
-                }
-                if (cilindrada && productoCilindrada.toLowerCase() !== cilindrada) {
-                    mostrar = false;
-                }
-                if (categoria && productoCategoria.toLowerCase() !== categoria) {
-                    mostrar = false;
-                }
-                // Filtro por año
-                if (anio) {
-                    if (anio === 'antiguo') {
-                        // Mostrar solo los anteriores a 2020
-                        if (productoAnio && parseInt(productoAnio) >= 2020) {
-                            mostrar = false;
-                        }
-                    } else {
-                        if (productoAnio !== anio) {
-                            mostrar = false;
-                        }
-                    }
-                }
-                
-                if (mostrar) {
-                    producto.style.display = 'block';
-                    productosVisibles++;
-                } else {
-                    producto.style.display = 'none';
-                }
-            });
-            
-            // Actualizar contador
-            document.querySelector('.products-count strong').textContent = productosVisibles + ' motos';
-            
-            // Resetear paginación
-            paginaActual = 1;
-            actualizarPaginacion();
-            mostrarPagina(paginaActual);
-        }
-        
-        function mostrarProductosFiltrados(productos) {
-            const grid = document.getElementById('productsGrid');
-            grid.innerHTML = '';
-            
-            if (productos.length === 0) {
-                grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px;"><p style="font-size: 18px; color: #666;">No se encontraron motos con los filtros seleccionados</p></div>';
-                return;
-            }
-            
-            // Aplicar promoción a cada producto
-            productos.forEach(moto => {
-                moto.precio_real = moto.precio_venta;
-                moto.promocion = null;
-                
-                if (moto.promo_tipo_promocion && moto.promo_valor) {
-                    const tipo = moto.promo_tipo_promocion.toLowerCase();
-                    const valor = parseFloat(moto.promo_valor);
-                    
-                    if ((tipo === 'descuento' || tipo === 'porcentaje') && valor > 0 && valor <= 100) {
-                        const precioPromo = moto.precio_venta * (1 - valor / 100);
-                        if (precioPromo < moto.precio_venta) {
-                            moto.precio_real = precioPromo;
-                            moto.promocion = { nombre: moto.promo_nombre || 'Oferta especial', tipo: tipo, valor: valor };
-                        }
-                    }
-                }
-                
-                const imagen = moto.imagen_url ? moto.imagen_url : 'https://via.placeholder.com/300x200?text=Sin+Imagen';
-                const tasaCambio = window.TASA_CAMBIO || 35.50;
-                
-                // Usar precio_venta_bs si está disponible, si no calcular desde USD
-                const precioBs = moto.precio_venta_bs ? parseFloat(moto.precio_venta_bs) : (parseFloat(moto.precio_real || 0) * tasaCambio);
-                const precioOriginalBs = moto.precio_venta_bs ? parseFloat(moto.precio_venta_bs) : (parseFloat(moto.precio_venta || 0) * tasaCambio);
-                
-                // Precio USD: usar precio_venta_usd si está disponible
-                const precioUsd = moto.precio_venta_usd ? parseFloat(moto.precio_venta_usd) : parseFloat(moto.precio_real || 0);
-                
-                const descuento = moto.promocion ? Math.round(moto.promocion.valor) : 0;
-                
-                const cardHtml = `
-                    <div class="product-card" data-marca="${moto.marca || ''}" data-precio="${moto.precio_venta}">
-                        ${moto.stock <= 0 ? '<div class="product-badge">Agotado</div>' : ''}
-                        ${moto.promocion ? '<div class="product-badge promo-badge">-' + descuento + '%</div>' : ''}
-                        <img src="${imagen}" alt="${moto.nombre}" class="product-image">
-                        <div class="product-info">
-                            <h3 class="product-title">${moto.nombre}</h3>
-                            <div class="product-specs">
-                                ${moto.marca ? `<div class="product-spec"><i class="fas fa-tag"></i> ${moto.marca}</div>` : ''}
-                                ${moto.modelo ? `<div class="product-spec"><i class="fas fa-cog"></i> ${moto.modelo}</div>` : ''}
-                                ${moto.anio ? `<div class="product-spec"><i class="fas fa-calendar"></i> ${moto.anio}</div>` : ''}
-                            </div>
-                            <div class="product-price">
-                                ${descuento > 0 ? `
-                                    <span style="text-decoration:line-through;color:#999;font-size:0.85em;">Bs ${precioOriginalBs.toFixed(0)}</span><br>
-                                    <span style="color:#e74c3c;font-weight:700;font-size:1.1em;">Bs ${precioBs.toFixed(0)}</span>
-                                    <span class="moneda-usd">($${precioUsd.toFixed(2)})</span>
-                                ` : `
-                                    <span class="moneda-bs">Bs ${precioBs.toFixed(0)}</span>
-                                    <span class="moneda-usd">($${precioUsd.toFixed(2)})</span>
-                                `}
-                            </div>
-                            ${moto.promocion ? `
-                                <div style="font-size:0.75rem;color:#1F9166;margin-top:4px;">
-                                    <i class="fas fa-tag"></i> ${moto.promocion.nombre}
-                                </div>
-                            ` : ''}
-                            <div class="product-stock">${moto.stock > 0 ? '✓ En stock: ' + moto.stock + ' unidades' : 'Agotado'}</div>
-                            <div class="product-actions">
-                                <a href="<?php echo BASE_URL; ?>/app/views/layouts/product_detail.php?id=${moto.id}" class="btn-view">Ver Detalles</a>
-                                <button class="btn-cart" onclick="agregarAlCarrito(${moto.id}, event)">
-                                    <i class="fas fa-cart-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                grid.innerHTML += cardHtml;
-            });
-        }
-        
-        function limpiarFiltros() {
-            document.getElementById('marca').value = '';
-            document.getElementById('cilindrada').value = '';
-            document.getElementById('categoria').value = '';
-            document.getElementById('anio').value = '';
-            
-            const productos = document.querySelectorAll('.product-card');
-            productos.forEach(producto => {
-                producto.style.display = 'block';
-            });
-            
-            // Restaurar contador
-            const contador = document.querySelector('.products-count');
-            const totalProductos = document.querySelectorAll('.product-card').length;
-            if (contador) {
-                contador.innerHTML = `Mostrando <strong>${totalProductos} motos</strong> disponibles`;
-            }
-            
-            // Resetear paginación
-            paginaActual = 1;
-            actualizarPaginacion();
-            mostrarPagina(paginaActual);
-        }
-        
-        // Función para agregar al carrito
-        async function agregarAlCarrito(productoId, event) {
-            if (!<?php echo isset($_SESSION['user_id']) && !empty($_SESSION['user_id']) ? 'true' : 'false'; ?>) {
-                if (window.Toast && typeof Toast.warning === 'function') {
-                    Toast.warning('Debes iniciar sesión para usar el carrito', 'Acceso restringido', 5000);
-                }
-                return;
-            }
-            
-            const productoCard = event?.target?.closest('.product-card');
-            const productoNombre = productoCard?.querySelector('.product-title')?.textContent || '';
-            const productoPrecio = productoCard?.querySelector('.product-price')?.textContent || '';
-            const productoImagen = productoCard?.querySelector('img.product-image')?.src || '';
-
-            try {
-                const response = await fetch((window.APP_BASE || '') + '/api/add_to_cart.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ product_id: productoId, quantity: 1 })
-                });
-
-                if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error(text || 'HTTP ' + response.status);
-                }
-
-                const ct = response.headers.get('content-type') || '';
-                const data = ct.includes('application/json') ? await response.json() : JSON.parse(await response.text());
-
-                if (data.success) {
-                    if (window.Toast && typeof Toast.success === 'function') {
-                        Toast.success(`${productoNombre} ha sido agregado al carrito exitosamente.`, '¡Producto agregado!', 5000);
-                    } else if (typeof showToast === 'function') {
-                        showToast(`${productoNombre} ha sido agregado al carrito exitosamente.`, 'success', '¡Producto agregado!');
-                    }
-
-                    const cartCount = document.querySelector('.cart-count');
-                    if (cartCount) {
-                        cartCount.textContent = data.total_items;
-                        cartCount.style.display = 'flex';
-                    }
-                    
-                    // Actualizar drawer directamente con datos del servidor
-                    const finalQty = data.producto_qty || 1;
-                    const finalImg = data.producto_imagen || productoImagen;
-                    const finalNombre = data.producto_nombre || productoNombre;
-                    const finalPrecio = data.producto_precio || productoPrecio;
-                    addItemToDrawer(productoId, finalNombre, finalQty, finalPrecio, finalImg);
-                } else {
-                    if (window.Toast && typeof Toast.error === 'function') {
-                        Toast.error(data.message || 'Error al agregar el producto.', 'Error');
-                    } else if (typeof showToast === 'function') {
-                        showToast(data.message || 'Error al agregar el producto.', 'error', 'Error');
-                    }
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                if (window.Toast && typeof Toast.error === 'function') {
-                    Toast.error('Error al agregar el producto al carrito. Inténtalo de nuevo.', 'Error de conexión');
-                } else if (typeof showToast === 'function') {
-                    showToast('Error al agregar el producto al carrito. Inténtalo de nuevo.', 'error', 'Error de conexión');
-                }
-            }
-        }
-        
-        // Funcionalidad de paginación
-        function cambiarPagina(numeroPagina) {
-            if (numeroPagina === -1) {
-                // Página anterior
-                if (paginaActual > 1) {
-                    paginaActual--;
-                }
-            } else if (numeroPagina === 0) {
-                // Página siguiente
-                const totalProductos = document.querySelectorAll('.product-card').length;
-                const totalPaginas = Math.ceil(totalProductos / productosPorPagina);
-                if (paginaActual < totalPaginas) {
-                    paginaActual++;
-                }
-            } else {
-                // Página específica
-                paginaActual = numeroPagina;
-            }
-            
-            mostrarPagina(paginaActual);
-            actualizarPaginacion();
-        }
-        
-        function mostrarPagina(pagina) {
-            const productos = document.querySelectorAll('.product-card');
-            const inicio = (pagina - 1) * productosPorPagina;
-            const fin = inicio + productosPorPagina;
-            
-            let contador = 0;
-            productos.forEach((producto, index) => {
-                // Solo mostrar productos que estén visibles (no filtrados)
-                if (producto.style.display !== 'none') {
-                    contador++;
-                    if (contador > inicio && contador <= fin) {
-                        producto.style.display = 'block';
-                    } else {
-                        producto.style.display = 'none';
-                    }
-                }
-            });
-            
-            // Actualizar texto de la página actual
-            const totalProductosVisibles = document.querySelectorAll('.product-card[style="display: block"]').length;
-            const totalProductos = Array.from(productos).filter(p => p.style.display !== 'none').length;
-            const totalPaginas = Math.ceil(totalProductos / productosPorPagina);
-            
-            // Actualizar contador
-            const contadorElement = document.querySelector('.products-count');
-            if (contadorElement) {
-                contadorElement.innerHTML = `Mostrando <strong>${totalProductosVisibles} motos</strong> disponibles`;
-            }
-        }
-        
-        function actualizarPaginacion() {
-            const productos = document.querySelectorAll('.product-card');
-            const totalProductos = Array.from(productos).filter(p => p.style.display !== 'none').length;
-            const totalPaginas = Math.max(1, Math.ceil(totalProductos / productosPorPagina));
-            
-            // Ocultar paginación si solo hay una página
-            const paginationContainer = document.getElementById('paginationContainer');
-            if (paginationContainer) {
-                if (totalPaginas <= 1) {
-                    paginationContainer.style.display = 'none';
-                } else {
-                    paginationContainer.style.display = 'flex';
-                    // Generar botones dinámicamente
-                    let paginationHTML = `
-                        <button class="pagination-btn prev-btn" onclick="cambiarPagina(-1)" ${paginaActual === 1 ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                    `;
-                    
-                    // Generar botones de páginas
-                    for (let i = 1; i <= totalPaginas; i++) {
-                        paginationHTML += `<button class="pagination-btn ${i === paginaActual ? 'active' : ''}" onclick="cambiarPagina(${i})">${i}</button>`;
-                    }
-                    
-                    paginationHTML += `
-                        <button class="pagination-btn next-btn" onclick="cambiarPagina(0)" ${paginaActual === totalPaginas ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    `;
-                    
-                    paginationContainer.innerHTML = paginationHTML;
+                    if (productoAnio !== anio) mostrar = false;
                 }
             }
             
-            // Actualizar botones prev/next
-            const prevBtn = document.querySelector('.prev-btn');
-            const nextBtn = document.querySelector('.next-btn');
-            
-            if (prevBtn) {
-                prevBtn.disabled = paginaActual === 1;
-                prevBtn.classList.toggle('disabled', paginaActual === 1);
-            }
-            if (nextBtn) {
-                nextBtn.disabled = paginaActual === totalPaginas;
-                nextBtn.classList.toggle('disabled', paginaActual === totalPaginas);
-            }
-        }
-        
-        // Inicializar paginación
-        document.addEventListener('DOMContentLoaded', function() {
-            // Simular que hay más productos para mostrar paginación
-            const totalProductos = document.querySelectorAll('.product-card').length;
-            if (totalProductos > productosPorPagina) {
-                mostrarPagina(1);
-                actualizarPaginacion();
+            if (mostrar) {
+                productosFiltrados.push(producto);
             }
         });
+        
+        // Actualizar contador
+        const totalEncontrados = productosFiltrados.length;
+        const contador = document.querySelector('.products-count');
+        if (contador) {
+            if (marca || cilindrada || categoria || anio) {
+                contador.innerHTML = `Mostrando <strong>${totalEncontrados} de ${totalProductosOriginal} motos</strong> disponibles (filtrados)`;
+            } else {
+                contador.innerHTML = `Mostrando <strong>${totalEncontrados} motos</strong> disponibles`;
+            }
+        }
+        
+        return totalEncontrados;
+    }
+    
+    // Mostrar la página actual
+    function mostrarPagina(pagina) {
+        const inicio = (pagina - 1) * productosPorPagina;
+        const fin = inicio + productosPorPagina;
+        
+        // Ocultar TODOS los productos primero
+        const todosLosProductos = document.querySelectorAll('.product-card');
+        todosLosProductos.forEach(producto => {
+            producto.style.display = 'none';
+        });
+        
+        // Mostrar solo los productos de la página actual
+        for (let i = inicio; i < fin && i < productosFiltrados.length; i++) {
+            if (productosFiltrados[i]) {
+                productosFiltrados[i].style.display = 'block';
+            }
+        }
+
+    }
+    
+    // Actualizar los botones de paginación
+    function actualizarPaginacion() {
+        const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+        const paginationContainer = document.getElementById('paginationContainer');
+        
+        if (!paginationContainer) return;
+        
+        if (totalPaginas <= 1) {
+            paginationContainer.style.display = 'none';
+            return;
+        }
+        
+        paginationContainer.style.display = 'flex';
+        let paginationHTML = `
+            <button class="pagination-btn prev-btn" onclick="cambiarPagina(-1)" ${paginaActual === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+        `;
+        
+        // Mostrar máximo 7 botones de página
+        let startPage = Math.max(1, paginaActual - 3);
+        let endPage = Math.min(totalPaginas, startPage + 6);
+        
+        if (startPage > 1) {
+            paginationHTML += `<button class="pagination-btn" onclick="cambiarPagina(1)">1</button>`;
+            if (startPage > 2) paginationHTML += `<span class="pagination-dots">...</span>`;
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `<button class="pagination-btn ${i === paginaActual ? 'active' : ''}" onclick="cambiarPagina(${i})">${i}</button>`;
+        }
+        
+        if (endPage < totalPaginas) {
+            if (endPage < totalPaginas - 1) paginationHTML += `<span class="pagination-dots">...</span>`;
+            paginationHTML += `<button class="pagination-btn" onclick="cambiarPagina(${totalPaginas})">${totalPaginas}</button>`;
+        }
+        
+        paginationHTML += `
+            <button class="pagination-btn next-btn" onclick="cambiarPagina(0)" ${paginaActual === totalPaginas ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        `;
+        
+        paginationContainer.innerHTML = paginationHTML;
+    }
+    
+    // Cambiar de página
+    function cambiarPagina(numeroPagina) {
+        const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+        
+        if (numeroPagina === -1) {
+            if (paginaActual > 1) paginaActual--;
+        } else if (numeroPagina === 0) {
+            if (paginaActual < totalPaginas) paginaActual++;
+        } else {
+            paginaActual = numeroPagina;
+        }
+        
+        mostrarPagina(paginaActual);
+        actualizarPaginacion();
+        
+        // Scroll suave al inicio de los productos
+        const productsGrid = document.querySelector('.products-grid');
+        if (productsGrid) {
+            productsGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+    
+    // Filtrar productos
+    function filtrarProductos() {
+        actualizarProductosFiltrados();
+        paginaActual = 1;
+        mostrarPagina(paginaActual);
+        actualizarPaginacion();
+        
+        // Mostrar mensaje si no hay resultados
+        if (productosFiltrados.length === 0) {
+            if (window.Toast && typeof Toast.warning === 'function') {
+                Toast.warning('No se encontraron motos con los filtros seleccionados', 'Sin resultados');
+            }
+        } else {
+            if (window.Toast && typeof Toast.info === 'function') {
+                Toast.info(`Se encontraron ${productosFiltrados.length} motos`, 'Filtros aplicados');
+            }
+        }
+    }
+    
+    // Limpiar filtros
+    function limpiarFiltros() {
+        document.getElementById('marca').value = '';
+        document.getElementById('cilindrada').value = '';
+        document.getElementById('categoria').value = '';
+        document.getElementById('anio').value = '';
+        
+        // Resetear a todos los productos
+        productosFiltrados = Array.from(document.querySelectorAll('.product-card'));
+        paginaActual = 1;
+        mostrarPagina(paginaActual);
+        actualizarPaginacion();
+        
+        // Restaurar contador original
+        const contador = document.querySelector('.products-count');
+        if (contador) {
+            contador.innerHTML = `Mostrando <strong>${totalProductosOriginal} motos</strong> disponibles`;
+        }
+        
+        if (window.Toast && typeof Toast.info === 'function') {
+            Toast.info('Filtros eliminados', 'Filtros');
+        }
+    }
+    
+    // Función para agregar al carrito
+    async function agregarAlCarrito(productoId, event) {
+        const usuarioLogueado = <?php echo isset($_SESSION['user_id']) && !empty($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+        
+        if (!usuarioLogueado) {
+            if (window.Toast && typeof Toast.warning === 'function') {
+                Toast.warning('Debes iniciar sesión para usar el carrito', 'Acceso restringido', 5000);
+            } else {
+                alert('Debes iniciar sesión para agregar productos al carrito');
+            }
+            return;
+        }
+        
+        const productoCard = event?.target?.closest('.product-card');
+        if (!productoCard) return;
+        
+        const productoNombre = productoCard.querySelector('.product-title')?.textContent || 'Producto';
+        let productoPrecio = 0;
+        
+        // Extraer precio del HTML - buscar el primer valor con formato $
+        const priceElement = productoCard.querySelector('.product-price');
+        if (priceElement) {
+            const priceText = priceElement.textContent;
+            const priceMatch = priceText.match(/\$[\d,.]+/);
+            if (priceMatch) {
+                productoPrecio = parseFloat(priceMatch[0].replace('$', '').replace(',', ''));
+            }
+        }
+        
+        const productoImagen = productoCard.querySelector('img.product-image')?.src || '';
+
+        try {
+            const response = await fetch((window.APP_BASE || '') + '/api/add_to_cart.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ product_id: productoId, quantity: 1 })
+            });
+
+            const ct = response.headers.get('content-type') || '';
+            if (!ct.includes('application/json') && !ct.includes('text/json')) {
+                const text = await response.text();
+                console.error('add_to_cart.php returned non-JSON response:', text);
+                throw new Error('La respuesta del servidor no es JSON. Estado: ' + response.status);
+            }
+
+            const data = await response.json();
+
+            if (data.success || data.ok) {
+                // Mostrar notificación de éxito
+                if (window.Toast && typeof Toast.success === 'function') {
+                    Toast.success(`${productoNombre} ha sido agregado al carrito.`, '¡Listo!', 3500);
+                }
+
+                // Actualizar contador del carrito - asegurar que el elemento SIEMPRE se actualice
+                const totalItems = data.total_items || data.cart_count || 0;
+                // Actualizar TODOS los elementos .cart-count en la página
+                const cartCountElements = document.querySelectorAll('.cart-count');
+                if (cartCountElements.length > 0) {
+                    cartCountElements.forEach(function (el) {
+                        el.textContent = totalItems;
+                        // Mostrar/ocultar según si hay items
+                        el.style.display = totalItems > 0 ? 'inline-block' : 'none';
+                    });
+                } else {
+                    // Fallback: si no existe, crear el elemento
+                    const cartBtn = document.getElementById('cartToggle');
+                    if (cartBtn && !cartBtn.querySelector('.cart-count')) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'cart-count';
+                        newBadge.textContent = totalItems;
+                        newBadge.style.display = totalItems > 0 ? 'inline-block' : 'none';
+                        cartBtn.appendChild(newBadge);
+                    }
+                }
+                
+                // ⭐ CRÍTICO: Actualizar el drawer del carrito dinámicamente
+                if (typeof addItemToDrawer === 'function') {
+                    addItemToDrawer(parseInt(productoId), productoNombre, 1, productoPrecio, productoImagen);
+                    
+                    // Animar el drawer
+                    const cartDrawer = document.getElementById('cartItems');
+                    if (cartDrawer && cartDrawer.offsetParent !== null) {
+                        cartDrawer.style.animation = 'pulse 0.5s ease';
+                        setTimeout(() => {
+                            cartDrawer.style.animation = '';
+                        }, 500);
+                    }
+                }
+            } else {
+                if (window.Toast && typeof Toast.error === 'function') {
+                    Toast.error(data.message || 'Error al agregar el producto.', 'Error');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            if (window.Toast && typeof Toast.error === 'function') {
+                Toast.error('Error al agregar el producto al carrito. Inténtalo de nuevo.', 'Error de conexión');
+            }
+        }
+    }
+    
+    // INICIALIZACIÓN
+    document.addEventListener('DOMContentLoaded', function() {
+        // Guardar total original de productos
+        totalProductosOriginal = document.querySelectorAll('.product-card').length;
+        
+        // Inicializar la lista de productos filtrados con TODOS los productos
+        productosFiltrados = Array.from(document.querySelectorAll('.product-card'));
+        
+        // Mostrar primera página
+        mostrarPagina(1);
+        
+        // Si hay más de productosPorPagina, mostrar paginación
+        if (productosFiltrados.length > productosPorPagina) {
+            actualizarPaginacion();
+        } else {
+            const paginationContainer = document.getElementById('paginationContainer');
+            if (paginationContainer) paginationContainer.style.display = 'none';
+        }
         
         // Efectos hover en tarjetas
         document.querySelectorAll('.product-card').forEach(card => {
             card.addEventListener('mouseenter', function() {
                 this.style.zIndex = '10';
             });
-            
             card.addEventListener('mouseleave', function() {
                 this.style.zIndex = '1';
             });
         });
-        
-        // Funcionalidad para botones "Ver Detalles"
-        document.querySelectorAll('.btn-view').forEach((btn, index) => {
-            btn.addEventListener('click', function(e) {
-                // En un sistema real, esto redirigiría a la página de detalles
-                // Por ahora solo mostramos un mensaje
-                if (this.getAttribute('href') === '#') {
-                    e.preventDefault();
-                    const productoNombre = this.closest('.product-card').querySelector('.product-title').textContent;
-                    const message = `Mostrando detalles de: ${productoNombre}\n\nEn el sistema real, esto abriría una página con todos los detalles del producto, fotos adicionales, especificaciones técnicas, etc.`;
-                    if (window.Toast && typeof Toast.info === 'function') {
-                        Toast.info(message, 'Ver detalles');
-                    } else if (typeof showToast === 'function') {
-                        showToast(message, 'info', 'Ver detalles');
-                    } else {
-                        alert(message);
-                    }
-                }
-            });
-        });
-    </script>
+    });
+</script>
 </body>
 </html>

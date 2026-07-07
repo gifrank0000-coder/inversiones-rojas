@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 session_start();
 
 // Verificar si el usuario está logueado
@@ -138,7 +138,7 @@ $empresa_telefono = COMPANY_PHONE;
 
 // Datos del comprador (usuario actual)
 $comprador_nombre = $nombre_usuario;
-$comprador_email = $_SESSION['user_email'] ?? 'gifrank0000@gmail.com';
+$comprador_email = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : 'gifrank0000@gmail.com';
 $comprador_telefono = $empresa_telefono;
 
 // Si el usuario no tiene email, usar uno por defecto
@@ -156,6 +156,7 @@ if (empty($comprador_email)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compras - Inversiones Rojas</title>
+    <link rel="icon" href="<?php echo BASE_URL; ?>/public/img/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/inversiones-rojas/public/js/inv-notifications.js"></script>
@@ -622,15 +623,14 @@ if (empty($comprador_email)) {
         }
 
         .selected-table th {
-            padding: 12px 10px;
-            text-align: left;
+            padding: 8px 4px;
             font-weight: 600;
             color: #555;
             border-bottom: 2px solid #e9ecef;
         }
 
         .selected-table td {
-            padding: 10px;
+            padding: 8px 4px;
             border-bottom: 1px solid #f0f0f0;
             vertical-align: middle;
         }
@@ -638,8 +638,16 @@ if (empty($comprador_email)) {
         .quantity-controls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
         }
+
+/* Centrar Precio Unitario y Total */
+.selected-table td:nth-child(4),
+.selected-table td:nth-child(5),
+.selected-table th:nth-child(4),
+.selected-table th:nth-child(5) {
+    text-align: center;
+}
 
         .quantity-btn {
             width: 28px;
@@ -660,14 +668,17 @@ if (empty($comprador_email)) {
             border-color: #bbb;
         }
 
-        .quantity-input {
-            width: 50px;
-            padding: 5px;
-            text-align: center;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
-        }
+  .quantity-input {
+    width: 100%;
+    max-width: 120px; /* Máximo ancho */
+    min-width: 70px;  /* Mínimo ancho */
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+}
 
         .remove-item {
             background: none;
@@ -1819,7 +1830,8 @@ if (empty($comprador_email)) {
                     <h3><i class="fas fa-shopping-cart"></i> Productos en la Orden</h3>
                     
                     <div class="selected-table-container">
-                        <table class="selected-table" id="selectedTable" style="table-layout: fixed; width:100%;">
+                        <table class="selected-table" id="selectedTable" style="width:100%;">
+
                             <colgroup>
                                 <col style="width:12%">
                                 <col style="width:44%">
@@ -1880,10 +1892,10 @@ if (empty($comprador_email)) {
                         <span class="summary-value">$ <span id="orderTax">0.00</span></span>
                     </div>
                     
-                    <div class="summary-total">
-                        <span class="total-label">TOTAL:</span>
-                        <span class="total-value">$ <span id="orderTotal">0.00</span></span>
-                    </div>
+                   <div class="summary-total">
+    <span class="total-label">TOTAL:</span>
+    <span class="total-value" id="orderTotal">$ 0.00</span>
+</div>
                 </div>
 
                 <!-- Campos adicionales -->
@@ -2160,7 +2172,7 @@ if (empty($comprador_email)) {
         function renderProductosTable(productos) {
             productsTableBody.innerHTML = '';
             
-            productos.forEach(producto => {
+                productos.forEach(producto => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td class="product-code">${producto.codigo_interno}</td>
@@ -2172,7 +2184,8 @@ if (empty($comprador_email)) {
                             data-id="${producto.id}" 
                             data-code="${producto.codigo_interno}"
                             data-name="${producto.nombre}"
-                            data-price="${producto.precio_compra}">
+                            data-price="${producto.precio_compra}"
+                            data-stock-max="${producto.stock_maximo || producto.stock_max || producto.max_stock || 999999}">
                             <i class="fas fa-plus"></i> Agregar
                         </button>
                     </td>
@@ -2244,19 +2257,28 @@ if (empty($comprador_email)) {
             const existingProduct = selectedProducts.find(item => item.id == product.id);
             
             if (existingProduct) {
-                existingProduct.cantidad += 1;
+                const max = parseInt(existingProduct.stock_max) || 999999;
+                if ((existingProduct.cantidad + 1) > max) {
+                    mostrarToast(`No se puede agregar más. Stock máximo: ${max}`, 'warning');
+                    // No aumentar por encima del máximo
+                    existingProduct.cantidad = max;
+                } else {
+                    existingProduct.cantidad += 1;
+                }
             } else {
                 selectedProducts.push({
                     id: product.id,
                     codigo: product.codigo,
                     nombre: product.nombre,
                     precio: parseFloat(product.precio),
-                    cantidad: 1
+                    cantidad: 1,
+                    stock_max: product.stock_max || 999999
                 });
             }
 
             updateSelectedProductsUI();
             updateOrderSummary();
+            updateCreateButtonState();
             
             // Deshabilitar botón en la tabla de productos
             const addBtn = productsTableBody.querySelector(`.add-product-btn[data-id="${product.id}"]`);
@@ -2287,7 +2309,14 @@ if (empty($comprador_email)) {
             
             const product = selectedProducts.find(item => item.id == productId);
             if (product) {
-                product.cantidad = newCantidad;
+                // Validar contra stock máximo si está disponible
+                const max = parseInt(product.stock_max) || 999999;
+                if (newCantidad > max) {
+                    mostrarToast(`La cantidad no puede superar el stock máximo (${max}).`, 'warning');
+                    product.cantidad = max;
+                } else {
+                    product.cantidad = newCantidad;
+                }
             }
             
             updateSelectedProductsUI();
@@ -2351,6 +2380,7 @@ if (empty($comprador_email)) {
             orderSubtotal.textContent = subtotal.toFixed(2);
             orderTax.textContent = tax.toFixed(2);
             orderTotal.textContent = total.toFixed(2);
+             orderTotal.textContent = '$ ' + total.toFixed(2);
         }
 
         function filterProducts() {
@@ -2370,11 +2400,20 @@ if (empty($comprador_email)) {
         }
 
         function updateCreateButtonState() {
-            if (selectedProducts.length > 0 && selectedProveedor && fechaEntrega.value) {
-                saveOrderBtn.disabled = false;
-            } else {
+            // Deshabilitar si no hay productos, no hay proveedor o no hay fecha
+            if (!(selectedProducts.length > 0 && selectedProveedor && fechaEntrega.value)) {
                 saveOrderBtn.disabled = true;
+                return;
             }
+
+            // Deshabilitar si alguna cantidad excede el stock máximo
+            const excedidos = selectedProducts.filter(p => Number.isFinite(p.cantidad) && parseInt(p.cantidad) > (parseInt(p.stock_max) || 999999));
+            if (excedidos.length > 0) {
+                saveOrderBtn.disabled = true;
+                return;
+            }
+
+            saveOrderBtn.disabled = false;
         }
 
         // ========== FUNCIONES PARA EDITAR COMPRA ==========
@@ -2982,6 +3021,14 @@ if (empty($comprador_email)) {
                 Toast.error(`Cantidad inválida para ${invalidProduct.nombre}`, '', 10000);
                 return;
             }
+
+            // Validar que ninguna cantidad exceda el stock máximo
+            const excedidosFinal = selectedProducts.filter(p => Number.isFinite(p.cantidad) && parseInt(p.cantidad) > (parseInt(p.stock_max) || 999999));
+            if (excedidosFinal.length > 0) {
+                const nombres = excedidosFinal.map(p => `${p.nombre} (máx ${p.stock_max})`).join(', ');
+                Toast.error(`No se puede guardar la orden. Cantidades exceden el stock máximo: ${nombres}`, '', 15000);
+                return;
+            }
             
             // Calcular totales
             let subtotal = 0;
@@ -3053,13 +3100,13 @@ if (empty($comprador_email)) {
                             });
                             const emailData = await emailResp.json();
                             if (emailData.success) {
-                                mostrarToast(`Orden enviada por correo a ${selectedProveedor.email}`, 'success');
+                                mostrarToast(`Email enviado a ${selectedProveedor.email}`, 'success');
                             } else {
-                                mostrarToast('Orden creada, pero no se pudo enviar el email: ' + (emailData.message || ''), 'warning');
+                                mostrarToast('Email no enviado al proveedor', 'info', 10000);
                             }
                         } catch (emailErr) {
                             console.warn('Error enviando email al proveedor:', emailErr);
-                            mostrarToast('Orden creada, pero el envío de email falló.', 'warning');
+                            mostrarToast('Email no enviado al proveedor', 'info', 10000);
                         }
                     }
 
@@ -3564,7 +3611,8 @@ if (empty($comprador_email)) {
                         id: addBtn.dataset.id,
                         codigo: addBtn.dataset.code,
                         nombre: addBtn.dataset.name,
-                        precio: parseFloat(addBtn.dataset.price)
+                        precio: parseFloat(addBtn.dataset.price),
+                        stock_max: parseInt(addBtn.dataset.stockMax) || 999999
                     };
                     addProductToOrder(product);
                 }

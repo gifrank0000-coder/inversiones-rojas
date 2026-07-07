@@ -103,26 +103,21 @@ try {
         }
     }
 
-    // Filtrar por tipo de producto (vehiculo, repuesto, accesorio)
-    if (!is_null($type)) {
-        $type = strtolower($type);
-        $tipo_mapping = [
-            'vehiculo' => 'VEHICULO',
-            'repuesto' => 'REPUESTO',
-            'accesorio' => 'ACCESORIO'
-        ];
-        if (isset($tipo_mapping[$type])) {
-            $tipo_nombre = $tipo_mapping[$type];
-            // Obtener el tipo_id de la tabla tipos_producto
-            $stmtTipo = $conn->prepare("SELECT id FROM tipos_producto WHERE LOWER(nombre) = LOWER(:tipo)");
-            $stmtTipo->execute([':tipo' => $tipo_nombre]);
-            $tipo_id = $stmtTipo->fetchColumn();
-            if ($tipo_id) {
-                $where[] = 'p.tipo_id = :tipo_id';
-                $params[':tipo_id'] = $tipo_id;
-            }
-        }
+// Filtrar por tipo de producto (vehiculo, repuesto, accesorio) - USANDO TABLAS ESPECÍFICAS
+if (!is_null($type)) {
+    $type = strtolower($type);
+    
+    if ($type === 'vehiculo') {
+        // Filtrar productos que tienen registro en la tabla vehiculos
+        $where[] = 'EXISTS (SELECT 1 FROM vehiculos v WHERE v.producto_id = p.id)';
+    } elseif ($type === 'repuesto') {
+        // Filtrar productos que tienen registro en la tabla repuestos
+        $where[] = 'EXISTS (SELECT 1 FROM repuestos r WHERE r.producto_id = p.id)';
+    } elseif ($type === 'accesorio') {
+        // Filtrar productos que tienen registro en la tabla accesorios
+        $where[] = 'EXISTS (SELECT 1 FROM accesorios a WHERE a.producto_id = p.id)';
     }
+}
 
     // Filtrar por rango de fechas de creación (opcional)
     if ($createdFrom) {

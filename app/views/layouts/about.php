@@ -457,7 +457,7 @@ $user_name = $_SESSION['user_name'] ?? '';
                 <a href="<?php echo BASE_URL; ?>/app/views/layouts/inicio.php">Inicio</a>
                 <a href="<?php echo BASE_URL; ?>/app/views/layouts/motos.php">Motos</a>
                 <a href="<?php echo BASE_URL; ?>/app/views/layouts/repuestos.php">Repuestos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/layouts/about.php">Sobre Nosotros</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/contacto.php">Contacto</a>
             </div>
             
             <div class="footer-section-custom">

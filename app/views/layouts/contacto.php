@@ -516,11 +516,10 @@ $user_name = $_SESSION['user_name'] ?? '';
             
             <div class="footer-section-custom">
                 <h3>Enlaces Rápidos</h3>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/inicio.php">Inicio</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/motos.php">Motos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/repuestos.php">Repuestos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/ayuda.php">Ayuda</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/contacto.php">Contacto</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/inicio.php">Inicio</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/motos.php">Motos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/repuestos.php">Repuestos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/contacto.php">Contacto</a>
             </div>
             
             <div class="footer-section-custom">
@@ -535,7 +534,7 @@ $user_name = $_SESSION['user_name'] ?? '';
         </div>
         
         <div class="footer-bottom-custom">
-            <p>&copy; 2023 Inversiones Rojas. Todos los derechos reservados. | <a href="#" style="color: #27ae60;">Aviso Legal</a> | <a href="#" style="color: #27ae60;">Política de Cookies</a></p>
+            <p>&copy; 2023 Inversiones Rojas. Todos los derechos reservados.</p>
         </div>
     </footer>
 

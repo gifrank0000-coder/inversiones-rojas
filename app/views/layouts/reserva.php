@@ -604,7 +604,7 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
             </div>
         </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons 
         <div class="reservas-actions" style="margin-bottom: 20px; position: relative; z-index: 1;">
             <div class="action-buttons" style="display: flex; gap: 10px; position: relative; z-index: 2;">
                 <button class="btn btn-primary" id="mostrarFormBtn" style="cursor: pointer; pointer-events: auto; position: relative; z-index: 3;">
@@ -615,7 +615,7 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                 </button>
             </div>
         </div>
-
+-->
         <!-- Reservas Table - responsive con scroll horizontal -->
         <div class="reservas-table-wrapper">
         <div class="reservas-table">
@@ -1544,67 +1544,34 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
             // Cargar datos de gráficas
             loadChartData();
             
-            // Mostrar/ocultar formulario
-            document.getElementById('mostrarFormBtn').addEventListener('click', function() {
-                console.log('Botón Nueva Reserva clickeado');
-                document.getElementById('formReserva').style.display = 'block';
-                // Establecer fecha mínima para hoy + 1 día
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                document.getElementById('fecha_limite').min = tomorrow.toISOString().split('T')[0];
-            });
+       // Mostrar/ocultar formulario - Con verificación de seguridad
+const mostrarFormBtn = document.getElementById('mostrarFormBtn');
+if (mostrarFormBtn) {
+    mostrarFormBtn.addEventListener('click', function() {
+        console.log('Botón Nueva Reserva clickeado');
+        const formReserva = document.getElementById('formReserva');
+        if (formReserva) {
+            formReserva.style.display = 'block';
+        }
+        const fechaLimite = document.getElementById('fecha_limite');
+        if (fechaLimite) {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            fechaLimite.min = tomorrow.toISOString().split('T')[0];
+        }
+    });
+}
 
-            document.getElementById('cancelarReservaBtn').addEventListener('click', function() {
-                document.getElementById('formReserva').style.display = 'none';
-                document.getElementById('formReserva').reset();
-            });
-
-            // Guardar nueva reserva
-            document.getElementById('guardarReservaBtn').addEventListener('click', async function() {
-                if (!(await validarNuevaReserva())) return;
-                
-                const btn = this;
-                const originalText = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-                
-                try {
-                    const formData = new FormData();
-                    formData.append('cliente_id', document.getElementById('cliente').value);
-                    formData.append('producto_id', document.getElementById('producto').value);
-                    formData.append('cantidad', document.getElementById('cantidad').value);
-                    formData.append('fecha_limite', document.getElementById('fecha_limite').value);
-                    formData.append('observaciones', document.getElementById('observaciones').value);
-                    
-                    const response = await fetch('/inversiones-rojas/api/add_reserva.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.ok) {
-                        showNotification('Reserva creada exitosamente', 'success', '¡Éxito!');
-                        document.getElementById('formReserva').style.display = 'none';
-                        document.getElementById('formReserva').reset();
-                        setTimeout(() => location.reload(), 1500);
-                    } else {
-                        if (data.errors) {
-                            Object.values(data.errors).forEach(error => {
-                                showNotification(error, 'error', 'Error de validación');
-                            });
-                        } else {
-                            showNotification(data.error || 'Error creando reserva', 'error', 'Error');
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    showNotification('Error de conexión: ' + error.message, 'error', 'Error');
-                } finally {
-                    btn.disabled = false;
-                    btn.innerHTML = originalText;
-                }
-            });
+const cancelarReservaBtn = document.getElementById('cancelarReservaBtn');
+if (cancelarReservaBtn) {
+    cancelarReservaBtn.addEventListener('click', function() {
+        const formReserva = document.getElementById('formReserva');
+        if (formReserva) {
+            formReserva.style.display = 'none';
+            formReserva.reset();
+        }
+    });
+}
 
             // Filtros
             document.getElementById('dateFilter').addEventListener('change', function() {

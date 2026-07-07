@@ -142,10 +142,8 @@ if ($foundId) {
                         $cart_count += max(0, $itemQuantity);
                     }
                 }
-                if ($cart_count > 0):
                 ?>
-                <span class="cart-count"><?php echo $cart_count; ?></span>
-                <?php endif; ?>
+                <span class="cart-count" style="<?php echo $cart_count === 0 ? 'display: none;' : ''; ?>"><?php echo $cart_count > 0 ? $cart_count : '0'; ?></span>
             </button>
 
             <!-- Drawer lateral del carrito -->

@@ -78,15 +78,22 @@ if ($conn) {
         $stats['proximas_vencer'] = $result['total'];
     }
     
-    // Obtener productos en promoción
-    $sql = "SELECT p.id, p.nombre, p.precio_venta, 
-                   pr.nombre as promocion_nombre, pr.tipo_promocion, pr.valor,
-                   COALESCE(pr.imagen_url, pi.imagen_url, '') as imagen_url
-            FROM productos p
-            INNER JOIN producto_promociones pp ON p.id = pp.producto_id
-            INNER JOIN promociones pr ON pp.promocion_id = pr.id
-            LEFT JOIN producto_imagenes pi ON p.id = pi.producto_id AND pi.es_principal = true
-            WHERE pr.estado = true 
+    // FIX #1: Una carta por promoción (no por producto).
+    // Muestra la imagen de la promo y cuenta cuántos productos la tienen.
+    $sql = "SELECT pr.id, pr.nombre as promocion_nombre, pr.tipo_promocion, pr.valor,
+                   pr.descripcion, pr.fecha_fin,
+                   COALESCE(pr.imagen_url, '') as imagen_url,
+                   COUNT(pp.producto_id) as total_productos,
+                   MIN(p.precio_venta) as precio_min,
+                   MAX(p.precio_venta) as precio_max
+            FROM promociones pr
+            LEFT JOIN producto_promociones pp ON pr.id = pp.promocion_id
+            LEFT JOIN productos p ON pp.producto_id = p.id
+            WHERE pr.estado = true
+              AND pr.fecha_inicio <= CURRENT_DATE
+              AND pr.fecha_fin >= CURRENT_DATE
+            GROUP BY pr.id, pr.nombre, pr.tipo_promocion, pr.valor,
+                     pr.descripcion, pr.fecha_fin, pr.imagen_url
             ORDER BY pr.fecha_fin ASC
             LIMIT 8";
     $stmt = ejecutarConsulta($conn, $sql);
@@ -105,8 +112,8 @@ if ($conn) {
     $stmt = ejecutarConsulta($conn, $sql);
     $promociones = $stmt ? $stmt->fetchAll() : [];
     
-    // Obtener productos para el select
-    $sql = "SELECT id, nombre, precio_venta FROM productos WHERE estado = true ORDER BY nombre";
+    // Obtener productos para el select (incluye categoria_id para filtro en el modal)
+    $sql = "SELECT id, nombre, precio_venta, COALESCE(categoria_id, 0) as categoria_id FROM productos WHERE estado = true ORDER BY nombre";
     $stmt = ejecutarConsulta($conn, $sql);
     $productos = $stmt ? $stmt->fetchAll() : [];
 
@@ -190,6 +197,7 @@ if (empty($base_url)) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Promociones - Inversiones Rojas</title>
+    <link rel="icon" href="<?php echo $base_url; ?>/public/img/logo.png">
     <script>
         var APP_BASE = '<?php echo $base_url; ?>';
         var TASA_CAMBIO = <?php echo getTasaCambio(); ?>;
@@ -723,42 +731,83 @@ if (empty($base_url)) {
 
         <!-- Productos en Promoción -->
         <div class="productos-section">
-            <h3 style="margin-bottom: 20px; color: #2c3e50;">Productos en Promoción</h3>
+            <h3 style="margin-bottom: 20px; color: #2c3e50;">Promociones Activas</h3>
             <div class="productos-grid">
                 <?php if (!empty($productos_promocion)): ?>
-                    <?php foreach ($productos_promocion as $producto): 
-                        $precio_descuento = $producto['precio_venta'];
-                        $tipo_producto = strtolower($producto['tipo_promocion'] ?? '');
-                        if ($tipo_producto == 'descuento' || $tipo_producto == 'porcentaje') {
-                            $precio_descuento = $producto['precio_venta'] * (1 - $producto['valor'] / 100);
-                        } elseif ($tipo_producto == 'monto') {
-                            $precio_descuento = $producto['precio_venta'] - $producto['valor'];
+                    <?php foreach ($productos_promocion as $promo_card): 
+                        $tipo_card = strtolower($promo_card['tipo_promocion'] ?? '');
+                        $valor_card = floatval($promo_card['valor'] ?? 0);
+                        // Precio representativo: el mínimo del rango
+                        $precio_min = floatval($promo_card['precio_min'] ?? 0);
+                        $precio_max = floatval($promo_card['precio_max'] ?? 0);
+                        // Calcular precio con descuento
+                        if ($tipo_card === 'porcentaje' || $tipo_card === 'descuento') {
+                            $precio_con_promo = $precio_min * (1 - $valor_card / 100);
+                            $descuento_pct = intval($valor_card);
+                        } elseif ($tipo_card === '2x1') {
+                            $precio_con_promo = $precio_min;
+                            $descuento_pct = 50;
+                        } else {
+                            $precio_con_promo = max(0, $precio_min - $valor_card);
+                            $descuento_pct = $precio_min > 0 ? round((1 - $precio_con_promo / $precio_min) * 100) : 0;
                         }
-                        $descuento_porcentaje = round((1 - $precio_descuento / $producto['precio_venta']) * 100);
+                        $tiene_rango = ($precio_max > $precio_min && $precio_min > 0);
                     ?>
-                    <div class="producto-card">
+                    <div class="producto-card" style="cursor:pointer;" onclick="verPromocion(<?php echo $promo_card['id']; ?>)">
                         <div class="producto-img">
-                            <?php if (!empty($producto['imagen_url'])): ?>
-                                <img src="<?php echo $producto['imagen_url']; ?>" alt="<?php echo $producto['nombre']; ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                            <?php if (!empty($promo_card['imagen_url'])): ?>
+                                <img src="<?php echo htmlspecialchars($promo_card['imagen_url']); ?>" 
+                                     alt="<?php echo htmlspecialchars($promo_card['promocion_nombre']); ?>" 
+                                     style="width:100%;height:100%;object-fit:cover;">
                             <?php else: ?>
-                                <i class="fas fa-motorcycle fa-2x"></i>
+                                <i class="fas fa-tag fa-2x" style="color:#1F9166;"></i>
                             <?php endif; ?>
                         </div>
-                        <div class="producto-name"><?php echo htmlspecialchars($producto['nombre']); ?></div>
+                        <div class="producto-name"><?php echo htmlspecialchars($promo_card['promocion_nombre']); ?></div>
+                        <?php 
+                        // Si la promoción tiene más de un producto, solo mostrar el porcentaje
+                        // Si tiene un solo producto, mostrar los precios
+                        $mostrarPrecios = ($promo_card['total_productos'] == 1) && ($precio_min > 0);
+                        ?>
+                        <?php if ($mostrarPrecios): ?>
                         <div class="producto-price">
-                            <?php $precios_old = formatearMonedaDual($producto['precio_venta']); ?>
-                            <?php $precios_new = formatearMonedaDual($precio_descuento); ?>
-                            <span class="price-old"><span class="moneda-bs"><?php echo $precios_old['bs']; ?></span> <span class="moneda-usd">(<?php echo $precios_old['usd']; ?>)</span></span>
-                            <span class="price-new"><span class="moneda-bs"><?php echo $precios_new['bs']; ?></span> <span class="moneda-usd">(<?php echo $precios_new['usd']; ?>)</span></span>
+                            <?php 
+                            $precios_old = formatearMonedaDual($precio_min);
+                            $precios_new = formatearMonedaDual($precio_con_promo);
+                            ?>
+                            <span class="price-old">
+                                <span class="moneda-bs"><?php echo $precios_old['bs']; ?></span>
+                                <span class="moneda-usd">(<?php echo $precios_old['usd']; ?>)</span>
+                            </span>
+                            <span class="price-new">
+                                <span class="moneda-bs"><?php echo $precios_new['bs']; ?></span>
+                                <span class="moneda-usd">(<?php echo $precios_new['usd']; ?>)</span>
+                            </span>
+                         
                         </div>
-                        <div class="producto-discount"><?php echo $descuento_porcentaje; ?>% OFF</div>
-                        <div class="producto-promo"><?php echo $producto['promocion_nombre']; ?></div>
+                        <?php elseif ($promo_card['total_productos'] > 1): ?>
+                        <div class="producto-price" style="text-align: center; padding: 12px 0; color: #666; font-size: 13px;">
+                            <div style="line-height: 1.6;">
+                                <span style="display: block; color: #999; font-size: 11px;">Aplica a</span>
+                                <span style="display: block; font-weight: 600; color: #1F9166;"><?php echo intval($promo_card['total_productos']); ?> Productos</span>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        <div class="producto-discount">
+                            <?php if ($tipo_card === '2x1'): ?>
+                                2 × 1
+                            <?php else: ?>
+                                <?php echo $descuento_pct; ?>% OFF
+                            <?php endif; ?>
+                        </div>
+                        <div class="producto-promo" style="font-size:11px;color:#666;margin-top:4px;">
+                        </div>
                     </div>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #999;">
                         <i class="fas fa-tags" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                        <p>No hay productos en promoción activos</p>
+                        <p>No hay promociones activas</p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -934,9 +983,14 @@ if (empty($base_url)) {
                         </div>
                         
                         <div class="form-group">
-                            <label for="valor">Valor *</label>
-                            <input type="text" class="form-control" id="valor" name="valor" placeholder="Ej: 15 o 50">
-                            <small style="color: #999;">Para % solo número, para monto número sin símbolo</small>
+                            <label for="valor">Descuento (%) *</label>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <input type="number" class="form-control" id="valor" name="valor" 
+                                       placeholder="Ej: 15" min="1" max="100" step="0.1"
+                                       style="flex:1;">
+                                <span style="font-size:1.2rem;font-weight:700;color:#1F9166;">%</span>
+                            </div>
+                            <small style="color:#999;">Ingresa el porcentaje de descuento (1–100)</small>
                         </div>
                         
                         <div class="form-group">
@@ -949,14 +1003,13 @@ if (empty($base_url)) {
                             <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
                         </div>
                         
+                        <!-- FIX #3: Solo tipo Porcentaje visible; el campo oculto envía el valor correcto -->
                         <div class="form-group">
-                            <label for="tipo">Tipo de Promoción *</label>
-                            <select class="form-control" id="tipo" name="tipo" onchange="actualizarPlaceholderValor()">
-                                <option value="">Seleccione tipo</option>
-                                <option value="descuento">DESCUENTO</option>
-                                <option value="porcentaje">PORCENTAJE</option>
-                                <option value="2x1">2X1</option>
-                            </select>
+                            <label>Tipo de Promoción</label>
+                            <div style="padding:9px 12px;background:#f0faf5;border:1px solid #a3d9bf;border-radius:6px;color:#1F9166;font-weight:600;display:flex;align-items:center;gap:8px;">
+                                <i class="fas fa-percent"></i> Descuento por Porcentaje
+                            </div>
+                            <input type="hidden" id="tipo" name="tipo" value="porcentaje">
                         </div>
                         
                         <div class="form-group">
@@ -973,20 +1026,64 @@ if (empty($base_url)) {
                         <textarea class="form-control" id="descripcion" name="descripcion" rows="3" placeholder="Descripción detallada de la promoción..."></textarea>
                     </div>
                     
+                    <!-- FIX #2: Selector de productos mejorado con búsqueda y categorías -->
                     <div class="form-group">
-                        <label>Productos Aplicables</label>
-                        <div class="productos-select" id="productosContainer">
+                        <label>Productos Aplicables <span id="seleccionadosCount" style="color:#1F9166;font-weight:700;"></span></label>
+
+                        <!-- Barra de herramientas: búsqueda + filtro categoría + botones masivos -->
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">
+                            <div style="flex:1;min-width:160px;position:relative;">
+                                <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#999;font-size:12px;"></i>
+                                <input type="text" id="productSearchInput" placeholder="Buscar producto..." 
+                                       style="width:100%;padding:7px 9px 7px 28px;border:1px solid #ddd;border-radius:6px;font-size:13px;"
+                                       oninput="filtrarProductosModal()">
+                            </div>
+                            <select id="categoriaFilterModal" 
+                                    style="padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fff;"
+                                    onchange="filtrarProductosModal()">
+                                <option value="">Todas las categorías</option>
+                                <?php foreach ($categorias as $cat): ?>
+                                <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nombre']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="button" onclick="seleccionarTodosVisibles(true)"
+                                style="padding:7px 12px;background:#1F9166;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                                <i class="fas fa-check-double"></i> Todos
+                            </button>
+                            <button type="button" onclick="seleccionarTodosVisibles(false)"
+                                style="padding:7px 12px;background:#f5f5f5;color:#666;border:1px solid #ddd;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                                <i class="fas fa-times"></i> Ninguno
+                            </button>
+                        </div>
+
+                        <!-- Lista de productos -->
+                        <div class="productos-select" id="productosContainer" style="max-height:260px;overflow-y:auto;border:1px solid #ddd;border-radius:6px;padding:8px;">
                             <?php foreach ($productos as $producto): ?>
-                            <div class="producto-checkbox">
-                                <input type="checkbox" name="productos[]" value="<?php echo $producto['id']; ?>" id="prod_<?php echo $producto['id']; ?>">
-                                <label for="prod_<?php echo $producto['id']; ?>">
+                            <div class="producto-checkbox producto-item" 
+                                 data-nombre="<?php echo strtolower(htmlspecialchars($producto['nombre'])); ?>"
+                                 data-categoria="<?php echo intval($producto['categoria_id'] ?? 0); ?>"
+                                 style="display:flex;align-items:center;padding:6px 4px;border-bottom:1px solid #f5f5f5;">
+                                <input type="checkbox" name="productos[]" value="<?php echo $producto['id']; ?>" 
+                                       id="prod_<?php echo $producto['id']; ?>"
+                                       style="width:16px;height:16px;accent-color:#1F9166;flex-shrink:0;cursor:pointer;"
+                                       onchange="actualizarContadorSeleccionados()">
+                                <label for="prod_<?php echo $producto['id']; ?>" 
+                                       style="margin-left:10px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;width:100%;align-items:center;">
+                                    <span><?php echo htmlspecialchars($producto['nombre']); ?></span>
                                     <?php $precios = formatearMonedaDual($producto['precio_venta']); ?>
-                                    <?php echo htmlspecialchars($producto['nombre']); ?> - <span class="moneda-bs"><?php echo $precios['bs']; ?></span> <span class="moneda-usd">(<?php echo $precios['usd']; ?>)</span>
+                                    <span style="color:#1F9166;font-weight:600;font-size:12px;white-space:nowrap;margin-left:8px;">
+                                        <?php echo $precios['usd']; ?> / <?php echo $precios['bs']; ?>
+                                    </span>
                                 </label>
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        <small style="color: #999;">Selecciona los productos que aplican a esta promoción</small>
+                        <div id="sinResultadosProductos" style="display:none;text-align:center;padding:16px;color:#aaa;font-size:13px;">
+                            <i class="fas fa-search"></i> Sin resultados para esta búsqueda
+                        </div>
+                        <small style="color:#999;margin-top:4px;display:block;">
+                            Usa la búsqueda o filtra por categoría para encontrar productos rápidamente.
+                        </small>
                     </div>
 
                     <div class="form-group">
@@ -1287,78 +1384,7 @@ if (empty($base_url)) {
             return false;
         }
         
-        // Ver promoción — modal con datos de la fila (sin redirect)
-        function verPromocion(id) {
-            const row = document.querySelector('.table-row[data-id="' + id + '"]');
-            if (!row) return;
-
-            // Leer datos desde los data-* de la fila
-            const nombre      = row.dataset.nombreOrig  || row.dataset.nombre || '—';
-            const tipo        = row.dataset.tipoOrig    || row.dataset.tipo   || '—';
-            const valor       = row.dataset.valor       || '—';
-            const productos   = row.dataset.productos   || '0';
-            const estadoText  = row.dataset.estadoText  || row.dataset.estado || '—';
-            const estadoKey   = row.dataset.estado      || '';
-            const fechaInicio = row.dataset.fechaInicio || '—';
-            const fechaFin    = row.dataset.fechaFin    || '—';
-            const descripcion = row.dataset.descripcion || '';
-            const codigo      = row.querySelector('strong')?.textContent || ('PROM-' + String(id).padStart(6,'0'));
-
-            // Clases de badge
-            const badgeMap = {
-                'activa':     'background:#e8f6f1;color:#1F9166;border:1px solid #a3cfbb;',
-                'inactiva':   'background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;',
-                'programada': 'background:#cce5ff;color:#004085;border:1px solid #b8daff;',
-            };
-            const badgeStyle = badgeMap[estadoKey] || badgeMap['inactiva'];
-
-            // Crear modal si no existe
-            let modal = document.getElementById('modalVerPromo');
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'modalVerPromo';
-                modal.className = 'modal-overlay';
-                modal.innerHTML = `
-                    <div style="background:#fff;border-radius:12px;width:560px;max-width:95%;max-height:90vh;overflow-y:auto;animation:modalFadeIn .3s;box-shadow:0 10px 30px rgba(0,0,0,.2);">
-                        <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;background:#1F9166;border-radius:12px 12px 0 0;">
-                            <h3 style="margin:0;color:#fff;font-size:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-tag"></i> Detalle de Promoción</h3>
-                            <button onclick="document.getElementById('modalVerPromo').classList.remove('active')" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
-                        </div>
-                        <div id="modalVerPromoBody" style="padding:24px;"></div>
-                        <div style="padding:14px 22px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:10px;">
-                            <button onclick="document.getElementById('modalVerPromo').classList.remove('active')" class="btn btn-secondary"><i class="fas fa-times"></i> Cerrar</button>
-                        </div>
-                    </div>`;
-                modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
-                document.body.appendChild(modal);
-            }
-
-            document.getElementById('modalVerPromoBody').innerHTML = `
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;">
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Código</div>
-                         <div style="font-weight:700;color:#1F9166;">${codigo}</div></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Estado</div>
-                         <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;${badgeStyle}">${estadoText}</span></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Nombre</div>
-                         <div style="font-weight:600;">${nombre}</div></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Tipo</div>
-                         <div>${tipo}</div></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Descuento / Valor</div>
-                         <div style="font-weight:700;">${valor}</div></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Productos aplicados</div>
-                         <div>${productos} producto(s)</div></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Fecha inicio</div>
-                         <div>${fechaInicio}</div></div>
-                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Fecha fin</div>
-                         <div>${fechaFin}</div></div>
-                    ${descripcion ? `<div style="grid-column:1/-1;border-top:1px solid #edf2f7;padding-top:14px;">
-                        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px;">Descripción</div>
-                        <div style="font-size:13px;color:#555;">${descripcion}</div>
-                    </div>` : ''}
-                </div>`;
-
-            modal.classList.add('active');
-        }
+        // Ver promoción — función delegada a _abrirModalVer (ver más abajo)
         
         // Editar promoción
         function editarPromocion(id) {
@@ -1424,6 +1450,7 @@ if (empty($base_url)) {
                     document.querySelectorAll('input[name="productos[]"]').forEach(cb => {
                         cb.checked = data.productos.includes(parseInt(cb.value));
                     });
+                    actualizarContadorSeleccionados();
                     
                     document.getElementById('modalTitle').textContent = 'Editar Promoción';
                     document.getElementById('modalPromocion').classList.add('active');
@@ -1668,6 +1695,164 @@ if (empty($base_url)) {
                 if (existingInput) existingInput.value = '';
                 item.remove();
             });
+        }
+
+        // ===================== FIX #2: Búsqueda y filtro de productos en el modal =====================
+
+        function filtrarProductosModal() {
+            const texto = (document.getElementById('productSearchInput')?.value || '').toLowerCase().trim();
+            const catId = document.getElementById('categoriaFilterModal')?.value || '';
+            const items = document.querySelectorAll('#productosContainer .producto-item');
+            let visibles = 0;
+            items.forEach(item => {
+                const nombre = item.dataset.nombre || '';
+                const cat    = item.dataset.categoria || '';
+                const matchTxt = !texto || nombre.includes(texto);
+                const matchCat = !catId || cat === catId;
+                const show = matchTxt && matchCat;
+                item.style.display = show ? '' : 'none';
+                if (show) visibles++;
+            });
+            const sinRes = document.getElementById('sinResultadosProductos');
+            if (sinRes) sinRes.style.display = visibles === 0 ? 'block' : 'none';
+        }
+
+        function seleccionarTodosVisibles(marcar) {
+            const items = document.querySelectorAll('#productosContainer .producto-item');
+            items.forEach(item => {
+                if (item.style.display !== 'none') {
+                    const cb = item.querySelector('input[type="checkbox"]');
+                    if (cb) cb.checked = marcar;
+                }
+            });
+            actualizarContadorSeleccionados();
+        }
+
+        function actualizarContadorSeleccionados() {
+            const total = document.querySelectorAll('input[name="productos[]"]:checked').length;
+            const el = document.getElementById('seleccionadosCount');
+            if (el) el.textContent = total > 0 ? `(${total} seleccionado${total !== 1 ? 's' : ''})` : '';
+        }
+
+        // ===================== FIX #4: verPromocion — buscar en .data-table-row =====================
+
+        function verPromocion(id) {
+            // Buscar la fila tanto con .table-row como con .data-table-row
+            const row = document.querySelector('.data-table-row[data-id="' + id + '"]')
+                     || document.querySelector('.table-row[data-id="' + id + '"]');
+
+            if (!row) {
+                // Fallback: cargar por API
+                document.getElementById('loadingOverlay').classList.add('active');
+                fetch('<?php echo BASE_URL; ?>/api/obtener_promocion.php?id=' + id)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('loadingOverlay').classList.remove('active');
+                    if (!data.success) { mostrarToast('No se pudo cargar la promoción', 'error'); return; }
+                    const p = data.promocion;
+                    _abrirModalVer({
+                        id,
+                        codigo:      'PROM-' + String(id).padStart(6,'0'),
+                        nombre:      p.nombre,
+                        tipo:        p.tipo_promocion,
+                        valor:       p.valor + '% OFF',
+                        productos:   data.productos?.length || 0,
+                        estadoText:  p.estado ? 'Activa' : 'Inactiva',
+                        estadoKey:   p.estado ? 'activa' : 'inactiva',
+                        fechaInicio: p.fecha_inicio,
+                        fechaFin:    p.fecha_fin,
+                        descripcion: p.descripcion || '',
+                        productosDetalle: data.productos_detail || []
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('loadingOverlay').classList.remove('active');
+                    mostrarToast('Error al cargar los detalles', 'error');
+                });
+                return;
+            }
+
+            // Leer datos desde los data-* de la fila
+            const nombre      = row.dataset.nombreOrig  || row.dataset.nombre || '—';
+            const tipo        = row.dataset.tipoOrig    || row.dataset.tipo   || '—';
+            const valor       = row.dataset.valor       || '—';
+            const productos   = row.dataset.productos   || '0';
+            const estadoText  = row.dataset.estadoText  || row.dataset.estado || '—';
+            const estadoKey   = row.dataset.estado      || '';
+            const fechaInicio = row.dataset.fechaInicio || '—';
+            const fechaFin    = row.dataset.fechaFin    || '—';
+            const descripcion = row.dataset.descripcion || '';
+            const codigo      = row.querySelector('strong')?.textContent || ('PROM-' + String(id).padStart(6,'0'));
+
+            _abrirModalVer({ id, codigo, nombre, tipo, valor, productos, estadoText, estadoKey, fechaInicio, fechaFin, descripcion, productosDetalle: [] });
+        }
+
+        function _abrirModalVer({ id, codigo, nombre, tipo, valor, productos, estadoText, estadoKey, fechaInicio, fechaFin, descripcion, productosDetalle }) {
+            const badgeMap = {
+                'activa':     'background:#e8f6f1;color:#1F9166;border:1px solid #a3cfbb;',
+                'inactiva':   'background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;',
+                'programada': 'background:#cce5ff;color:#004085;border:1px solid #b8daff;',
+            };
+            const badgeStyle = badgeMap[estadoKey] || badgeMap['inactiva'];
+
+            let modal = document.getElementById('modalVerPromo');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'modalVerPromo';
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div style="background:#fff;border-radius:12px;width:580px;max-width:95%;max-height:90vh;overflow-y:auto;animation:modalFadeIn .3s;box-shadow:0 10px 30px rgba(0,0,0,.2);">
+                        <div style="padding:18px 22px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;background:#1F9166;border-radius:12px 12px 0 0;">
+                            <h3 style="margin:0;color:#fff;font-size:16px;display:flex;align-items:center;gap:8px;"><i class="fas fa-tag"></i> Detalle de Promoción</h3>
+                            <button onclick="document.getElementById('modalVerPromo').classList.remove('active')" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;">&times;</button>
+                        </div>
+                        <div id="modalVerPromoBody" style="padding:24px;"></div>
+                        <div style="padding:14px 22px;border-top:1px solid #eee;display:flex;justify-content:flex-end;gap:10px;">
+                            <button onclick="document.getElementById('modalVerPromo').classList.remove('active')" class="btn btn-secondary"><i class="fas fa-times"></i> Cerrar</button>
+                            <button onclick="editarPromocion(${id});document.getElementById('modalVerPromo').classList.remove('active');" class="btn btn-primary"><i class="fas fa-edit"></i> Editar</button>
+                        </div>
+                    </div>`;
+                modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('active'); });
+                document.body.appendChild(modal);
+            }
+
+            let productosHTML = '';
+            if (productosDetalle && productosDetalle.length > 0) {
+                productosHTML = `<div style="grid-column:1/-1;border-top:1px solid #edf2f7;padding-top:14px;">
+                    <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:6px;">PRODUCTOS EN ESTA PROMOCIÓN</div>
+                    <div style="max-height:130px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;">
+                    ${productosDetalle.map(p => `<div style="font-size:12px;padding:5px 8px;background:#f8f9fa;border-radius:4px;display:flex;justify-content:space-between;">
+                        <span>${escapeHtml(p.nombre)}</span>
+                    </div>`).join('')}
+                    </div></div>`;
+            }
+
+            document.getElementById('modalVerPromoBody').innerHTML = `
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 24px;">
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Código</div>
+                         <div style="font-weight:700;color:#1F9166;">${escapeHtml(codigo)}</div></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Estado</div>
+                         <span style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;${badgeStyle}">${escapeHtml(estadoText)}</span></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Nombre</div>
+                         <div style="font-weight:600;">${escapeHtml(nombre)}</div></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Tipo</div>
+                         <div>${escapeHtml(tipo)}</div></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Descuento</div>
+                         <div style="font-weight:700;color:#1F9166;font-size:1.1rem;">${escapeHtml(String(valor))}</div></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Productos aplicados</div>
+                         <div>${escapeHtml(String(productos))} producto(s)</div></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Fecha inicio</div>
+                         <div>${escapeHtml(String(fechaInicio))}</div></div>
+                    <div><div style="font-size:11px;color:#888;font-weight:600;margin-bottom:3px;">Fecha fin</div>
+                         <div>${escapeHtml(String(fechaFin))}</div></div>
+                    ${descripcion ? `<div style="grid-column:1/-1;border-top:1px solid #edf2f7;padding-top:14px;">
+                        <div style="font-size:11px;color:#888;font-weight:600;margin-bottom:4px;">Descripción</div>
+                        <div style="font-size:13px;color:#555;">${escapeHtml(descripcion)}</div>
+                    </div>` : ''}
+                    ${productosHTML}
+                </div>`;
+
+            modal.classList.add('active');
         }
 
         // Inhabilitar / Habilitar promoción

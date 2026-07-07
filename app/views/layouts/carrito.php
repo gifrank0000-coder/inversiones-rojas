@@ -1902,9 +1902,9 @@ async function cargarCanalesDisponibles() {
             <div class="footer-section-custom">
                 <h3>Enlaces Rápidos</h3>
                 <a href="<?php echo BASE_URL; ?>/app/views/layouts/inicio.php">Inicio</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/motos.php">Motos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/repuestos.php">Repuestos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/contacto.php">Contacto</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/motos.php">Motos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/repuestos.php">Repuestos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/contacto.php">Contacto</a>
             </div>
             
             <div class="footer-section-custom">

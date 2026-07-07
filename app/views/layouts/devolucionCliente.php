@@ -81,10 +81,28 @@ try {
         ");
         $stmt->execute([$cliente_id, $cliente_id]);
         $pedidos_con_disponibles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+        // Obtener historial de devoluciones del cliente
+        $stmt = $conn->prepare("
+            SELECT d.id, d.codigo_devolucion, d.motivo, d.estado_devolucion AS estado, 
+                   d.cantidad, d.created_at as fecha, d.observaciones,
+                   p.nombre AS producto, p.codigo_interno,
+                   COALESCE(v.codigo_venta, po.codigo_pedido) AS codigo_referencia
+            FROM devoluciones d
+            LEFT JOIN productos p ON d.producto_id = p.id
+            LEFT JOIN ventas v ON d.venta_id = v.id
+            LEFT JOIN pedidos_online po ON d.pedido_id = po.id
+            WHERE d.cliente_id = ?
+            ORDER BY d.created_at DESC
+            LIMIT 50
+        ");
+        $stmt->execute([$cliente_id]);
+        $historial_devoluciones = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
 } catch (Exception $e) {
     error_log('Error cargando datos para devolución: ' . $e->getMessage());
+    $historial_devoluciones = [];
 }
 ?>
 <!DOCTYPE html>
@@ -93,6 +111,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitar Devolución - Inversiones Rojas</title>
+    <link rel="icon" href="<?php echo BASE_URL; ?>/public/img/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         /* ============================================
@@ -583,6 +602,20 @@ try {
             color: #666;
             font-size: 1rem;
         }
+
+        /* Status badges para historial */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .status-pendiente { background: #fdecea; color: #e04b4b; }
+        .status-aprobado { background: #e8f6f1; color: #1F9166; }
+        .status-rechazado { background: #f8e9f0; color: #c12b7a; }
     </style>
 </head>
 <body>
@@ -707,7 +740,7 @@ try {
 
                     <!-- Botones de acción -->
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="window.location.href='<?php echo BASE_URL; ?>/app/views/pages/inicio.php'">
+                        <button type="button" class="btn btn-secondary" onclick="window.location.href='<?php echo BASE_URL; ?>/app/views/layouts/inicio.php'">
                             <i class="fas fa-times"></i>
                             Cancelar
                         </button>
@@ -717,6 +750,48 @@ try {
                         </button>
                     </div>
                 </form>
+            <?php endif; ?>
+        </div>
+
+        <!-- Historial de Devoluciones -->
+        <div class="form-container" style="margin-top: 30px;">
+            <h2>
+                <i class="fas fa-history"></i>
+                Mis Devoluciones
+            </h2>
+
+            <?php if (empty($historial_devoluciones)): ?>
+                <div class="no-pedidos-message">
+                    <i class="fas fa-inbox"></i>
+                    <p>No tienes devoluciones registradas aún.</p>
+                </div>
+            <?php else: ?>
+                <div style="overflow-x: auto;">
+                    <div style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 0.8fr; gap: 12px; padding: 15px 20px; background: #f8f9fa; font-weight: 600; border-bottom: 2px solid #e0e0e0; min-width: 700px;">
+                        <div>Código</div>
+                        <div>Producto</div>
+                        <div>Motivo</div>
+                        <div>Fecha</div>
+                        <div>Estado</div>
+                    </div>
+                    <?php foreach ($historial_devoluciones as $dev): ?>
+                        <div style="display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr 0.8fr; gap: 12px; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; align-items: center; min-width: 700px;">
+                            <div><strong><?php echo htmlspecialchars($dev['codigo_devolucion'] ?? ('DEV-' . $dev['id'])); ?></strong></div>
+                            <div>
+                                <div style="font-weight: 600; color: #2c3e50; font-size: 14px;"><?php echo htmlspecialchars($dev['producto'] ?? '—'); ?></div>
+                                <div style="font-size: 11px; color: #7f8c8d;"><?php echo htmlspecialchars($dev['codigo_interno'] ?? ''); ?></div>
+                            </div>
+                            <div style="font-size: 13px; color: #555;"><?php echo htmlspecialchars($dev['motivo'] ?? '—'); ?></div>
+                            <div style="font-size: 13px; color: #555;"><?php echo date('d/m/Y', strtotime($dev['fecha'])); ?></div>
+                            <div>
+                                <?php $estado_class = strtolower($dev['estado'] ?? 'pendiente'); ?>
+                                <span class="status-badge status-<?php echo $estado_class; ?>">
+                                    <?php echo ucfirst($estado_class); ?>
+                                </span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             <?php endif; ?>
         </div>
 

@@ -710,7 +710,7 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
             </div>
         </div>
 
-        <!-- Action Buttons -->
+             <!-- Action Buttons 
         <div class="pedidos-actions">
             <div class="action-buttons">
                 <button class="btn btn-primary" id="nuevoPedidoBtn">
@@ -720,6 +720,7 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 
             </div>
         </div>
+        -->
 
         <!-- Pedidos Table - responsive con scroll horizontal -->
         <div class="pedidos-table-wrapper">
@@ -1569,7 +1570,8 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
                 const ref   = document.getElementById('cdMovilRef').value.trim();
                 
                 // Validar teléfono si está presente
-                if (tel && !InvValidate.phone({value: tel}, 'Teléfono')) return;
+       const inputTel = document.getElementById('cdMovilTelefono');
+if (tel && !InvValidate.telefono(inputTel, false)) return;
                 
                 if (!ref) { errEl.textContent = 'El número de confirmación es obligatorio'; errEl.style.display = 'block'; return; }
                 referencia = `Pago Móvil` + (banco ? ` | Banco: ${banco}` : '') + (tel ? ` | Tel: ${tel}` : '') + ` | Ref: ${ref}`;

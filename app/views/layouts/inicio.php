@@ -102,37 +102,109 @@ try {
 } catch (Exception $e) {
     error_log('ERROR inicio.php: fallo al cargar sliders por categoría: ' . $e->getMessage());
 }
+
+// ── Cargar opciones dinámicas para el catálogo de búsqueda ─────────────────
+$catalogo_anos    = [];
+$catalogo_marcas  = [];
+$catalogo_modelos = [];
+$catalogo_cats    = [];
+try {
+    $dbc = new Database();
+    $cc  = $dbc->getConnection();
+    if ($cc) {
+        // Años de vehículos con productos activos
+        $r = $cc->query("SELECT DISTINCT v.anio FROM vehiculos v INNER JOIN productos p ON p.id = v.producto_id WHERE p.estado = true AND v.anio IS NOT NULL ORDER BY v.anio DESC");
+        $catalogo_anos = $r->fetchAll(PDO::FETCH_COLUMN);
+
+        // Marcas con productos activos
+        $r = $cc->query("SELECT DISTINCT v.marca FROM vehiculos v INNER JOIN productos p ON p.id = v.producto_id WHERE p.estado = true AND v.marca IS NOT NULL AND v.marca <> '' ORDER BY v.marca ASC");
+        $catalogo_marcas = $r->fetchAll(PDO::FETCH_COLUMN);
+
+        // Modelos con productos activos
+        $r = $cc->query("SELECT DISTINCT v.modelo FROM vehiculos v INNER JOIN productos p ON p.id = v.producto_id WHERE p.estado = true AND v.modelo IS NOT NULL AND v.modelo <> '' ORDER BY v.modelo ASC");
+        $catalogo_modelos = $r->fetchAll(PDO::FETCH_COLUMN);
+
+        // Categorías de productos activos
+        $r = $cc->query("SELECT DISTINCT c.nombre FROM categorias c INNER JOIN productos p ON p.categoria_id = c.id WHERE p.estado = true AND c.nombre IS NOT NULL ORDER BY c.nombre ASC");
+        $catalogo_cats = $r->fetchAll(PDO::FETCH_COLUMN);
+    }
+} catch (Exception $e) {
+    error_log('ERROR inicio.php: fallo filtros catálogo: ' . $e->getMessage());
+}
 // Cargar promociones activas (para mostrar en home)
+// Agrupar por promoción, no por producto - mostrar los detalles diferente según cantidad de productos
 $productos_promocion = [];
 try {
     $dbp = new Database();
     $connp = $dbp->getConnection();
     if ($connp) {
-                $sqlPromo = "SELECT p.id, p.nombre, p.descripcion, p.precio_venta, 
-                            COALESCE(pr.imagen_url, pi.imagen_url, '') as imagen_url, 
+        // Query principal: obtener una fila por PROMOCIÓN (no por producto)
+        // Incluye: nombre, descripción, valor, imagen, fecha vencimiento, COUNT de productos
+        $sqlPromo = "SELECT pr.id as promo_id,
                             pr.nombre as promocion_nombre, 
                             pr.descripcion as promocion_descripcion,
                             pr.tipo_promocion as promo_tipo_promocion, 
                             pr.valor as promo_valor,
                             pr.fecha_inicio,
                             pr.fecha_fin,
-                            pr.estado
-                     FROM productos p
-                     INNER JOIN producto_promociones pp ON p.id = pp.producto_id
-                     INNER JOIN promociones pr ON pp.promocion_id = pr.id
-                     LEFT JOIN producto_imagenes pi ON p.id = pi.producto_id AND pi.es_principal = true
+                            pr.estado,
+                            COALESCE(pr.imagen_url, '') as imagen_url,
+                            COUNT(DISTINCT pp.producto_id) as cantidad_productos,
+                            MIN(p.precio_venta) as precio_min,
+                            MAX(p.precio_venta) as precio_max,
+                            STRING_AGG(DISTINCT p.nombre, ', ') as nombres_productos
+                     FROM promociones pr
+                     LEFT JOIN producto_promociones pp ON pp.promocion_id = pr.id
+                     LEFT JOIN productos p ON p.id = pp.producto_id
                      WHERE pr.estado = true
+                       AND pr.fecha_inicio <= CURRENT_DATE
+                       AND pr.fecha_fin >= CURRENT_DATE
+                     GROUP BY pr.id, pr.nombre, pr.descripcion, pr.tipo_promocion, 
+                              pr.valor, pr.fecha_inicio, pr.fecha_fin, pr.estado, pr.imagen_url
                      ORDER BY pr.fecha_fin ASC
                      LIMIT 8";
         $stmtPromo = $connp->prepare($sqlPromo);
         $stmtPromo->execute();
-        $productos_promocion = $stmtPromo->fetchAll(PDO::FETCH_ASSOC);
+        $promociones_data = $stmtPromo->fetchAll(PDO::FETCH_ASSOC);
         
-        // Aplicar cálculo de precio con promoción
-        foreach ($productos_promocion as &$pp) {
-            $pp = aplicarPromocionAProducto($pp);
+        // Procesar cada promoción para obtener imagen e info del producto representativo
+        foreach ($promociones_data as &$promo) {
+            // Si no hay imagen de promoción, obtener imagen del primer producto
+            if (empty($promo['imagen_url'])) {
+                $sqlImg = "SELECT pi.imagen_url 
+                          FROM producto_promociones pp
+                          INNER JOIN productos p ON p.id = pp.producto_id
+                          LEFT JOIN producto_imagenes pi ON pi.producto_id = p.id AND pi.es_principal = true
+                          WHERE pp.promocion_id = ? 
+                          LIMIT 1";
+                $stmtImg = $connp->prepare($sqlImg);
+                $stmtImg->execute([$promo['promo_id']]);
+                $imgRow = $stmtImg->fetch(PDO::FETCH_ASSOC);
+                if ($imgRow) {
+                    $promo['imagen_url'] = $imgRow['imagen_url'] ?? '';
+                }
+            }
+            
+            // Para promociones de un solo producto, obtener sus detalles (precio antes/después)
+            if ($promo['cantidad_productos'] == 1) {
+                $sqlSingle = "SELECT p.id, p.nombre, p.descripcion, p.precio_venta
+                             FROM producto_promociones pp
+                             INNER JOIN productos p ON p.id = pp.producto_id
+                             WHERE pp.promocion_id = ?";
+                $stmtSingle = $connp->prepare($sqlSingle);
+                $stmtSingle->execute([$promo['promo_id']]);
+                $producto = $stmtSingle->fetch(PDO::FETCH_ASSOC);
+                if ($producto) {
+                    $promo['id'] = $producto['id'];
+                    $promo['nombre'] = $producto['nombre'];
+                    $promo['descripcion'] = $producto['descripcion'];
+                    $promo['precio_venta'] = $producto['precio_venta'];
+                    $promo = aplicarPromocionAProducto($promo);
+                }
+            }
         }
-        unset($pp);
+        unset($promo);
+        $productos_promocion = $promociones_data;
     }
 } catch (Exception $e) {
     error_log('ERROR inicio.php: fallo al cargar promociones: ' . $e->getMessage());
@@ -166,6 +238,7 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
     <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/admin.css">
     <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/pages/home.css">
     <link rel="stylesheet" href="<?php echo $base_url; ?>/public/css/components/user-panel.css">
+    
     <style>
         .moneda-bs { color: #1F9166; font-weight: 700; }
         .moneda-usd { color: #6c757d; font-size: 0.85em; }
@@ -350,10 +423,130 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
         .boton-detalles-custom:hover {
             background: linear-gradient(135deg, #156b4d 0%, #1F9166 100%);
         }
+
+        /* ── Promo slide description — estilo vidriera profesional ── */
+        .promo-slide-description {
+          
+            backdrop-filter: blur(4px);
         
-    </style>
+            border-radius: 0 12px 12px 0;
+            padding: 24px 26px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .promo-slide-description h3 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0 0 10px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            line-height: 1.2;
+        }
+        .promo-product-name {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #2ecc71;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin: 0 0 8px;
+        }
+        .promo-descripcion {
+            font-size: 0.88rem;
+            color: #e0e0e0;
+            line-height: 1.5;
+            margin: 0 0 12px;
+        }
+        /* Estilo para imágenes de promociones - evitar que se vean cortadas */
+        .promo-slide-image {
+            flex: 1;
+            min-height: 350px;
+            position: relative;
+            overflow: hidden;
+            background: #2c2c2c;
+        }
+        .promo-slide-image img {
+            width: 100%;
+            height: 100%;
+            
+        }
+        
+        /* Precio anterior tachado */
+        .promo-price-old {
+            font-size: 0.88rem;
+            color: #aaa;
+            text-decoration: line-through;
+            font-weight: 500;
+        }
+        /* Precio con oferta */
+        .promo-price-new {
+            font-size: 1.5rem;
+            font-weight: 900;
+            
+            text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+            letter-spacing: -0.01em;
+        }
+        .promo-price-usd {
+            font-size: 0.82rem;
+            color: #adb5bd;
+        }
+        /* Multi-producto */
+        .promo-multi-product {
+            font-size: 1rem;
+            color: #f8f9fa;
+            margin: 0 0 8px;
+            line-height: 1.4;
+        }
+        .promo-multi-product strong {
+               color: #34eea8;
+
+            font-size: 1.15rem;
+        }
+        .promo-availability {
+         
+          align-items: center;
+
+    background: #1F9166;
+    border: 1px solid rgba(46, 204, 113, 0.4);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: white;
+           
+        }
+        .promo-detail {
+            color: #2ecc71;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        /* Botón ver producto dentro del slide */
+        .promo-slide-description .btn-promo-ver {
+            display: inline-block;
+            margin-top: 14px;
+            padding: 9px 20px;
+            background: linear-gradient(135deg, #1F9166 0%, #2ecc71 100%);
+            color: #fff;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            letter-spacing: 0.03em;
+            box-shadow: 0 4px 14px rgba(31,145,102,0.35);
+            transition: transform 0.2s, box-shadow 0.2s;
+            align-self: flex-start;
+        }
+        .promo-slide-description .btn-promo-ver:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(31,145,102,0.5);
+        }
+                </style>
 </head>
 <body>
+ 
+
     <?php require __DIR__ . '/partials/header.php'; ?>
                    
 
@@ -387,40 +580,49 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
         <div class="catalog-container">
             <h2 class="section-title">Explora nuestro Catálogo</h2>
             <div class="filters-container">
+                <!-- Año: dinámico desde vehiculos activos -->
                 <div class="filter-box">
                     <select id="catalogo-year">
                         <option value="">Año</option>
-                        <option value="2022">2022</option>
-                        <option value="2023">2023</option>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
+                        <?php foreach ($catalogo_anos as $ano): ?>
+                            <option value="<?php echo htmlspecialchars($ano); ?>"><?php echo htmlspecialchars($ano); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
+
+                <!-- Marca: dinámica desde vehiculos activos -->
                 <div class="filter-box">
                     <select id="catalogo-brand">
                         <option value="">Marca</option>
-                        <option value="Bera">Bera</option>
-                        <option value="Empire">Empire</option>
-                        <option value="Kawasaki">Kawasaki</option>
-                        <option value="Honda">Honda</option>
-                        <option value="Yamaha">Yamaha</option>
+                        <?php foreach ($catalogo_marcas as $marca): ?>
+                            <option value="<?php echo htmlspecialchars($marca); ?>"><?php echo htmlspecialchars($marca); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
+
+                <!-- Modelo: dinámico desde vehiculos activos -->
                 <div class="filter-box">
                     <select id="catalogo-model">
                         <option value="">Modelo</option>
-                        <option value="BR 200">BR 200</option>
-                        <option value="Scooter">Scooter</option>
-                        <option value="Custom">Custom</option>
-                        <option value="Deportiva">Deportiva</option>
+                        <?php foreach ($catalogo_modelos as $modelo): ?>
+                            <option value="<?php echo htmlspecialchars($modelo); ?>"><?php echo htmlspecialchars($modelo); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
+
+                <!-- Categoría: dinámica desde categorías activas -->
                 <div class="filter-box">
                     <select id="catalogo-category">
                         <option value="">Categoría</option>
-                        <option value="Motos">Motos</option>
-                        <option value="Repuestos">Repuestos</option>
-                        <option value="Accesorios">Accesorios</option>
+                        <?php foreach ($catalogo_cats as $cat): ?>
+                            <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
+                        <?php endforeach; ?>
+                        <!-- Fallback si no hay categorías en BD -->
+                        <?php if (empty($catalogo_cats)): ?>
+                            <option value="Motos">Motos</option>
+                            <option value="Repuestos">Repuestos</option>
+                            <option value="Accesorios">Accesorios</option>
+                        <?php endif; ?>
                     </select>
                 </div>
             </div>
@@ -439,19 +641,16 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
             <div class="promo-sliders-container">
                 <!-- Slider Principal dinámico: promociones activas -->
                 <div class="main-promo-slider" id="main-promo-slider" style="min-height: 400px; display: block;">
-                    <?php if (!empty($productos_promocion)): ?>
+                                     <?php if (!empty($productos_promocion)): ?>
                         <?php foreach ($productos_promocion as $idx => $pp): 
+                            // Variables principales
                             $promoNombre = trim($pp['promocion_nombre'] ?? 'Promoción');
                             $prodNombre = trim($pp['nombre'] ?? '');
-                            $precioOriginal = floatval($pp['precio_venta'] ?? 0);
-                            $precioConPromo = floatval($pp['precio_real'] ?? $precioOriginal);
-                            $descuento = 0;
-                            if ($precioOriginal > 0 && $precioConPromo < $precioOriginal) {
-                                $descuento = round((($precioOriginal - $precioConPromo) / $precioOriginal) * 100);
-                            }
-                            $preciosOriginal = formatearMonedaDual($precioOriginal);
-                            $preciosNuevo = formatearMonedaDual($precioConPromo);
+                            $descuento = intval($pp['promo_valor'] ?? 0);
+                            $cantidadProductos = intval($pp['cantidad_productos'] ?? 1);
                             $imagenUrl = $pp['imagen_url'] ?? '';
+                            
+                            // Limpiar URL de imagen
                             if (!empty($imagenUrl)) {
                                 if (strpos($imagenUrl, '/inversiones-rojas/') !== false) {
                                     $imagenUrl = substr($imagenUrl, strpos($imagenUrl, '/inversiones-rojas/') + strlen('/inversiones-rojas/'));
@@ -460,26 +659,65 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
                                 }
                                 $imagenUrl = BASE_URL . '/' . ltrim($imagenUrl, '/');
                             }
+                            
+                            // Para promociones de UN SOLO producto: mostrar precio antes/después
+                            $esUnProducto = ($cantidadProductos == 1);
+                            $productoUrl = '';
+                            
+                            if ($esUnProducto && isset($pp['id'])) {
+                                $productoUrl = BASE_URL . '/app/views/layouts/product_detail.php?id=' . intval($pp['id']);
+                            }
+                            
+                            if ($esUnProducto && isset($pp['precio_venta'])) {
+                                $precioOriginal = floatval($pp['precio_venta'] ?? 0);
+                                $precioConPromo = floatval($pp['precio_real'] ?? $precioOriginal);
+                                $preciosOriginal = formatearMonedaDual($precioOriginal);
+                                $preciosNuevo = formatearMonedaDual($precioConPromo);
+                            }
                         ?>
                             <div class="promo-slide <?php echo $idx === 0 ? 'active' : ''; ?>">
-                                <div class="promo-slide-image">
-                                    <?php if ($descuento > 0): ?>
-                                        <span class="promo-badge">-<?php echo $descuento; ?>%</span>
-                                    <?php endif; ?>
-                                    <img src="<?php echo !empty($imagenUrl) ? htmlspecialchars($imagenUrl) : BASE_URL . '/public/img/default-promo.png'; ?>" alt="<?php echo htmlspecialchars($prodNombre); ?>">
-                                </div>
+                                <?php if ($esUnProducto && !empty($productoUrl)): ?>
+                                <a href="<?php echo $productoUrl; ?>" class="promo-slide-image-link" style="display: block; text-decoration: none;">
+                                <?php endif; ?>
+                                    <div class="promo-slide-image">
+                                        <?php if ($descuento > 0): ?>
+                                            <span class="promo-badge">-<?php echo $descuento; ?>%</span>
+                                        <?php endif; ?>
+                                        <img src="<?php echo !empty($imagenUrl) ? htmlspecialchars($imagenUrl) : BASE_URL . '/public/img/default-promo.png'; ?>" alt="<?php echo htmlspecialchars($promoNombre); ?>">
+                                    </div>
+                                <?php if ($esUnProducto && !empty($productoUrl)): ?>
+                                </a>
+                                <?php endif; ?>
                                 <div class="promo-slide-description">
                                     <h3><?php echo htmlspecialchars($promoNombre); ?></h3>
-                                    <p class="promo-product-name"><?php echo htmlspecialchars($prodNombre); ?></p>
-                                    <?php if (!empty($pp['promocion_descripcion'])): ?>
-                                        <p class="promo-descripcion"><?php echo htmlspecialchars($pp['promocion_descripcion']); ?></p>
+                                    
+                                    <?php if ($esUnProducto): ?>
+                                        <!-- Formato SIMPLE: 1 solo producto con precio antes/después -->
+                                        <p class="promo-product-name"><?php echo htmlspecialchars($prodNombre); ?></p>
+                                        <?php if (!empty($pp['promocion_descripcion'])): ?>
+                                            <p class="promo-descripcion"><?php echo htmlspecialchars($pp['promocion_descripcion']); ?></p>
+                                        <?php else: ?>
+                                            <p class="promo-descripcion"><?php echo htmlspecialchars(substr($pp['descripcion'] ?? '', 0, 120)); ?>...</p>
+                                        <?php endif; ?>
+                                        <div class="promo-price-container">
+                                            <span class="promo-price-old">Antes: <?php echo $preciosOriginal['bs']; ?> (<?php echo $preciosOriginal['usd']; ?>)</span>
+                                            <span class="promo-price-new">Ahora: <?php echo $preciosNuevo['bs']; ?> (<?php echo $preciosNuevo['usd']; ?>)</span>
+                                        </div>
                                     <?php else: ?>
-                                        <p class="promo-descripcion"><?php echo htmlspecialchars(substr($pp['descripcion'] ?? '', 0, 120)); ?>...</p>
+                                        <!-- Formato MULTI-PRODUCTO: mostrar porcentaje y cantidad -->
+                                        <p class="promo-multi-product">
+                                            <strong><?php echo $descuento; ?>% menos</strong> en 
+                                            <strong><?php echo $cantidadProductos; ?> productos distintos</strong>
+                                        </p>
+                                        <?php if (!empty($pp['promocion_descripcion'])): ?>
+                                            <p class="promo-descripcion"><?php echo htmlspecialchars($pp['promocion_descripcion']); ?></p>
+                                        <?php else: ?>
+                                            <p class="promo-descripcion">Aprovecha esta promoción en una amplia variedad de productos. Vigencia: hasta el <?php echo date('d/m/Y', strtotime($pp['fecha_fin'])); ?></p>
+                                        <?php endif; ?>
+                                        <div class="promo-availability">
+                                            <i class="fas fa-check-circle"></i> <strong>Disponible ya</strong>
+                                        </div>
                                     <?php endif; ?>
-                                    <div class="promo-price-container">
-                                        <span class="promo-price-old">Antes: <?php echo $preciosOriginal['bs']; ?> (<?php echo $preciosOriginal['usd']; ?>)</span>
-                                        <span class="promo-price-new">Ahora: <?php echo $preciosNuevo['bs']; ?> (<?php echo $preciosNuevo['usd']; ?>)</span>
-                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -698,10 +936,10 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
             
             <div class="footer-section-custom">
                 <h3>Enlaces Rápidos</h3>
-                <a href="#">Inicio</a>
-                <a href="#">Motos</a>
-                <a href="#">Repuestos</a>
-                <a href="#">Contacto</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/inicio.php">Inicio</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/motos.php">Motos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/repuestos.php">Repuestos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/contacto.php">Contacto</a>
             </div>
             
             <div class="footer-section-custom">
@@ -728,30 +966,32 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['user_name'])) {
         const baseUrl = document.body.getAttribute('data-base-url') || '<?php echo BASE_URL; ?>';
         
         function buscarCatalogo() {
-            const year = document.getElementById('catalogo-year').value || null;
-            const brand = document.getElementById('catalogo-brand').value || null;
-            const model = document.getElementById('catalogo-model').value || null;
-            const category = document.getElementById('catalogo-category').value || null;
-            
+            const year     = document.getElementById('catalogo-year').value.trim();
+            const brand    = document.getElementById('catalogo-brand').value.trim();
+            const model    = document.getElementById('catalogo-model').value.trim();
+            const category = document.getElementById('catalogo-category').value.trim();
+
             if (!year && !brand && !model && !category) {
-                alert('Por favor, selecciona al menos un filtro');
+                // Si ningún filtro → redirigir a búsqueda de todos los productos
+                window.location.href = baseUrl + '/app/views/layouts/search-results.php?q=';
                 return;
             }
-            
-            // Mapear categoría a tipo de búsqueda
-            let type = 'all';
-            if (category === 'Motos') type = 'motos';
-            else if (category === 'Repuestos') type = 'repuestos';
-            else if (category === 'Accesorios') type = 'accesorios';
-            
-            const filterParams = new URLSearchParams();
-            filterParams.append('type', type);
-            if (year) filterParams.append('year', year);
-            if (brand) filterParams.append('brand', brand);
-            if (model) filterParams.append('model', model);
-            
-            // Redirigir a página de resultados con parámetros
-            window.location.href = baseUrl + '/app/views/layouts/search-results.php?' + filterParams.toString();
+
+            const params = new URLSearchParams();
+
+            // Determinar tipo según categoría seleccionada (insensible a mayúsculas)
+            const catLow = category.toLowerCase();
+            if (catLow.includes('moto') || catLow.includes('veh')) params.set('type', 'motos');
+            else if (catLow.includes('repuesto'))                   params.set('type', 'repuestos');
+            else if (catLow.includes('accesorio'))                  params.set('type', 'accesorios');
+            else                                                     params.set('type', 'all');
+
+            if (year)     params.set('year',     year);
+            if (brand)    params.set('brand',    brand);
+            if (model)    params.set('model',    model);
+            if (category) params.set('category', category);
+
+            window.location.href = baseUrl + '/app/views/layouts/search-results.php?' + params.toString();
         }
 
         // Slider de promociones

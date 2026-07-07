@@ -60,6 +60,61 @@ try {
     // Actualizar estado
     $pdo->prepare('UPDATE devoluciones SET estado_devolucion = :estado, updated_at = NOW() WHERE id = :id')
         ->execute([':estado' => $estado, ':id' => $id]);
+    
+    // ── Si se APRUEBA, inhabilitar la venta/pedido ────────────────────────────
+    if ($estado === 'APROBADO') {
+        try {
+            // Obtener información de la devolución
+            $info = $pdo->prepare('
+                SELECT venta_id, pedido_id, cliente_id, producto_id, cantidad, motivo
+                FROM devoluciones 
+                WHERE id = :id 
+                LIMIT 1
+            ');
+            $info->execute([':id' => $id]);
+            $dev = $info->fetch(PDO::FETCH_ASSOC);
+            
+            if ($dev) {
+                $pdo->beginTransaction();
+                
+                // Inhabilitar VENTA si existe
+                if (!empty($dev['venta_id'])) {
+                    $updVenta = $pdo->prepare('UPDATE ventas SET estado_venta = \'INHABILITADO\', updated_at = NOW() WHERE id = :vid');
+                    $updVenta->execute([':vid' => $dev['venta_id']]);
+                    error_log("[update_devolucion_estado] Venta {$dev['venta_id']} inhabilitada por devolución aprobada #$id");
+                }
+                
+                // Inhabilitar PEDIDO si existe
+                if (!empty($dev['pedido_id'])) {
+                    $updPedido = $pdo->prepare('UPDATE pedidos_online SET estado_pedido = \'INHABILITADO\', updated_at = NOW() WHERE id = :pid');
+                    $updPedido->execute([':pid' => $dev['pedido_id']]);
+                    error_log("[update_devolucion_estado] Pedido {$dev['pedido_id']} inhabilitado por devolución aprobada #$id");
+                }
+                
+                // Opcional: registrar en una tabla de auditoría (si existe)
+                $checkHist = $pdo->query("SELECT to_regclass('historial_devoluciones')");
+                if ($checkHist->fetchColumn()) {
+                    $hist = $pdo->prepare('
+                        INSERT INTO historial_devoluciones 
+                            (devolucion_id, accion, descripcion, usuario_id, created_at) 
+                        VALUES 
+                            (:did, \'APROBACION\', :desc, :uid, NOW())
+                    ');
+                    $hist->execute([
+                        ':did' => $id,
+                        ':desc' => "Devolución aprobada. Venta/Pedido inhabilitado automáticamente. Motivo: {$dev['motivo']}",
+                        ':uid' => $_SESSION['user_id'] ?? null
+                    ]);
+                }
+                
+                $pdo->commit();
+            }
+        } catch (Exception $e) {
+            if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+            error_log('[update_devolucion_estado] Error al inhabilitar venta/pedido: ' . $e->getMessage());
+            // No lanzamos excepción para no bloquear la aprobación
+        }
+    }
 
     // ── Email al cliente cuando se APRUEBA ────────────────────────────────────
     if ($estado === 'APROBADO') {

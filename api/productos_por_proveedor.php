@@ -11,7 +11,7 @@ try {
 
     $db = new Database(); $conn = $db->getConnection(); if (!$conn) throw new Exception('DB no disponible');
 
-    $sql = "SELECT p.id, p.codigo_interno, p.nombre, p.stock_actual, pp.precio_compra, pp.sku_proveedor, pp.tiempo_entrega_dias
+        $sql = "SELECT p.id, p.codigo_interno, p.nombre, p.stock_actual, p.stock_maximo, pp.precio_compra, pp.sku_proveedor, pp.tiempo_entrega_dias
             FROM producto_proveedor pp
             JOIN productos p ON p.id = pp.producto_id
             WHERE pp.proveedor_id = ? AND pp.activo = true

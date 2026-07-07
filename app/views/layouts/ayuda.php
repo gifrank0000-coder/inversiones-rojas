@@ -344,23 +344,22 @@ $manual_titulo = 'Manual del Cliente';
         <div class="footer-content-custom">
             <div class="footer-section-custom">
                 <h3>Acerca de Nosotros</h3>
-                <p><?php echo htmlspecialchars(COMPANY_NAME); ?> es una empresa especializada en repuestos y vehículos Bera, ofreciendo productos de alta calidad y el mejor servicio al cliente.</p>
+                <p>INVERSIONES ROJAS 2016. C.A. es una empresa especializada en repuestos y vehículos Bera, ofreciendo productos de alta calidad y el mejor servicio al cliente.</p>
             </div>
             
             <div class="footer-section-custom">
                 <h3>Contacto</h3>
-                <p><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars(COMPANY_ADDRESS); ?></p>
-                <p><i class="fas fa-phone"></i> <?php echo htmlspecialchars(COMPANY_PHONE); ?></p>
-                <p><i class="fas fa-envelope"></i> <?php echo htmlspecialchars(COMPANY_EMAIL); ?></p>
+                <p><i class="fas fa-map-marker-alt"></i> AV ARAGUA LOCAL NRO 286 SECTOR ANDRES ELOY BLANCO, MARACAY ARAGUA ZONA POSTAL 2102</p>
+                <p><i class="fas fa-phone"></i> 0243-2343044</p>
+                <p><i class="fas fa-envelope"></i> 2016rojasinversiones@gmail.com</p>
             </div>
             
             <div class="footer-section-custom">
                 <h3>Enlaces Rápidos</h3>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/inicio.php">Inicio</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/motos.php">Motos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/repuestos.php">Repuestos</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/ayuda.php">Ayuda</a>
-                <a href="<?php echo BASE_URL; ?>/app/views/pages/contacto.php">Contacto</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/inicio.php">Inicio</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/motos.php">Motos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/repuestos.php">Repuestos</a>
+                <a href="<?php echo BASE_URL; ?>/app/views/layouts/contacto.php">Contacto</a>
             </div>
             
             <div class="footer-section-custom">
@@ -375,7 +374,7 @@ $manual_titulo = 'Manual del Cliente';
         </div>
         
         <div class="footer-bottom-custom">
-            <p>&copy; 2023 Inversiones Rojas. Todos los derechos reservados. | <a href="#" style="color: #27ae60;">Política de Privacidad</a> | <a href="#" style="color: #27ae60;">Términos de Servicio</a></p>
+            <p>&copy; 2023 Inversiones Rojas. Todos los derechos reservados.</p>
         </div>
     </footer>
 

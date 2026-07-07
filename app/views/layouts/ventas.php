@@ -36,6 +36,7 @@ if (!isset($_SESSION['user_name']) || $nombre_usuario == 'Sistema') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Ventas - INVERSIONES ROJAS 2016. C.A.</title>
+    <link rel="icon" href="<?php echo $base_url; ?>/public/img/logo.png">
     <script>
         var APP_BASE = '<?php echo $base_url; ?>';
         var TASA_CAMBIO = <?php echo getTasaCambio(); ?>;
@@ -1181,13 +1182,37 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                         <div class="config-group">
                             <label for="paymentMethod">Tipo de Pago *</label>
                             <select id="paymentMethod" class="config-select">
-                                <option value="">-- Seleccionar método --</option>
-                                <?php foreach ($metodos_pago as $metodo): 
-                                    $moneda = $metodo['moneda'] ?? 'AMBOS';
-                                ?>
-                                <option value="<?php echo $metodo['id']; ?>" data-moneda="<?php echo $moneda; ?>"><?php echo htmlspecialchars($metodo['nombre']); ?></option>
-                                <?php endforeach; ?>
-                            </select>
+    <option value="">-- Seleccionar método --</option>
+    <?php foreach ($metodos_pago as $metodo): 
+        // Determinar moneda basada en el nombre
+        $nombre = strtolower($metodo['nombre']);
+        $moneda = 'AMBOS';
+        
+        if (strpos($nombre, 'efectivo $') !== false || 
+            strpos($nombre, 'efectivo dolar') !== false || 
+            strpos($nombre, 'cash usd') !== false ||
+            strpos($nombre, '$') !== false) {
+            $moneda = 'USD';
+        } elseif (strpos($nombre, 'efectivo bs') !== false || 
+                  strpos($nombre, 'efectivo bolivar') !== false ||
+                  strpos($nombre, 'bs') !== false) {
+            $moneda = 'BS';
+        } elseif (strpos($nombre, 'transferencia') !== false || 
+                  strpos($nombre, 'pago móvil') !== false ||
+                  strpos($nombre, 'tarjeta') !== false) {
+            $moneda = 'AMBOS';
+        }
+        
+        // Si el método tiene moneda definida en BD, usarla
+        if (!empty($metodo['moneda'])) {
+            $moneda = $metodo['moneda'];
+        }
+    ?>
+    <option value="<?php echo $metodo['id']; ?>" data-moneda="<?php echo $moneda; ?>">
+        <?php echo htmlspecialchars($metodo['nombre']); ?>
+    </option>
+    <?php endforeach; ?>
+</select>
 
                         </div>
                         
@@ -1230,7 +1255,7 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                             </p>
 
                             <div id="multiPayLines">
-                                <!-- Las líneas de pago se agregan aquí -->
+                            
                             </div>
 
                             <button type="button" id="addMultiPayLine"
@@ -1259,77 +1284,83 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                     <!-- COMPROBANTE DE FACTURA -->
                     <div class="invoice-comprobante">
                         <div class="invoice-header-comprobante">
-                            <h3>INVERSIONES ROJAS 2016. C.A.</h3>
-                            <p>RIF: J-40888806-8</p>
-                            <p>AV ARAGUA LOCAL NRO 286 SECTOR ANDRES ELOY BLANCO, MARACAY ARAGUA ZONA POSTAL 2102</p>
+                            <h3 style="margin:0 0 4px;font-size:12px;">INVERSIONES ROJAS 2016. C.A.</h3>
+                            <p style="margin:2px 0;font-size:9px;line-height:1.2;">RIF: J-40888806-8</p>
+                            <p style="margin:2px 0;font-size:9px;line-height:1.2;">AV ARAGUA LOCAL NRO 286</p>
+                            <p style="margin:2px 0;font-size:9px;line-height:1.2;">MARACAY, ARAGUA | TEL: 0243-2343044</p>
                         </div>
                         
                         <div class="invoice-body-comprobante">
-                            <div class="invoice-line">
-                                <span><strong>Código:</strong> V-<span id="invCode">001</span></span>
-                                <span id="invDateComprobante"><?php echo date('Y-m-d'); ?></span>
+                            <!-- Código, fecha, hora -->
+                            <div class="invoice-line-center" style="font-size:11px;">★ COMPROBANTE ★</div>
+                            <div class="invoice-line" style="font-size:10px;">
+                                <span style="font-weight:600;">V-<span id="invCode">001</span></span>
+                                <span id="invDateComprobante"><?php echo date('d/m/Y'); ?></span>
+                            </div>
+                            <div class="invoice-line" style="font-size:9px;color:#666;">
+                                <span id="invTimeComprobante"><?php echo date('H:i'); ?></span>
                             </div>
                             
-                            <div class="invoice-line">
-                                <span><strong>Cliente:</strong> <span id="invClientNameComprobante">Sin cliente</span></span>
-                                <span><strong>Hora:</strong> <span id="invTimeComprobante"><?php echo date('H:i:s'); ?></span></span>
+                            <!-- Cliente -->
+                            <div class="invoice-line" style="font-size:10px;">
+                                <span style="font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;" id="invClientNameComprobante">Sin cliente</span>
                             </div>
-                            
-                            <div class="invoice-line">
-                                <span><strong>Cédula:</strong> <span id="invClientDocComprobante">00000000</span></span>
-<span><strong>Vendedor:</strong> <span id="invSellerComprobante"><?php echo isset($nombre_usuario) ? htmlspecialchars($nombre_usuario) : 'Sistema'; ?></span></span>                            </div>
-                            <div class="invoice-line-center">
-                                COMPROBANTE DE PAGO
+                            <div class="invoice-line" style="font-size:9px;color:#666;">
+                                <span>Cédula: <span id="invClientDocComprobante">00000000</span></span>
                             </div>
-                            
+                            <div class="invoice-line" style="font-size:9px;color:#666;">
+                                <span>Vendedor: <span id="invSellerComprobante"><?php echo isset($nombre_usuario) ? htmlspecialchars($nombre_usuario) : 'Sistema'; ?></span></span>
+                            </div>
                             <div class="invoice-line-dashed"></div>
                             
-                            <div class="invoice-line-title">Productos/Servicios:</div>
-                            <div class="invoice-line-items" id="invoiceItemsComprobante">
-                                <!-- Productos se agregarán aquí -->
+                            <!-- Productos -->
+                            <div class="invoice-line-title" style="font-size:10px;">PRODUCTOS</div>
+                            <div class="invoice-line-items" style="max-height:120px;overflow-y:auto;" id="invoiceItemsComprobante">
                                 <div class="invoice-line-item">
                                     <span>No hay productos</span>
-                                    <span>$ 0.00</span>
+                                    <span>0,00</span>
                                 </div>
                             </div>
                             
                             <div class="invoice-line-dashed"></div>
                             
-                            <div class="invoice-line-title">Método de Pago:</div>
+                            <!-- Totales -->
+                            <div class="invoice-line" style="font-size:10px;">
+                                <span>Subtotal:</span>
+                                <span style="text-align:right;"><span id="invSubtotalComprobante">0,00</span></span>
+                            </div>
+                            <div class="invoice-line" style="font-size:10px;">
+                                <span>IVA (16%):</span>
+                                <span style="text-align:right;"><span id="invTaxComprobante">0,00</span></span>
+                            </div>
+                            <div class="invoice-line invoice-total" style="font-size:11px;font-weight:700;border-top:1px solid #333;">
+                                <span>TOTAL:</span>
+                                <span style="text-align:right;"><span id="invTotalComprobante">0,00</span></span>
+                            </div>
+                            <div class="invoice-line-dashed"></div>
+                            
+                            <!-- Método de Pago -->
+                            <div class="invoice-line-title" style="font-size:10px;">PAGO</div>
                             <div id="paymentMethodsComprobante">
-                                <!-- Métodos de pago se mostrarán aquí -->
                                 <div class="invoice-line-item">
                                     <span>Por definir</span>
-                                    <span>$ 0.00</span>
+                                    <span>0,00</span>
                                 </div>
                             </div>
                             
-                            <div class="invoice-line-dashed"></div>
-                            
-                            <div class="invoice-line-item">
-                                <span><strong>Subtotal:</strong></span>
-                                <span><strong>Bs <span id="invSubtotalComprobante">0.00</span></strong></span>
+                            <!-- Efectivo y Vuelto -->
+                            <div id="cashSection" style="display: none;margin-top:8px;padding-top:8px;border-top:1px dashed #ccc;">
+                                <div class="invoice-line-item">
+                                    <span id="cashReceivedLabel">Efectivo Recibido:</span>
+                                    <span id="changeDisplay" style="color:#1F9166;font-weight:600;">Vuelto: 0,00</span>
+                                </div>
                             </div>
-
-                            <div class="invoice-line-item">
-                                <span><strong>IVA (16%):</strong></span>
-                                <span><strong>Bs <span id="invTaxComprobante">0.00</span></strong></span>
-                            </div>
-
-                            <div class="invoice-line-item invoice-total">
-                                <span><strong>TOTAL:</strong></span>
-                                <span><strong>Bs <span id="invTotalComprobante">0.00</span></strong></span>
-                            </div>
-                            
-                            <div class="invoice-line-item" style="font-size: 0.7rem; color: #666; margin-top: 4px;">
-                                <span>Tasa: Bs <span id="invTasaComprobante">0.00</span> por $1</span>
-                            </div>
-                            
                             <div class="invoice-line-dashed"></div>
                         </div>
                         
-                        <div class="invoice-footer-comprobante">
-                            ¡Gracias por su preferencia!
+                        <div class="invoice-footer-comprobante" style="font-size:9px;">
+                            ¡Gracias por su compra!<br>
+                            <span style="font-size:8px;">*** NO ES FACTURA ***</span>
                         </div>
                     </div>
                 </div>
@@ -1347,6 +1378,32 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
     </div>
 
 <script>
+    // ==================== FUNCIONES DE FORMATEO VENEZOLANO ====================
+    /**
+     * Formatea número a moneda Bs con formato venezolano
+     * Ejemplo: 1234567.89 → "Bs 1.234.567,89"
+     */
+    function formatVenezolanCurrency(amount) {
+        const num = parseFloat(amount) || 0;
+        const formatted = num.toLocaleString('es-VE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        return `Bs ${formatted}`;
+    }
+
+    /**
+     * Formatea número con estilo venezolano (solo número)
+     * Ejemplo: 1234567.89 → "1.234.567,89"
+     */
+    function formatVenezolanNumber(amount) {
+        const num = parseFloat(amount) || 0;
+        return num.toLocaleString('es-VE', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
     // Variables globales
     let cart = [];
     const IVA_RATE = 0.16;
@@ -1609,18 +1666,12 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
     // ==================== FUNCIONES DEL COMPROBANTE ====================
     function updateInvoiceComprobante() {
         const totals = calculateTotals();
-        const tasa = window.TASA_CAMBIO || 400;
+        const tasa = window.TASA_CAMBIO || 35.50;
         
         // Convertir totales a Bs
         const subtotalBs = totals.subtotal * tasa;
         const taxBs = totals.tax * tasa;
         const totalBs = totals.total * tasa;
-        
-        // Actualizar tasa en el comprobante
-        const invTasaComprobante = document.getElementById('invTasaComprobante');
-        if (invTasaComprobante) {
-            invTasaComprobante.textContent = tasa.toFixed(2);
-        }
 
         // Actualizar información del cliente
         if (selectedClient) {
@@ -1634,7 +1685,7 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
         // Actualizar vendedor
         invSellerComprobante.textContent = "<?php echo isset($nombre_usuario) ? htmlspecialchars($nombre_usuario) : 'Sistema'; ?>";
 
-        // Actualizar items del comprobante (en Bs)
+        // Actualizar items del comprobante (SOLO en Bs con formato venezolano)
         invoiceItemsComprobante.innerHTML = '';
 
         if (cart.length === 0) {
@@ -1642,7 +1693,7 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
             emptyItem.className = 'invoice-line-item';
             emptyItem.innerHTML = `
                 <span>No hay productos</span>
-                <span>Bs 0.00</span>
+                <span>${formatVenezolanNumber(0)}</span>
             `;
             invoiceItemsComprobante.appendChild(emptyItem);
         } else {
@@ -1651,29 +1702,30 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                 const itemRow = document.createElement('div');
                 itemRow.className = 'invoice-line-item';
                 itemRow.innerHTML = `
-                    <span>${item.name} (x${item.quantity})</span>
-                    <span>Bs ${itemTotalBs.toFixed(2)}</span>
+                    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${item.name} ×${item.quantity}</span>
+                    <span style="text-align:right;flex-shrink:0;">${formatVenezolanNumber(itemTotalBs)}</span>
                 `;
                 invoiceItemsComprobante.appendChild(itemRow);
             });
         }
 
-        // Actualizar métodos de pago en el comprobante
+        // Actualizar métodos de pago en el comprobante (cada uno en su línea, SOLO Bs)
         paymentMethodsComprobante.innerHTML = '';
 
         // ── Modo multi-pago activo ────────────────────────────────────
         const isMulti = document.getElementById('multiPayToggle')?.checked && typeof multiPayMethods !== 'undefined' && multiPayMethods.length > 0;
         if (isMulti) {
-            const tasa = window.TASA_CAMBIO || 35.50;
             multiPayMethods.forEach(function(mp) {
                 if (!mp.metodoPagoId && !mp.monto) return;
                 const monto = parseLocalFloat(mp.monto) || 0;
-                const montoFmt = (mp.moneda === 'USD')
-                    ? `$${monto.toFixed(2)} USD`
-                    : `Bs ${monto.toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                // Convertir a Bs si viene en USD
+                const montoBs = (mp.moneda === 'USD') ? monto * tasa : monto;
                 const row = document.createElement('div');
                 row.className = 'invoice-line-item';
-                row.innerHTML = `<span>${mp.nombre || '—'}:</span><span>${montoFmt}</span>`;
+                row.innerHTML = `
+                    <span>${mp.nombre || '—'}</span>
+                    <span style="text-align:right;">${formatVenezolanNumber(montoBs)}</span>
+                `;
                 paymentMethodsComprobante.appendChild(row);
             });
         }
@@ -1684,53 +1736,54 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
                 const paymentRow = document.createElement('div');
                 paymentRow.className = 'invoice-line-item';
                 paymentRow.innerHTML = `
-                    <span>${selectedOption.textContent}:</span>
-                    <span>Bs ${totalBs.toFixed(2)}</span>
+                    <span>${selectedOption.textContent}</span>
+                    <span style="text-align:right;">${formatVenezolanNumber(totalBs)}</span>
                 `;
                 paymentMethodsComprobante.appendChild(paymentRow);
 
-                // Vuelto en efectivo
+                // Vuelto en efectivo (SOLO Bs)
                 if (selectedOption.textContent.toLowerCase().includes('efectivo') && cashReceived?.value) {
                     const paid = parseLocalFloat(cashReceived.value);
                     const currency = getPaymentCurrency();
+                    let changeBs = 0;
                     if (currency === 'USD') {
-                        const changeUsd = paid - (totals.total);
-                        if (changeUsd > 0) {
-                            const cr = document.createElement('div');
-                            cr.className = 'invoice-line-item';
-                            cr.innerHTML = `<span>Vuelto:</span><span>$${changeUsd.toFixed(2)} USD</span>`;
-                            paymentMethodsComprobante.appendChild(cr);
-                        }
+                        changeBs = (paid - totals.total) * tasa;
                     } else {
-                        const cashBs = paid;
-                        if (cashBs > totalBs) {
-                            const cr = document.createElement('div');
-                            cr.className = 'invoice-line-item';
-                            cr.innerHTML = `<span>Vuelto:</span><span>Bs ${(cashBs - totalBs).toFixed(2)}</span>`;
-                            paymentMethodsComprobante.appendChild(cr);
-                        }
+                        changeBs = paid - totalBs;
+                    }
+                    if (changeBs > 0.01) {
+                        const cr = document.createElement('div');
+                        cr.className = 'invoice-line-item';
+                        cr.style.color = '#1F9166';
+                        cr.style.fontWeight = '600';
+                        cr.innerHTML = `
+                            <span>Vuelto</span>
+                            <span style="text-align:right;">${formatVenezolanNumber(changeBs)}</span>
+                        `;
+                        paymentMethodsComprobante.appendChild(cr);
                     }
                 }
             }
         } else {
             const paymentRow = document.createElement('div');
             paymentRow.className = 'invoice-line-item';
-            paymentRow.innerHTML = `<span>Por definir</span><span>Bs 0.00</span>`;
+            paymentRow.innerHTML = `
+                <span>Por definir</span>
+                <span style="text-align:right;">${formatVenezolanNumber(0)}</span>
+            `;
             paymentMethodsComprobante.appendChild(paymentRow);
         }
 
-        // Actualizar totales (en Bs)
-        invSubtotalComprobante.textContent = subtotalBs.toFixed(2);
-        invTaxComprobante.textContent = taxBs.toFixed(2);
-        invTotalComprobante.textContent = totalBs.toFixed(2);
+        // Actualizar totales (en Bs con formato venezolano)
+        invSubtotalComprobante.textContent = formatVenezolanNumber(subtotalBs);
+        invTaxComprobante.textContent = formatVenezolanNumber(taxBs);
+        invTotalComprobante.textContent = formatVenezolanNumber(totalBs);
 
         // Calcular vuelto si es pago en efectivo
         calculateChange();
     }
 
-    // ── Vuelto/cambio — respeta moneda del método de pago ────────────────────
-    // Efectivo USD → paga en USD, vuelto en USD
-    // Efectivo Bs  → paga en Bs,  vuelto en Bs
+    // ── Vuelto/cambio — respeta moneda del método de pago pero muestra SOLO Bs ────────
     function calculateChange() {
         const tasa     = window.TASA_CAMBIO || 35.50;
         const currency = getPaymentCurrency();
@@ -1739,45 +1792,41 @@ $clientes_facturacion = []; // Array vacío o usa clientes regulares si necesita
         const paid     = parseLocalFloat(raw);
         const label = document.getElementById('cashReceivedLabel');
         const disp  = document.getElementById('changeDisplay');
-        const equiv = document.getElementById('changeEquivalent');
+        
         if (!disp) return;
+        
         if (currency === 'USD') {
             const totalUsd = totals.total;
             if (label) label.textContent = 'Efectivo Recibido (USD):';
             if (paid > 0) {
                 const changeUsd = paid - totalUsd;
-                if (changeUsd >= 0) {
-                    disp.textContent = `Vuelto: $${changeUsd.toFixed(2)} USD`;
+                const changeBs = changeUsd * tasa;
+                if (changeUsd >= -0.01) {
+                    disp.textContent = `Vuelto: ${formatVenezolanNumber(changeBs)}`;
                     disp.style.color = '#1F9166';
-                    if (equiv) equiv.textContent = `Equiv: Bs ${(changeUsd * tasa).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
                 } else {
-                    disp.textContent = `Falta: $${Math.abs(changeUsd).toFixed(2)} USD`;
+                    disp.textContent = `Falta: ${formatVenezolanNumber(Math.abs(changeBs))}`;
                     disp.style.color = '#e74c3c';
-                    if (equiv) equiv.textContent = '';
                 }
             } else {
-                disp.textContent = 'Vuelto: $0.00 USD';
+                disp.textContent = `Vuelto: ${formatVenezolanNumber(0)}`;
                 disp.style.color = '#333';
-                if (equiv) equiv.textContent = '';
             }
         } else {
             const totalBs = totals.total * tasa;
             if (label) label.textContent = 'Efectivo Recibido (Bs):';
             if (paid > 0) {
                 const changeBs = paid - totalBs;
-                if (changeBs >= 0) {
-                    disp.textContent = `Vuelto: Bs ${changeBs.toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                if (changeBs >= -0.01) {
+                    disp.textContent = `Vuelto: ${formatVenezolanNumber(changeBs)}`;
                     disp.style.color = '#1F9166';
-                    if (equiv) equiv.textContent = `Equiv: $${(changeBs / tasa).toFixed(2)} USD`;
                 } else {
-                    disp.textContent = `Falta: Bs ${Math.abs(changeBs).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+                    disp.textContent = `Falta: ${formatVenezolanNumber(Math.abs(changeBs))}`;
                     disp.style.color = '#e74c3c';
-                    if (equiv) equiv.textContent = '';
                 }
             } else {
-                disp.textContent = 'Vuelto: Bs 0.00';
+                disp.textContent = `Vuelto: ${formatVenezolanNumber(0)}`;
                 disp.style.color = '#333';
-                if (equiv) equiv.textContent = '';
             }
         }
     }
@@ -1985,6 +2034,15 @@ function showAddPaymentMethodModal() {
                     </div>
 
                     <div class="form-group">
+                        <label for="newPaymentCurrency">Moneda Aceptada *</label>
+                        <select id="newPaymentCurrency" class="form-control">
+                            <option value="AMBOS" selected>Ambos (USD y Bs)</option>
+                            <option value="USD">USD</option>
+                            <option value="BS">Bs (Bolívares)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <div class="checkbox-group">
                             <input type="checkbox" id="newPaymentActive" checked>
                             <label for="newPaymentActive">Activo</label>
@@ -2055,6 +2113,7 @@ async function saveNewPaymentMethod() {
     const name = nameInput.value.trim();
     const descriptionInput = document.getElementById('newPaymentDescription');
     const description = descriptionInput.value.trim();
+    const currency = document.getElementById('newPaymentCurrency').value;
     const active = document.getElementById('newPaymentActive').checked;
 
     // 1. Validar nombre obligatorio
@@ -2095,6 +2154,7 @@ async function saveNewPaymentMethod() {
         const formData = new FormData();
         formData.append('nombre', name);
         if (description) formData.append('descripcion', description);
+        formData.append('moneda', currency);
         formData.append('estado', active ? '1' : '0');
 
         const response = await fetch('/inversiones-rojas/api/add_metodo_pago.php', {
@@ -2110,6 +2170,7 @@ async function saveNewPaymentMethod() {
             const newOption = document.createElement('option');
             newOption.value = result.id;
             newOption.textContent = name;
+            newOption.setAttribute('data-moneda', currency);
             
             // Agregar antes de la opción "-- Seleccionar método --"
             const firstOption = select.querySelector('option[value=""]');
@@ -2449,6 +2510,12 @@ async function saveNewClient() {
         const tasa    = window.TASA_CAMBIO || 35.50;
         const totals  = calculateTotals();
 
+        // ── Validación de CLIENTE ─────────────────────────────────────
+        if (!selectedClient) {
+            Toast.warning('Por favor selecciona o crea un cliente para registrar la venta', 'Cliente requerido');
+            return;
+        }
+
         // ── Validación modo MULTI-PAGO ─────────────────────────────────
         if (isMulti) {
             if (multiPayMethods.length === 0) {
@@ -2585,6 +2652,34 @@ async function saveNewClient() {
                 Toast.success('Venta completada exitosamente', '¡Éxito!', 10000);
                 resetSale();
                 saleModal.classList.remove('active');
+
+                // ── Descarga/apertura automática del comprobante PDF ─────
+                // Se lanza 600ms después para no bloquear el cierre del modal.
+                const vid = data.venta_id;
+                const cod = data.codigo_venta || ('V-' + vid);
+               if (vid) {
+    setTimeout(function() {
+        const pdfUrl = `/inversiones-rojas/api/generate_ticket_pdf.php?venta_id=${vid}`;
+        const win = window.open(pdfUrl, '_blank');
+        if (win) {
+            // Esperar a que cargue y luego abrir diálogo de impresión
+            win.onload = function() {
+                win.print();
+            };
+        } else {
+            // Fallback si bloquea popups
+            const a = document.createElement('a');
+            a.href = pdfUrl;
+            a.download = `Comprobante_${cod}.pdf`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => a.remove(), 1000);
+            Toast.info('Comprobante descargado. Para imprimirlo, abre el PDF y presiona Ctrl+P.', '', 5000);
+        }
+    }, 600);
+}
+
                 setTimeout(() => loadRecentSales(), 1200);
             } else {
                 Toast.error('Error al procesar la venta: ' + (data.message || 'Error desconocido'), 'Error');
@@ -2757,142 +2852,219 @@ async function saveNewClient() {
         });
     }
 
-    // ══════════════════════════════════════════════════════════════════════
-    //  PAGOS MÚLTIPLES — Motor completo
-    // ══════════════════════════════════════════════════════════════════════
-    let multiPayMethods = [];   // [{metodoPagoId, nombre, moneda, monto, esEfectivo}]
 
-    function buildMetodoOptions(selectedId) {
-        const opts = ['<option value="">-- Método --</option>'];
-        document.querySelectorAll('#paymentMethod option').forEach(function(o) {
-            if (!o.value) return;
-            const sel = o.value === String(selectedId || '') ? ' selected' : '';
-            opts.push(`<option value="${o.value}" data-moneda="${o.dataset.moneda||'AMBOS'}"${sel}>${o.textContent}</option>`);
-        });
-        return opts.join('');
-    }
 
-    function renderMultiPayLines() {
-        const container = document.getElementById('multiPayLines');
-        if (!container) return;
-        container.innerHTML = '';
-        multiPayMethods.forEach(function(mp, idx) {
-            const monedaLabel = mp.moneda === 'USD' ? '$ USD' : 'Bs';
-            const div = document.createElement('div');
-            div.style.cssText = 'display:grid;grid-template-columns:1fr 120px 32px;gap:6px;align-items:center;margin-bottom:7px;';
-            div.innerHTML = `
-                <select class="mp-select config-select" style="font-size:12px;padding:6px 8px;" data-idx="${idx}">
-                    ${buildMetodoOptions(mp.metodoPagoId)}
-                </select>
-                <input type="text" class="mp-amount" data-idx="${idx}" value="${mp.monto||''}"
-                       placeholder="${monedaLabel} 0.00" inputmode="decimal"
-                       style="padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:12.5px;text-align:right;width:100%;">
-                <button type="button" class="mp-remove" data-idx="${idx}"
-                        style="background:#fee2e2;border:none;border-radius:5px;color:#ef4444;cursor:pointer;height:30px;width:30px;font-size:14px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            container.appendChild(div);
-        });
 
-        container.querySelectorAll('.mp-select').forEach(function(sel) {
-            sel.addEventListener('change', function() {
-                const idx = parseInt(this.dataset.idx);
-                const opt = this.options[this.selectedIndex];
-                multiPayMethods[idx].metodoPagoId = this.value;
-                multiPayMethods[idx].nombre = opt.textContent;
-                multiPayMethods[idx].moneda = (opt.dataset.moneda || 'AMBOS').toUpperCase();
-                const t = multiPayMethods[idx].nombre.toLowerCase();
-                multiPayMethods[idx].esEfectivo = t.includes('efectivo') || t.includes('cash');
-                updateMultiPaySummary();
-            });
-        });
-        container.querySelectorAll('.mp-amount').forEach(function(inp) {
-            inp.addEventListener('input', function() {
-                const idx = parseInt(this.dataset.idx);
-                multiPayMethods[idx].monto = parseLocalFloat(this.value);
-                updateMultiPaySummary();
-            });
-        });
-        container.querySelectorAll('.mp-remove').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                const idx = parseInt(this.dataset.idx);
-                multiPayMethods.splice(idx, 1);
-                renderMultiPayLines();
-                updateMultiPaySummary();
-            });
-        });
-    }
-
-    function updateMultiPaySummary() {
-        const tasa     = window.TASA_CAMBIO || 35.50;
-        const totals   = calculateTotals();
-        const totalUsd = totals.total;
-        let totalPagadoUsd = 0;
-        multiPayMethods.forEach(function(mp) {
-            const monto = parseLocalFloat(mp.monto) || 0;
-            totalPagadoUsd += (mp.moneda === 'BS') ? monto / tasa : monto;
-        });
-        const pendienteUsd = totalUsd - totalPagadoUsd;
-        const fmtBs = function(v) { return 'Bs ' + (v * tasa).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2}); };
-
-        const elTotal     = document.getElementById('mpTotalVenta');
-        const elPagado    = document.getElementById('mpTotalPagado');
-        const elPendiente = document.getElementById('mpPendiente');
-
-        if (elTotal)  elTotal.textContent  = `$${totalUsd.toFixed(2)} / ${fmtBs(totalUsd)}`;
-        if (elPagado) elPagado.textContent = `$${totalPagadoUsd.toFixed(2)} / ${fmtBs(totalPagadoUsd)}`;
-        if (elPendiente) {
-            if (pendienteUsd > 0.005) {
-                elPendiente.textContent = `$${pendienteUsd.toFixed(2)} / ${fmtBs(pendienteUsd)}`;
-                elPendiente.style.color = '#e74c3c';
-            } else if (pendienteUsd < -0.005) {
-                elPendiente.textContent = `Vuelto: $${Math.abs(pendienteUsd).toFixed(2)}`;
-                elPendiente.style.color = '#1F9166';
-            } else {
-                elPendiente.textContent = '✓ Pago completo';
-                elPendiente.style.color = '#1F9166';
-            }
+function buildMetodoOptions(selectedId) {
+    const opts = ['<option value="">-- Método --</option>'];
+    document.querySelectorAll('#paymentMethod option').forEach(function(o) {
+        if (!o.value) return;
+        // IMPORTANTE: Copiar el data-moneda del option original
+        const moneda = o.getAttribute('data-moneda') || 'AMBOS';
+        const sel = o.value === String(selectedId || '') ? ' selected' : '';
+        // Asegurar que el data-moneda se incluya en el nuevo option
+        opts.push(`<option value="${o.value}" data-moneda="${moneda}"${sel}>${o.textContent}</option>`);
+    });
+    return opts.join('');
+}
+function renderMultiPayLines() {
+    const container = document.getElementById('multiPayLines');
+    if (!container) return;
+    container.innerHTML = '';
+    multiPayMethods.forEach(function(mp, idx) {
+        // Determinar la moneda - usar mp.moneda o por defecto USD
+        let monedaActual = mp.moneda || 'USD';
+        let placeholderText = '';
+        
+        console.log(`Renderizando línea ${idx}: ${mp.nombre}, moneda=${monedaActual}`);
+        
+        if (monedaActual === 'USD') {
+            placeholderText = '$ 0.00';
+        } else if (monedaActual === 'BS') {
+            placeholderText = 'Bs 0,00';
+        } else {
+            placeholderText = '$ 0.00';
+            monedaActual = 'USD';
         }
-        updateInvoiceComprobante();
-    }
+        
+        const div = document.createElement('div');
+        div.style.cssText = 'display:grid;grid-template-columns:1fr 120px 32px;gap:6px;align-items:center;margin-bottom:7px;';
+        div.innerHTML = `
+            <select class="mp-select config-select" style="font-size:12px;padding:6px 8px;" data-idx="${idx}">
+                ${buildMetodoOptions(mp.metodoPagoId)}
+            </select>
+            <input type="text" class="mp-amount" data-idx="${idx}" value="${mp.monto || ''}"
+                   placeholder="${placeholderText}" inputmode="decimal"
+                   style="padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:12.5px;text-align:right;width:100%;">
+            <button type="button" class="mp-remove" data-idx="${idx}"
+                    style="background:#fee2e2;border:none;border-radius:5px;color:#ef4444;cursor:pointer;height:30px;width:30px;font-size:14px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    });
 
-    document.getElementById('multiPayToggle')?.addEventListener('change', function() {
-        const section = document.getElementById('multiPaySection');
-        const cashSec = document.getElementById('cashSection');
-        if (!section) return;
-        if (this.checked) {
-            section.style.display = 'block';
-            if (cashSec) cashSec.style.display = 'none';
-            if (multiPayMethods.length === 0 && paymentMethodSelect?.value) {
-                const opt = paymentMethodSelect.options[paymentMethodSelect.selectedIndex];
-                const t = (opt.textContent || '').toLowerCase();
-                multiPayMethods.push({
-                    metodoPagoId: paymentMethodSelect.value,
-                    nombre: opt.textContent,
-                    moneda: (opt.dataset.moneda || 'AMBOS').toUpperCase(),
-                    monto: '',
-                    esEfectivo: t.includes('efectivo') || t.includes('cash')
-                });
+    // Event listener para cambios en el select
+    container.querySelectorAll('.mp-select').forEach(function(sel) {
+        sel.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.idx);
+            const selectedOption = this.options[this.selectedIndex];
+            const metodoPagoId = this.value;
+            
+            // Obtener la moneda del atributo data-moneda del option seleccionado
+            let monedaSeleccionada = 'USD';
+            if (selectedOption && selectedOption.hasAttribute('data-moneda')) {
+                monedaSeleccionada = selectedOption.getAttribute('data-moneda');
             }
+            
+            console.log(`Cambio en línea ${idx}: ${selectedOption.textContent}, moneda=${monedaSeleccionada}`);
+            
+            multiPayMethods[idx].metodoPagoId = metodoPagoId;
+            multiPayMethods[idx].nombre = selectedOption.textContent;
+            multiPayMethods[idx].moneda = monedaSeleccionada;
+            const t = selectedOption.textContent.toLowerCase();
+            multiPayMethods[idx].esEfectivo = t.includes('efectivo') || t.includes('cash');
+            
+            // Actualizar placeholder del input de monto según la moneda seleccionada
+            const amountInput = container.querySelector(`.mp-amount[data-idx="${idx}"]`);
+            if (amountInput) {
+                let newPlaceholder = '';
+                if (monedaSeleccionada === 'USD') {
+                    newPlaceholder = '$ 0.00';
+                } else if (monedaSeleccionada === 'BS') {
+                    newPlaceholder = 'Bs 0,00';
+                } else {
+                    newPlaceholder = '$ 0.00';
+                }
+                amountInput.placeholder = newPlaceholder;
+                // Limpiar el valor si cambia la moneda para evitar confusiones
+                if (multiPayMethods[idx].monto) {
+                    amountInput.value = '';
+                    multiPayMethods[idx].monto = 0;
+                }
+            }
+            updateMultiPaySummary();
+        });
+    });
+    
+    container.querySelectorAll('.mp-amount').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.idx);
+            const rawValue = this.value;
+            let numericValue = parseLocalFloat(rawValue);
+            multiPayMethods[idx].monto = numericValue;
+            updateMultiPaySummary();
+        });
+    });
+    
+    container.querySelectorAll('.mp-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.idx);
+            multiPayMethods.splice(idx, 1);
             renderMultiPayLines();
             updateMultiPaySummary();
+        });
+    });
+}
+   function updateMultiPaySummary() {
+    const tasa = window.TASA_CAMBIO || 35.50;
+    const totals = calculateTotals();
+    const totalUsd = totals.total;
+    let totalPagadoUsd = 0;
+    
+    console.log('=== updateMultiPaySummary ===');
+    console.log('Tasa:', tasa);
+    console.log('Total USD:', totalUsd);
+    
+    multiPayMethods.forEach(function(mp, idx) {
+        const monto = parseLocalFloat(mp.monto) || 0;
+        console.log(`Método ${idx}: ${mp.nombre}, moneda=${mp.moneda}, monto=${monto}`);
+        if (mp.moneda === 'BS') {
+            const convertedUsd = monto / tasa;
+            totalPagadoUsd += convertedUsd;
+            console.log(`  BS ${monto} → $${convertedUsd.toFixed(2)} USD`);
         } else {
-            section.style.display = 'none';
-            multiPayMethods = [];
-            const opt = paymentMethodSelect?.options[paymentMethodSelect?.selectedIndex];
-            const txt = (opt?.textContent || '').toLowerCase();
-            if (cashSec && (txt.includes('efectivo') || txt.includes('cash'))) {
-                cashSec.style.display = 'block';
-            }
+            totalPagadoUsd += monto;
+            console.log(`  USD ${monto} → $${monto.toFixed(2)} USD`);
         }
     });
+    
+    console.log('Total pagado USD:', totalPagadoUsd);
+    
+    const pendienteUsd = totalUsd - totalPagadoUsd;
+    const fmtBs = function(v) { 
+        return 'Bs ' + (v * tasa).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2}); 
+    };
 
-    document.getElementById('addMultiPayLine')?.addEventListener('click', function() {
-        multiPayMethods.push({ metodoPagoId: '', nombre: '', moneda: 'AMBOS', monto: '', esEfectivo: false });
+    const elTotal     = document.getElementById('mpTotalVenta');
+    const elPagado    = document.getElementById('mpTotalPagado');
+    const elPendiente = document.getElementById('mpPendiente');
+
+    if (elTotal)  elTotal.textContent  = `$${totalUsd.toFixed(2)} / ${fmtBs(totalUsd)}`;
+    if (elPagado) elPagado.textContent = `$${totalPagadoUsd.toFixed(2)} / ${fmtBs(totalPagadoUsd)}`;
+    if (elPendiente) {
+        if (pendienteUsd > 0.005) {
+            elPendiente.textContent = `$${pendienteUsd.toFixed(2)} / ${fmtBs(pendienteUsd)}`;
+            elPendiente.style.color = '#e74c3c';
+        } else if (pendienteUsd < -0.005) {
+            const excedente = Math.abs(pendienteUsd);
+            elPendiente.textContent = `Vuelto: $${excedente.toFixed(2)} / ${fmtBs(excedente)}`;
+            elPendiente.style.color = '#1F9166';
+        } else {
+            elPendiente.textContent = '✓ Pago completo';
+            elPendiente.style.color = '#1F9166';
+        }
+    }
+    updateInvoiceComprobante();
+}
+
+   document.getElementById('multiPayToggle')?.addEventListener('change', function() {
+    const section = document.getElementById('multiPaySection');
+    const cashSec = document.getElementById('cashSection');
+    if (!section) return;
+    if (this.checked) {
+        // Activar multipago
+        if (paymentMethodSelect) {
+            paymentMethodSelect.disabled = true;
+            paymentMethodSelect.style.opacity = '0.6';
+            paymentMethodSelect.style.cursor = 'not-allowed';
+        }
+        section.style.display = 'block';
+        if (cashSec) cashSec.style.display = 'none';
+        if (multiPayMethods.length === 0 && paymentMethodSelect?.value) {
+            const opt = paymentMethodSelect.options[paymentMethodSelect.selectedIndex];
+            // Obtener la moneda del atributo data-moneda del option seleccionado
+            let moneda = 'USD';
+            if (opt && opt.hasAttribute('data-moneda')) {
+                moneda = opt.getAttribute('data-moneda');
+            }
+            console.log(`Línea inicial: ${opt.textContent}, moneda=${moneda}`);
+            multiPayMethods.push({
+                metodoPagoId: paymentMethodSelect.value,
+                nombre: opt.textContent,
+                moneda: moneda,
+                monto: '',
+                esEfectivo: opt.textContent.toLowerCase().includes('efectivo') || opt.textContent.toLowerCase().includes('cash')
+            });
+        }
         renderMultiPayLines();
-    });
-
+        updateMultiPaySummary();
+    } else {
+        // Desactivar multipago
+        if (paymentMethodSelect) {
+            paymentMethodSelect.disabled = false;
+            paymentMethodSelect.style.opacity = '1';
+            paymentMethodSelect.style.cursor = 'pointer';
+        }
+        section.style.display = 'none';
+        multiPayMethods = [];
+        const opt = paymentMethodSelect?.options[paymentMethodSelect?.selectedIndex];
+        const txt = (opt?.textContent || '').toLowerCase();
+        if (cashSec && (txt.includes('efectivo') || txt.includes('cash'))) {
+            cashSec.style.display = 'block';
+        }
+    }
+});
     // ==================== FUNCIONES DE BÚSQUEDA Y FILTROS ====================
     
     // Mostrar/ocultar rango de fechas personalizado
@@ -3134,110 +3306,152 @@ async function showFactura(ventaId) {
     }
 }
 
-// Mostrar ticket en el modal (vista previa)
+// ── Renderizar ticket en el modal de Ver Factura ─────────────────────────
+// Estructura mejorada con formato venezolano y conversión a Bs únicamente
 function renderTicketEnModal(factura) {
-    const fecha = new Date(factura.created_at);
-    const fechaFormateada = fecha.toLocaleDateString('es-VE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-    const horaFormateada = fecha.toLocaleTimeString('es-VE', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
-    });
-    
     const body = document.getElementById('invoiceModalBody');
-    
-    // Usar valores en Bs convertidos (disponibles en factura.total_bs, etc.)
-    const tasa = factura.tasa_cambio || 35.50;
-    const subtotal = factura.subtotal_bs || (factura.subtotal * tasa);
-    const iva = factura.iva_bs || (factura.iva * tasa);
-    const total = factura.total_bs || (factura.total * tasa);
+    if (!body) return;
 
-    let observacionesHtml = '';
-    if (factura.observaciones) {
-        observacionesHtml = `<div style="font-size: 11px; margin-top: 2px;">${factura.observaciones}</div>`;
-    }
+    const tasa = factura.tasa_cambio || window.TASA_CAMBIO || 35.50;
 
-    let productosHtml = '';
+    // Fechas
+    const fecha = factura.created_at ? new Date(factura.created_at) : new Date();
+    const fechaFmt = fecha.toLocaleDateString('es-VE', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const horaFmt  = fecha.toLocaleTimeString('es-VE', { hour:'2-digit', minute:'2-digit', hour12: true });
+
+    // Totales en Bs (convertir todo a Bs)
+    const subtotalUsd = parseFloat(factura.subtotal || 0);
+    const ivaUsd      = parseFloat(factura.iva      || 0);
+    const totalUsd    = parseFloat(factura.total    || 0);
+    const subtotalBs  = subtotalUsd * tasa;
+    const ivaBs       = ivaUsd * tasa;
+    const totalBs     = totalUsd * tasa;
+
+    // Líneas de productos (mostrar SOLO en Bs)
+    let itemsHtml = '';
     if (factura.detalles && factura.detalles.length > 0) {
-        productosHtml = factura.detalles.map(detalle => {
-            // Usar precio en Bs (precio_unitario_bs)
-            const precioBs = detalle.precio_unitario_bs || (detalle.precio_unitario * tasa);
-            const itemTotalBs = detalle.subtotal_bs || (detalle.subtotal * tasa);
-            return `
-                <div style="margin-bottom: 8px;">
-                    <div style="font-weight: bold;">${detalle.producto_nombre}</div>
-                    <div style="display: flex; justify-content: space-between; margin-left: 10px; font-size: 11px;">
-                        <span>${detalle.cantidad} x Bs ${precioBs.toFixed(2)}</span>
-                        <span style="font-weight: bold;">Bs ${itemTotalBs.toFixed(2)}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        factura.detalles.forEach(d => {
+            const precioUnitario = parseFloat(d.precio_unitario || d.precio_unitario_usd || 0);
+            const cantidad = parseInt(d.cantidad || 1);
+            const precioUnitarioBs = precioUnitario * tasa;
+            const subtotalBs = precioUnitarioBs * cantidad;
+            
+            itemsHtml += `
+                <div class="invoice-line-item">
+                    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${d.producto_nombre} ×${cantidad}</span>
+                    <span style="text-align:right;flex-shrink:0;">${formatVenezolanNumber(subtotalBs)}</span>
+                </div>`;
+        });
+    } else {
+        itemsHtml = '<div class="invoice-line-item"><span>Sin detalle disponible</span><span>—</span></div>';
     }
 
+    // Método(s) de pago (mostrar SOLO en Bs, cada uno en su línea)
+    let pagoHtml = '';
+    if (factura.pagos && factura.pagos.length > 0) {
+        factura.pagos.forEach(p => {
+            // Convertir a Bs si viene en otra moneda
+            let montoBs = parseFloat(p.monto || 0);
+            if ((p.moneda || '').toUpperCase() === 'USD') {
+                montoBs = montoBs * tasa;
+            }
+            pagoHtml += `<div class="invoice-line-item">
+                <span>${p.metodo_nombre || p.nombre || 'Pago'}</span>
+                <span>${formatVenezolanNumber(montoBs)}</span>
+            </div>`;
+        });
+    } else {
+        const metodo = factura.metodo_pago_nombre || factura.metodo_pago || 'No especificado';
+        pagoHtml = `<div class="invoice-line-item">
+            <span>${metodo}</span>
+            <span>${formatVenezolanNumber(totalBs)}</span>
+        </div>`;
+    }
+
+    // Vuelto desde observaciones (si existe)
+    let vueltoHtml = '';
+    if (factura.observaciones) {
+        const obs = factura.observaciones;
+        const vMatch = obs.match(/Vuelto:\s*([^\|]+)/i);
+        if (vMatch) {
+            vueltoHtml = `<div class="invoice-line-item" style="color:#1F9166;font-weight:600;">
+                <span>Vuelto:</span><span>${vMatch[1].trim()}</span>
+            </div>`;
+        }
+    }
+
+    // ── HTML mejorado con estructura compacta ──
     body.innerHTML = `
-        <div style="font-family: 'Courier New', monospace; width: 280px; margin: 0 auto; font-size: 12px; line-height: 1.4;">
-            <!-- ENCABEZADO -->
-            <div style="text-align: center; margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 8px;">
-                <div style="font-weight: bold; font-size: 14px;">INVERSIONES ROJAS 2016. C.A.</div>
-                <div style="font-size: 11px;">RIF: J-40888806-8</div>
-                <div style="font-size: 10px;">AV ARAGUA LOCAL NRO 286</div>
-                <div style="font-size: 10px;">SECTOR ANDRES ELOY BLANCO, MARACAY</div>
-                <div style="font-size: 10px;">TEL: 0243-2343044</div>
+    <div style="display:flex;justify-content:center;padding:10px;">
+        <div class="invoice-comprobante" style="width:320px;max-width:100%;">
+
+            <div class="invoice-header-comprobante">
+                <h3 style="margin:0 0 4px;font-size:12px;">INVERSIONES ROJAS 2016. C.A.</h3>
+                <p style="margin:2px 0;font-size:9px;line-height:1.2;">RIF: J-40888806-8</p>
+                <p style="margin:2px 0;font-size:9px;line-height:1.2;">AV ARAGUA LOCAL NRO 286</p>
+                <p style="margin:2px 0;font-size:9px;line-height:1.2;">MARACAY, ARAGUA | TEL: 0243-2343044</p>
             </div>
 
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                <span><strong>FACTURA:</strong> ${factura.codigo_venta || 'N/A'}</span>
-                <span><strong>FECHA:</strong> ${fechaFormateada}</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 5px;">
-                <span><strong>HORA:</strong> ${horaFormateada}</span>
-                <span></span>
-            </div>
+            <div class="invoice-body-comprobante">
 
-            <div style="margin-bottom: 8px;">
-                <div><strong>CLIENTE:</strong> ${factura.cliente_nombre || 'CLIENTE GENERAL'}</div>
-                <div><strong>CÉDULA:</strong> ${factura.cliente_cedula || 'V-00000000'}</div>
-                <div><strong>VENDEDOR:</strong> ${factura.vendedor || 'SISTEMA'}</div>
-            </div>
-
-            <div style="text-align: center; margin: 5px 0; font-weight: bold;">======== PRODUCTOS ========</div>
-            <div style="margin-bottom: 10px;">${productosHtml}</div>
-
-            <div style="margin-bottom: 8px; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 5px 0;">
-                <div><strong>MÉTODO DE PAGO:</strong> ${factura.metodo_pago_nombre || 'NO ESPECIFICADO'}</div>
-                ${observacionesHtml}
-            </div>
-
-            <div style="margin-bottom: 8px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>SUBTOTAL:</span>
-                    <span>Bs ${subtotal.toFixed(2)}</span>
+                <!-- Código, fecha, hora -->
+                <div class="invoice-line-center" style="font-size:11px;">★ COMPROBANTE ★</div>
+                <div class="invoice-line" style="font-size:10px;">
+                    <span style="font-weight:600;">${factura.codigo_venta || '—'}</span>
+                    <span>${fechaFmt}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
+                <div class="invoice-line" style="font-size:9px;color:#666;">
+                    <span>${horaFmt}</span>
+                </div>
+                <div class="invoice-line-dashed"></div>
+
+                <!-- Cliente y Cédula -->
+                <div class="invoice-line" style="font-size:10px;">
+                    <span style="font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;">${factura.cliente_nombre || 'CLIENTE GENERAL'}</span>
+                </div>
+                <div class="invoice-line" style="font-size:9px;color:#666;">
+                    <span>Cédula: ${factura.cliente_cedula || 'V-00000000'}</span>
+                </div>
+                <div class="invoice-line" style="font-size:9px;color:#666;">
+                    <span>Vendedor: ${factura.vendedor || 'SISTEMA'}</span>
+                </div>
+                <div class="invoice-line-dashed"></div>
+
+                <!-- Productos -->
+                <div class="invoice-line-title" style="font-size:10px;">PRODUCTOS</div>
+                <div class="invoice-line-items" style="max-height:120px;overflow-y:auto;">${itemsHtml}</div>
+                <div class="invoice-line-dashed"></div>
+
+                <!-- Totales -->
+                <div class="invoice-line" style="font-size:10px;">
+                    <span>Subtotal:</span>
+                    <span style="text-align:right;">${formatVenezolanNumber(subtotalBs)}</span>
+                </div>
+                <div class="invoice-line" style="font-size:10px;">
                     <span>IVA (16%):</span>
-                    <span>Bs ${iva.toFixed(2)}</span>
+                    <span style="text-align:right;">${formatVenezolanNumber(ivaBs)}</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 5px 0; margin-top: 5px;">
-                    <span>TOTAL Bs.:</span>
-                    <span>${total.toFixed(2)}</span>
+                <div class="invoice-line invoice-total" style="font-size:11px;font-weight:700;border-top:1px solid #333;">
+                    <span>TOTAL:</span>
+                    <span style="text-align:right;">${formatVenezolanNumber(totalBs)}</span>
                 </div>
+                <div class="invoice-line-dashed"></div>
+
+                <!-- Método de Pago -->
+                <div class="invoice-line-title" style="font-size:10px;">PAGO</div>
+                ${pagoHtml}
+                ${vueltoHtml}
+                <div class="invoice-line-dashed"></div>
+
             </div>
 
-            <div style="text-align: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #000;">
-                <div style="font-weight: bold;">¡GRACIAS POR SU COMPRA!</div>
-                <div>VUELVA PRONTO</div>
-                <div style="font-size: 10px; margin-top: 3px;">${fechaFormateada} ${horaFormateada}</div>
-                <div style="font-size: 8px; margin-top: 5px;">*** TICKET NO VÁLIDO COMO FACTURA ***</div>
+            <div class="invoice-footer-comprobante" style="font-size:9px;">
+                ¡Gracias por su compra!<br>
+                <span style="font-size:8px;">*** NO ES FACTURA ***</span>
             </div>
+
         </div>
-    `;
+    </div>`;
 }
 
 // ==================== FUNCIÓN PARA GENERAR PDF CON FPDF ====================
@@ -4041,6 +4255,189 @@ async function toggleClientStatus(clientId, newStatus) {
         console.error('Error:', error);
         Toast.error('Error de conexión');
     }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+//  PAGOS MÚLTIPLES — Funciones y Eventos
+// ══════════════════════════════════════════════════════════════════════
+
+// Asegurar que multiPayMethods existe
+if (typeof multiPayMethods === 'undefined') {
+    var multiPayMethods = [];
+}
+
+function buildMetodoOptions(selectedId) {
+    const opts = ['<option value="">-- Método --</option>'];
+    document.querySelectorAll('#paymentMethod option').forEach(function(o) {
+        if (!o.value) return;
+        const moneda = o.getAttribute('data-moneda') || 'AMBOS';
+        const sel = o.value === String(selectedId || '') ? ' selected' : '';
+        opts.push(`<option value="${o.value}" data-moneda="${moneda}"${sel}>${o.textContent}</option>`);
+    });
+    return opts.join('');
+}
+
+function renderMultiPayLines() {
+    const container = document.getElementById('multiPayLines');
+    if (!container) return;
+    container.innerHTML = '';
+    multiPayMethods.forEach(function(mp, idx) {
+        let monedaActual = mp.moneda || 'USD';
+        let placeholderText = '';
+        
+        console.log(`Renderizando línea ${idx}: ${mp.nombre}, moneda=${monedaActual}`);
+        
+        if (monedaActual === 'USD') {
+            placeholderText = '$ 0.00';
+        } else if (monedaActual === 'BS') {
+            placeholderText = 'Bs 0,00';
+        } else {
+            placeholderText = '$ 0.00';
+            monedaActual = 'USD';
+        }
+        
+        const div = document.createElement('div');
+        div.style.cssText = 'display:grid;grid-template-columns:1fr 120px 32px;gap:6px;align-items:center;margin-bottom:7px;';
+        div.innerHTML = `
+            <select class="mp-select config-select" style="font-size:12px;padding:6px 8px;" data-idx="${idx}">
+                ${buildMetodoOptions(mp.metodoPagoId)}
+            </select>
+            <input type="text" class="mp-amount" data-idx="${idx}" value="${mp.monto || ''}"
+                   placeholder="${placeholderText}" inputmode="decimal"
+                   style="padding:6px 8px;border:1px solid #ddd;border-radius:5px;font-size:12.5px;text-align:right;width:100%;">
+            <button type="button" class="mp-remove" data-idx="${idx}"
+                    style="background:#fee2e2;border:none;border-radius:5px;color:#ef4444;cursor:pointer;height:30px;width:30px;font-size:14px;display:flex;align-items:center;justify-content:center;">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(div);
+    });
+
+    container.querySelectorAll('.mp-select').forEach(function(sel) {
+        sel.addEventListener('change', function() {
+            const idx = parseInt(this.dataset.idx);
+            const selectedOption = this.options[this.selectedIndex];
+            const metodoPagoId = this.value;
+            
+            let monedaSeleccionada = 'USD';
+            if (selectedOption && selectedOption.hasAttribute('data-moneda')) {
+                monedaSeleccionada = selectedOption.getAttribute('data-moneda');
+            }
+            
+            console.log(`Cambio en línea ${idx}: ${selectedOption.textContent}, moneda=${monedaSeleccionada}`);
+            
+            multiPayMethods[idx].metodoPagoId = metodoPagoId;
+            multiPayMethods[idx].nombre = selectedOption.textContent;
+            multiPayMethods[idx].moneda = monedaSeleccionada;
+            const t = selectedOption.textContent.toLowerCase();
+            multiPayMethods[idx].esEfectivo = t.includes('efectivo') || t.includes('cash');
+            
+            const amountInput = container.querySelector(`.mp-amount[data-idx="${idx}"]`);
+            if (amountInput) {
+                let newPlaceholder = monedaSeleccionada === 'USD' ? '$ 0.00' : 'Bs 0,00';
+                amountInput.placeholder = newPlaceholder;
+                if (multiPayMethods[idx].monto) {
+                    amountInput.value = '';
+                    multiPayMethods[idx].monto = 0;
+                }
+            }
+            updateMultiPaySummary();
+        });
+    });
+    
+    container.querySelectorAll('.mp-amount').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+            const idx = parseInt(this.dataset.idx);
+            multiPayMethods[idx].monto = parseLocalFloat(this.value);
+            updateMultiPaySummary();
+        });
+    });
+    
+    container.querySelectorAll('.mp-remove').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const idx = parseInt(this.dataset.idx);
+            multiPayMethods.splice(idx, 1);
+            renderMultiPayLines();
+            updateMultiPaySummary();
+        });
+    });
+}
+
+function updateMultiPaySummary() {
+    const tasa = window.TASA_CAMBIO || 35.50;
+    const totals = calculateTotals();
+    const totalUsd = totals.total;
+    let totalPagadoUsd = 0;
+    
+    multiPayMethods.forEach(function(mp) {
+        const monto = parseLocalFloat(mp.monto) || 0;
+        if (mp.moneda === 'BS') {
+            totalPagadoUsd += monto / tasa;
+        } else {
+            totalPagadoUsd += monto;
+        }
+    });
+    
+    const pendienteUsd = totalUsd - totalPagadoUsd;
+    const fmtBs = function(v) { 
+        return 'Bs ' + (v * tasa).toLocaleString('es-VE',{minimumFractionDigits:2,maximumFractionDigits:2}); 
+    };
+
+    const elTotal = document.getElementById('mpTotalVenta');
+    const elPagado = document.getElementById('mpTotalPagado');
+    const elPendiente = document.getElementById('mpPendiente');
+
+    if (elTotal) elTotal.textContent = `$${totalUsd.toFixed(2)} / ${fmtBs(totalUsd)}`;
+    if (elPagado) elPagado.textContent = `$${totalPagadoUsd.toFixed(2)} / ${fmtBs(totalPagadoUsd)}`;
+    if (elPendiente) {
+        if (pendienteUsd > 0.005) {
+            elPendiente.textContent = `$${pendienteUsd.toFixed(2)} / ${fmtBs(pendienteUsd)}`;
+            elPendiente.style.color = '#e74c3c';
+        } else if (pendienteUsd < -0.005) {
+            elPendiente.textContent = `Vuelto: $${Math.abs(pendienteUsd).toFixed(2)} / ${fmtBs(Math.abs(pendienteUsd))}`;
+            elPendiente.style.color = '#1F9166';
+        } else {
+            elPendiente.textContent = '✓ Pago completo';
+            elPendiente.style.color = '#1F9166';
+        }
+    }
+    updateInvoiceComprobante();
+}
+
+// EVENTO DEL BOTÓN AGREGAR - CORREGIDO
+const addLineBtn = document.getElementById('addMultiPayLine');
+if (addLineBtn) {
+    console.log('✅ Botón encontrado, asignando evento');
+    addLineBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('➕ Agregando nueva línea');
+        multiPayMethods.push({ 
+            metodoPagoId: '', 
+            nombre: '', 
+            moneda: 'USD', 
+            monto: '', 
+            esEfectivo: false 
+        });
+        renderMultiPayLines();
+        updateMultiPaySummary();
+    });
+} else {
+    console.error('❌ Botón no encontrado');
+    // Intentar con event delegation
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('#addMultiPayLine')) {
+            console.log('➕ Agregando nueva línea (delegation)');
+            multiPayMethods.push({ 
+                metodoPagoId: '', 
+                nombre: '', 
+                moneda: 'USD', 
+                monto: '', 
+                esEfectivo: false 
+            });
+            renderMultiPayLines();
+            updateMultiPaySummary();
+        }
+    });
 }
 </script>
 </body>

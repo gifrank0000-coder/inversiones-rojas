@@ -9,6 +9,7 @@ $base_url = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Devoluciones - Inversiones Rojas</title>
+    <link rel="icon" href="<?php echo $base_url; ?>/public/img/logo.png">
     <script>
         var APP_BASE = '<?php echo $base_url; ?>';
         var TASA_CAMBIO = <?php echo getTasaCambio(); ?>;
@@ -202,16 +203,22 @@ $trendData = [];
 $topMotivos = [];
 
 try {
-    // TU CONSULTA ORIGINAL - EXACTAMENTE COMO LA TENÍAS
+    // Consulta mejorada con cálculo real de monto
     $sql = "SELECT d.id, d.codigo_devolucion, d.motivo, d.observaciones AS descripcion, 
                    d.estado_devolucion AS estado, d.cantidad, 
                    to_char(d.created_at, 'DD/MM/YYYY') AS fecha, 
                    c.nombre_completo AS cliente, p.nombre AS producto, 
-                   v.codigo_venta AS venta_codigo, 0 as monto
+                   p.codigo_interno,
+                   COALESCE(v.codigo_venta, po.codigo_pedido) AS venta_codigo,
+                   COALESCE(dv.precio_unitario, dpo.precio_unitario, 0) as precio_unitario,
+                   (d.cantidad * COALESCE(dv.precio_unitario, dpo.precio_unitario, 0)) as monto
             FROM devoluciones d
             LEFT JOIN clientes c ON d.cliente_id = c.id
             LEFT JOIN productos p ON d.producto_id = p.id
             LEFT JOIN ventas v ON d.venta_id = v.id
+            LEFT JOIN pedidos_online po ON d.pedido_id = po.id
+            LEFT JOIN detalle_ventas dv ON d.venta_id = dv.venta_id AND d.producto_id = dv.producto_id
+            LEFT JOIN detalle_pedidos_online dpo ON d.pedido_id = dpo.pedido_id AND d.producto_id = dpo.producto_id
             ORDER BY d.created_at DESC
             LIMIT 200";
     $stmt = $pdo->prepare($sql);
@@ -334,73 +341,77 @@ try {
         </div>
     </div>
 
-    <!-- FORMULARIO ORIGINAL -->
+    <!-- FORMULARIO REFACTORIZADO - Versión compatible con admin -->
     <div class="form-container" id="formDevolucion" style="display: none;">
-        <h3 style="margin-bottom: 20px; color: #2c3e50;">Nueva Devolución</h3>
+        <h3 style="margin-bottom: 20px; color: #2c3e50;">Nueva Devolución (Registro Manual)</h3>
+        
         <div class="form-grid">
+            <!-- Selección de Cliente -->
             <div class="form-group">
-                <label for="ventaDevolucion">Venta/Orden</label>
-                <select class="form-control" id="ventaDevolucion">
-                    <option value="">Seleccione venta</option>
-                    <?php foreach ($ventasList as $v): ?>
-                        <option value="<?php echo htmlspecialchars($v['id']); ?>">
-                            <?php echo htmlspecialchars(($v['codigo_venta'] ?? ('V-' . $v['id'])) . ' - ' . ($v['nombre_completo'] ?? '')); ?>
-                        </option>
-                    <?php endforeach; ?>
+                <label for="clienteDevolucionAdminSelect">Cliente <span style="color: #e74c3c;">*</span></label>
+                <select class="form-control" id="clienteDevolucionAdminSelect" required>
+                    <option value="">Seleccione un cliente</option>
+                    <?php 
+                    try {
+                        $clientesStmt = $pdo->prepare("SELECT id, nombre_completo, cedula_rif FROM clientes WHERE estado = true ORDER BY nombre_completo ASC");
+                        $clientesStmt->execute();
+                        $clientes = $clientesStmt->fetchAll(PDO::FETCH_ASSOC);
+                        foreach ($clientes as $cli) {
+                            echo '<option value="' . htmlspecialchars($cli['id']) . '">' . htmlspecialchars($cli['nombre_completo'] . ' (' . $cli['cedula_rif'] . ')') . '</option>';
+                        }
+                    } catch (Exception $e) {
+                        error_log('Error cargando clientes: ' . $e->getMessage());
+                    }
+                    ?>
                 </select>
             </div>
+
+            <!-- Selección de Venta/Pedido -->
             <div class="form-group">
-                <label for="clienteDevolucion">Cliente</label>
-                <input type="text" class="form-control" id="clienteDevolucion" readonly>
-            </div>
-            <div class="form-group">
-                <label for="productoDevolucion">Producto</label>
-                <select class="form-control" id="productoDevolucion">
-                    <option value="">Seleccione producto</option>
+                <label for="ventaDevolucionAdminSelect">Venta/Pedido <span style="color: #e74c3c;">*</span></label>
+                <select class="form-control" id="ventaDevolucionAdminSelect" required style="display: none;">
+                    <option value="">Cargando...</option>
                 </select>
+                <div id="ventaDevolucionMsg" style="padding: 10px; background: #f0f0f0; border-radius: 4px; color: #666; font-size: 14px;">
+                    Seleccione primero un cliente
+                </div>
             </div>
+
+            <!-- Motivo de Devolución -->
             <div class="form-group">
-                <label for="cantidadDevolucion">Cantidad</label>
-                <input type="number" class="form-control" id="cantidadDevolucion" min="1" value="1">
-            </div>
-            <div class="form-group">
-                <label for="motivoDevolucion">Motivo</label>
-                <select class="form-control" id="motivoDevolucion">
+                <label for="motivoDevolucionAdminSelect">Motivo <span style="color: #e74c3c;">*</span></label>
+                <select class="form-control" id="motivoDevolucionAdminSelect" required>
                     <option value="">Seleccione motivo</option>
                     <option value="Producto Defectuoso">Producto Defectuoso</option>
                     <option value="Producto Incorrecto">Producto Incorrecto</option>
                     <option value="Arrepentimiento">Arrepentimiento</option>
                     <option value="Producto Dañado">Producto Dañado</option>
+                    <option value="Garantía">Garantía</option>
                     <option value="Otro">Otro</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label for="fechaDevolucion">Fecha de Devolución</label>
-                <input type="date" class="form-control" id="fechaDevolucion" value="<?php echo date('Y-m-d'); ?>">
-            </div>
-            <div class="form-group">
-                <label for="montoDevolucion">Monto a Devolver (USD)</label>
-                <input type="number" class="form-control" id="montoDevolucion" min="0" step="0.01">
-            </div>
-            <div class="form-group">
-                <label for="estadoDevolucion">Estado</label>
-                <select class="form-control" id="estadoDevolucion">
-                    <option value="PENDIENTE">Pendiente</option>
-                    <option value="APROBADO">Aprobado</option>
-                    <option value="RECHAZADO">Rechazado</option>
-                </select>
+        </div>
+
+        <!-- Productos del Pedido -->
+        <div class="form-group" id="productosContainerAdminManual" style="display: none; margin-top: 20px;">
+            <label>Productos a devolver <span style="color: #e74c3c;">*</span></label>
+            <div id="productosListAdminManual" style="border: 1px solid #e0e0e0; border-radius: 8px; max-height: 400px; overflow-y: auto;">
+                <!-- Se llena dinámicamente con JS -->
             </div>
         </div>
+
+        <!-- Observaciones -->
         <div class="form-group">
-            <label for="descripcionDevolucion">Descripción/Comentarios</label>
-            <textarea class="form-control" id="descripcionDevolucion" rows="3" placeholder="Descripción detallada del motivo de la devolución..."></textarea>
+            <label for="descripcionDevolucionAdminManual">Observaciones adicionales</label>
+            <textarea class="form-control" id="descripcionDevolucionAdminManual" rows="3" placeholder="Notas del administrador sobre la devolución..."></textarea>
         </div>
+
         <div class="form-actions">
             <button class="btn btn-secondary" id="cancelarDevolucionBtn">
                 <i class="fas fa-times"></i>
                 Cancelar
             </button>
-            <button class="btn btn-primary" id="guardarDevolucionBtn">
+            <button class="btn btn-primary" id="guardarDevolucionBtnManual">
                 <i class="fas fa-save"></i>
                 Guardar Devolución
             </button>
@@ -585,18 +596,70 @@ if (ventaSelect) {
 }
 
 // ═══════════════════════════════════════════════════
-// MOSTRAR / OCULTAR FORMULARIO (igual que original)
+// MOSTRAR / OCULTAR FORMULARIO (CORREGIDO - MÁS ROBUSTO)
 // ═══════════════════════════════════════════════════
-document.getElementById('mostrarFormBtn')?.addEventListener('click', function() {
-    document.getElementById('formDevolucion').style.display = 'block';
-    this.style.display = 'none';
-});
+const mostrarFormBtn = document.getElementById('mostrarFormBtn');
+const formDevolucion = document.getElementById('formDevolucion');
+const cancelarBtn = document.getElementById('cancelarDevolucionBtn');
 
-document.getElementById('cancelarDevolucionBtn')?.addEventListener('click', function() {
-    document.getElementById('formDevolucion').style.display = 'none';
-    document.getElementById('mostrarFormBtn').style.display = 'inline-flex';
+function mostrarFormulario() {
+    if (formDevolucion) {
+        formDevolucion.style.display = 'block';
+        // Limpiar formulario al abrir
+        document.getElementById('clienteDevolucionAdminSelect').value = '';
+        document.getElementById('ventaDevolucionAdminSelect').innerHTML = '<option value="">Cargando...</option>';
+        document.getElementById('ventaDevolucionAdminSelect').style.display = 'none';
+        document.getElementById('ventaDevolucionMsg').style.display = 'block';
+        document.getElementById('ventaDevolucionMsg').textContent = 'Seleccione primero un cliente';
+        document.getElementById('productosContainerAdminManual').style.display = 'none';
+        document.getElementById('productosListAdminManual').innerHTML = '';
+        document.getElementById('motivoDevolucionAdminSelect').value = '';
+        document.getElementById('descripcionDevolucionAdminManual').value = '';
+        limpiarErroresForm();
+    }
+    if (mostrarFormBtn) {
+        mostrarFormBtn.style.display = 'none';
+    }
+}
+
+function ocultarFormulario() {
+    if (formDevolucion) {
+        formDevolucion.style.display = 'none';
+    }
+    if (mostrarFormBtn) {
+        mostrarFormBtn.style.display = 'inline-flex';
+    }
     limpiarErroresForm();
-});
+}
+
+// Eliminar event listeners anteriores para evitar duplicados
+if (mostrarFormBtn) {
+    // Remover listeners anteriores (si los hay) usando clone + replace
+    const newBtn = mostrarFormBtn.cloneNode(true);
+    mostrarFormBtn.parentNode.replaceChild(newBtn, mostrarFormBtn);
+    newBtn.addEventListener('click', mostrarFormulario);
+}
+
+if (cancelarBtn) {
+    const newCancel = cancelarBtn.cloneNode(true);
+    cancelarBtn.parentNode.replaceChild(newCancel, cancelarBtn);
+    newCancel.addEventListener('click', ocultarFormulario);
+}
+
+// También asegurar que al guardar exitosamente se oculte el formulario
+// (esto ya está en el éxito de guardarDevolucion, pero reforzamos)
+const guardarBtn = document.getElementById('guardarDevolucionBtnManual');
+if (guardarBtn) {
+    const originalGuardar = guardarBtn.onclick;
+    guardarBtn.addEventListener('click', function() {
+        // El código original ya tiene ocultamiento al éxito, solo aseguramos
+        setTimeout(() => {
+            if (document.getElementById('formDevolucion').style.display === 'none') {
+                if (mostrarFormBtn) mostrarFormBtn.style.display = 'inline-flex';
+            }
+        }, 100);
+    });
+}
 
 // ═══════════════════════════════════════════════════
 // VALIDACIONES DE CAMPOS (NUEVO — no altera HTML)
@@ -653,52 +716,234 @@ function validarFormulario() {
 }
 
 // ═══════════════════════════════════════════════════
-// GUARDAR DEVOLUCIÓN (MEJORADO con validación + Toast)
+// CARGAR VENTAS/PEDIDOS DEL CLIENTE (NUEVO)
 // ═══════════════════════════════════════════════════
-document.getElementById('guardarDevolucionBtn')?.addEventListener('click', async function() {
-    if (!validarFormulario()) {
-        Toast.warning('Por favor completa los campos requeridos correctamente', 'Formulario incompleto');
+async function cargarVentasDelCliente(clienteId) {
+    const ventaSelect = document.getElementById('ventaDevolucionAdminSelect');
+    const ventaMsg = document.getElementById('ventaDevolucionMsg');
+    
+    if (!clienteId) {
+        ventaMsg.style.display = 'block';
+        ventaSelect.style.display = 'none';
+        ventaMsg.textContent = 'Seleccione primero un cliente';
         return;
     }
 
-    const payload = {
-        venta_id:    document.getElementById('ventaDevolucion').value,
-        producto_id: document.getElementById('productoDevolucion').value || null,
-        cantidad:    document.getElementById('cantidadDevolucion').value,
-        motivo:      document.getElementById('motivoDevolucion').value,
-        fecha:       document.getElementById('fechaDevolucion').value,
-        monto:       document.getElementById('montoDevolucion').value || 0,
-        estado:      document.getElementById('estadoDevolucion').value,
-        observaciones: document.getElementById('descripcionDevolucion').value,
-    };
+    try {
+        const apiUrl = (window.APP_BASE || '') + '/api/get_cliente_ventas.php?cliente_id=' + clienteId;
+        const res = await fetch(apiUrl);
+        
+        if (!res.ok) {
+            throw new Error('Error cargando ventas');
+        }
+        
+        const data = await res.json();
+        
+        if (!data.success || !data.ventas || data.ventas.length === 0) {
+            ventaMsg.style.display = 'block';
+            ventaSelect.style.display = 'none';
+            ventaMsg.textContent = 'Este cliente no tiene ventas registradas';
+            ventaSelect.innerHTML = '<option value="">Sin ventas</option>';
+            return;
+        }
+
+        // Llenar select de ventas
+        let html = '<option value="">Seleccione una venta/pedido</option>';
+        data.ventas.forEach(venta => {
+            const tipo = venta.tipo === 'pedido' ? 'Pedido' : 'Venta';
+            const codigo = venta.codigo || ('V-' + venta.id);
+            html += `<option value="${venta.id}" data-tipo="${venta.tipo}" data-codigo="${escapeHtmlAdmin(codigo)}">
+                ${tipo} ${escapeHtmlAdmin(codigo)} - ${new Date(venta.fecha).toLocaleDateString('es-VE')}
+            </option>`;
+        });
+        
+        ventaSelect.innerHTML = html;
+        ventaSelect.style.display = 'block';
+        ventaMsg.style.display = 'none';
+        
+    } catch (err) {
+        console.error('Error:', err);
+        Toast.error('Error al cargar ventas del cliente', 'Error');
+        ventaMsg.textContent = 'Error cargando ventas';
+        ventaMsg.style.display = 'block';
+        ventaSelect.style.display = 'none';
+    }
+}
+
+// Evento: cuando cambia el cliente
+document.getElementById('clienteDevolucionAdminSelect')?.addEventListener('change', function() {
+    cargarVentasDelCliente(this.value);
+    document.getElementById('productosContainerAdminManual').style.display = 'none';
+    document.getElementById('productosListAdminManual').innerHTML = '';
+});
+
+// ═══════════════════════════════════════════════════
+// CARGAR PRODUCTOS DE LA VENTA (MEJORADO)
+// ═══════════════════════════════════════════════════
+async function cargarProductosVentaManual(ventaId, tipoVenta) {
+    if (!ventaId) {
+        document.getElementById('productosContainerAdminManual').style.display = 'none';
+        document.getElementById('productosListAdminManual').innerHTML = '';
+        return;
+    }
+
+    try {
+        const apiUrl = tipoVenta === 'pedido' 
+            ? (window.APP_BASE || '') + '/api/get_pedido_products.php?pedido_id=' + ventaId
+            : (window.APP_BASE || '') + '/api/get_venta_products_admin.php?venta_id=' + ventaId;
+        
+        const res = await fetch(apiUrl);
+        
+        if (!res.ok) {
+            throw new Error('Error cargando productos');
+        }
+        
+        const data = await res.json();
+        
+        if (!data.ok || !data.products || data.products.length === 0) {
+            document.getElementById('productosContainerAdminManual').style.display = 'none';
+            document.getElementById('productosListAdminManual').innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        data.products.forEach(prod => {
+            const maxQty = parseInt(prod.cantidad_disponible || 1);
+            const price = parseFloat(prod.precio_unitario || 0).toFixed(2);
+            
+            html += `
+            <div style="display: grid; grid-template-columns: 50px 1fr 100px 100px 100px; gap: 15px; padding: 12px 15px; align-items: center; border-bottom: 1px solid #f0f0f0;">
+                <input type="checkbox" class="product-checkbox-manual" data-producto-id="${prod.producto_id}" data-producto-nombre="${escapeHtmlAdmin(prod.nombre || '')}" data-precio="${price}" style="width: 18px; height: 18px; cursor: pointer;">
+                <div>
+                    <div style="font-weight: 600; color: #2c3e50; font-size: 14px;">${escapeHtmlAdmin(prod.nombre || 'Producto')}</div>
+                    <div style="font-size: 11px; color: #7f8c8d;">Código: ${escapeHtmlAdmin(prod.codigo_interno || 'N/A')}</div>
+                </div>
+                <div style="text-align: center;">
+                    <span style="font-size: 13px; color: #555;">Disp: ${maxQty}</span>
+                </div>
+                <div style="text-align: center;">
+                    <span style="font-size: 12px; color: #888;">$${price}</span>
+                </div>
+                <input type="number" class="product-quantity-manual" min="1" max="${maxQty}" value="1" disabled style="width: 80px; padding: 6px; border: 1px solid #e0e0e0; border-radius: 4px; text-align: center;">
+            </div>
+            `;
+        });
+
+        document.getElementById('productosListAdminManual').innerHTML = html;
+        document.getElementById('productosContainerAdminManual').style.display = 'block';
+
+        // Reactivar eventos de checkboxes
+        document.querySelectorAll('.product-checkbox-manual').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const qty = this.closest('[style*="grid"]').querySelector('.product-quantity-manual');
+                qty.disabled = !this.checked;
+                if (!this.checked) qty.value = 1;
+            });
+        });
+
+    } catch (err) {
+        console.error('Error:', err);
+        Toast.error('Error al cargar productos', 'Error');
+    }
+}
+
+// Evento: cuando cambia la venta
+document.getElementById('ventaDevolucionAdminSelect')?.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const tipoVenta = selectedOption?.dataset?.tipo || 'venta';
+    cargarProductosVentaManual(this.value, tipoVenta);
+});
+
+// ═══════════════════════════════════════════════════
+// GUARDAR DEVOLUCIÓN (MANUAL - NUEVO FORMATO)
+// ═══════════════════════════════════════════════════
+document.getElementById('guardarDevolucionBtnManual')?.addEventListener('click', async function() {
+    const clienteId = document.getElementById('clienteDevolucionAdminSelect')?.value;
+    const ventaId = document.getElementById('ventaDevolucionAdminSelect')?.value;
+    const motivo = document.getElementById('motivoDevolucionAdminSelect')?.value;
+    const ventaSelect = document.getElementById('ventaDevolucionAdminSelect');
+    const selectedOption = ventaSelect?.options[ventaSelect.selectedIndex];
+    const tipoVenta = selectedOption?.dataset?.tipo || 'venta';
+    
+    if (!clienteId) {
+        Toast.warning('Por favor seleccione un cliente', 'Validación');
+        return;
+    }
+
+    if (!ventaId) {
+        Toast.warning('Por favor seleccione una venta/pedido', 'Validación');
+        return;
+    }
+
+    if (!motivo) {
+        Toast.warning('Por favor seleccione un motivo', 'Validación');
+        return;
+    }
+
+    // Obtener productos seleccionados
+    const productosSeleccionados = Array.from(document.querySelectorAll('.product-checkbox-manual:checked'));
+    
+    if (productosSeleccionados.length === 0) {
+        Toast.warning('Por favor seleccione al menos un producto', 'Validación');
+        return;
+    }
+
+    // Construir items array
+    const items = productosSeleccionados.map(cb => ({
+        producto_id: parseInt(cb.dataset.productoId, 10) || 0,
+        cantidad: parseInt(cb.closest('[style*="grid"]').querySelector('.product-quantity-manual').value, 10) || 1
+    }));
+
+    const payload = tipoVenta === 'pedido'
+        ? {
+            pedido_id: parseInt(ventaId, 10),
+            items: items,
+            motivo: motivo,
+            descripcion: document.getElementById('descripcionDevolucionAdminManual')?.value || ''
+          }
+        : {
+            venta_id: parseInt(ventaId, 10),
+            items: items,
+            motivo: motivo,
+            descripcion: document.getElementById('descripcionDevolucionAdminManual')?.value || ''
+          };
 
     this.disabled = true;
     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
 
     try {
         const apiUrl = (window.APP_BASE || '') + '/api/add_devolucion.php';
-        const res  = await fetch(apiUrl, {
+        const res = await fetch(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        
         const data = await res.json();
-        if (data.ok) {
+        
+        if (data.success) {
             document.getElementById('formDevolucion').style.display = 'none';
             document.getElementById('mostrarFormBtn').style.display = 'inline-flex';
-            limpiarErroresForm();
-            Toast.success(data.message || 'Devolución registrada correctamente', '¡Registrado!');
+            Toast.success('Devolución registrada exitosamente', '¡Éxito!');
             setTimeout(() => location.reload(), 1400);
         } else {
-            Toast.error(data.error || 'No se pudo guardar la devolución', 'Error');
+            Toast.error(data.error || 'Error al guardar la devolución', 'Error');
         }
     } catch (e) {
+        console.error('Error:', e);
         Toast.error('Error de conexión con el servidor', 'Error de red');
     }
 
     this.disabled = false;
     this.innerHTML = '<i class="fas fa-save"></i> Guardar Devolución';
 });
+
+function escapeHtmlAdmin(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function (s) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[s];
+    });
+}
 
 // ═══════════════════════════════════════════════════
 // APROBAR DEVOLUCIÓN (MEJORADO — reemplaza confirm/alert)
